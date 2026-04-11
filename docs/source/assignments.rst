@@ -1,6 +1,8 @@
 Assignments
 ===========
 
+Team: Niklas Becker-Klöser und Daria Elagina
+
 .. toctree::
    :maxdepth: 1
 

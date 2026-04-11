@@ -72,7 +72,16 @@ def einsum_loops(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     size_b, size_y = B.shape[0], B.shape[3]
 
     C = torch.zeros(size_a, size_b, size_c, size_x, size_y)
-    # TODO: implement using for loops over all seven index dimensions
+    for a in range(size_a):
+        for b in range(size_b):
+            for c in range(size_c):
+                for x in range(size_x):
+                    for y in range(size_y):
+                        value = 0.0
+                        for s in range(size_s):
+                            for p in range(size_p):
+                                value += A[a, c, s, x, p] * B[b, s, p, y]
+                        C[a, b, c, x, y] = value
 
     return C
 
@@ -88,7 +97,31 @@ def einsum_gemm(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     size_b, size_y = B.shape[0], B.shape[3]
 
     C = torch.zeros(size_a, size_b, size_c, size_x, size_y)
-    # TODO: implement with for loops over a, b, c, s and a matmul for the inner GEMM
+    for a in range(size_a):
+        for b in range(size_b):
+            for c in range(size_c):
+                for s in range(size_s):
+                    C[a, b, c, :, :] += matmul_loops(A[a, c, s, :, :], B[b, s, :, :])
+
+    return C
+
+
+def einsum_gemm_dot(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+    """Wie einsum_gemm, aber nur fuer Performance-Vergleich mit matmul_dot."""
+
+    assert A.ndim == 5 and B.ndim == 4, "Input tensors must have the correct number of dimensions."
+    assert A.size() == torch.Size([2, 4, 5, 4, 3]), "Input tensor A must have shape [2, 4, 5, 4, 3]."
+    assert B.size() == torch.Size([3, 5, 3, 5]), "Input tensor B must have shape [3, 5, 3, 5]."
+
+    size_a, size_c, size_s, size_x, size_p = A.shape
+    size_b, size_y = B.shape[0], B.shape[3]
+
+    C = torch.zeros(size_a, size_b, size_c, size_x, size_y)
+    for a in range(size_a):
+        for b in range(size_b):
+            for c in range(size_c):
+                for s in range(size_s):
+                    C[a, b, c, :, :] += matmul_dot(A[a, c, s, :, :], B[b, s, :, :])
 
     return C
 

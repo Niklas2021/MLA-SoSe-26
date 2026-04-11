@@ -1,0 +1,13 @@
+=== Basis ===
+base               shape=(2, 3, 4) stride=(12, 4, 1) contiguous=True storage_ptr=4410364224
+permuted           shape=(3, 2, 4) stride=(4, 12, 1) contiguous=False storage_ptr=4410364224
+reshaped_base      shape=(6, 4) stride=(4, 1) contiguous=True storage_ptr=4410364224
+base und permuted teilen Speicher: True
+base und reshaped_base teilen Speicher: True
+
+=== view vs reshape ===
+base_view          shape=(6, 4) stride=(4, 1) contiguous=True storage_ptr=4410364224
+view auf permuted: funktioniert nicht
+Fehler (kurz): view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+reshaped_permuted  shape=(3, 8) stride=(8, 1) contiguous=True storage_ptr=4411322432
+permuted und reshaped_permuted teilen Speicher: False

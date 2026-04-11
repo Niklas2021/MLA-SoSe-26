@@ -1,0 +1,14 @@
+/* Breitere Inhaltsfläche im sphinx_rtd_theme */
+.wy-nav-content {
+  max-width: none;
+}
+
+/* Tabellen und Codeblöcke dürfen die verfügbare Breite sinnvoll nutzen */
+.rst-content table.docutils {
+  width: 100%;
+}
+
+.rst-content pre,
+.rst-content div[class^="highlight"] {
+  max-width: 100%;
+}

@@ -1,4 +1,10 @@
 .venv/
 __pycache__/
+*.pyc
 .DS_Store
+
+# Sphinx build output 
 docs/_build/
+
+# other
+.claude/

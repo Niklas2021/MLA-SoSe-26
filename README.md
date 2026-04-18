@@ -1,14 +1,17 @@
 # MLA-SoSe-26
 
-## Dokumentation mit Sphinx
+## Dokumentation
 
-Die Sphinx-Dokumentation liegt unter `docs/`.
+Die vollständige Sphinx-Dokumentation ist online verfügbar unter:
+**https://niklas2021.github.io/MLA-SoSe-26/**
 
-### Build (HTML)
+---
 
-```bash
-cd docs
-make html
-```
+## Ordnerstruktur
 
-Die erzeugte Doku liegt anschließend unter `docs/_build/html/`.
+| Ordner | Inhalt |
+|--------|--------|
+| `assignments/` | Unsere Lösungen zu den Aufgabenserien |
+| `Abgabe/` | Offizielle `.tar`-Abgaben, die auch auf Moodle hochgeladen werden |
+| `slides/` | Unterrichtsfolien |
+| `docs/` | Sphinx-Quelldateien für die Dokumentation |

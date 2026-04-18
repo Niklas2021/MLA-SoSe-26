@@ -1,0 +1,33 @@
+
+==== CuTile IR for copy_tile==== 
+
+(src_0: Tile[PointerTy(pointee_type=<DType 'float16'>),()], src_1: Tile[int32,()], src_2: Tile[int32,()], src_3: Tile[int32,()], src_4: Tile[int32,()], dst_0: Tile[PointerTy(pointee_type=<DType 'float16'>),()], dst_1: Tile[int32,()], dst_2: Tile[int32,()], dst_3: Tile[int32,()], dst_4: Tile[int32,()], bh: Tile[int32,()], bw: Tile[int32,()]):
+$token: Token = make_token()
+$2: Tile[PointerTy(pointee_type=<DType 'float16'>),()] = assume_div_by(x=src_0, divisor=16)
+$3: Tile[int32,()] = assume_bounded(x=src_1, lower_bound=0, upper_bound=None)
+$4: Tile[int32,()] = assume_div_by(x=$3, divisor=16)
+$5: Tile[int32,()] = assume_bounded(x=src_2, lower_bound=0, upper_bound=None)
+$6: Tile[int32,()] = assume_div_by(x=$5, divisor=16)
+$7: Tile[int32,()] = assume_bounded(x=src_3, lower_bound=0, upper_bound=None)
+$8: Tile[int32,()] = assume_div_by(x=$7, divisor=8)
+src{$2, $4, $6, $8, src_4}: Array[float16,(?,?):(?,1)] = make_tensor_view(base_ptr=$2, shape=($4, $6), dynamic_strides=($8))
+$9: Tile[PointerTy(pointee_type=<DType 'float16'>),()] = assume_div_by(x=dst_0, divisor=16)
+$10: Tile[int32,()] = assume_bounded(x=dst_1, lower_bound=0, upper_bound=None)
+$11: Tile[int32,()] = assume_div_by(x=$10, divisor=16)
+$12: Tile[int32,()] = assume_bounded(x=dst_2, lower_bound=0, upper_bound=None)
+$13: Tile[int32,()] = assume_div_by(x=$12, divisor=16)
+$14: Tile[int32,()] = assume_bounded(x=dst_3, lower_bound=0, upper_bound=None)
+$15: Tile[int32,()] = assume_div_by(x=$14, divisor=8)
+dst{$9, $11, $13, $15, dst_4}: Array[float16,(?,?):(?,1)] = make_tensor_view(base_ptr=$9, shape=($11, $13), dynamic_strides=($15))
+$25: Tile[int32,()] = tile_bid(axis=0)
+$38: Tile[int32,()] = tile_bid(axis=1)
+$66: Tile[float16,(64,64)], $token.0: Token = tile_load_token_ordered(array=src{$2, $4, $6, $8, src_4}, index=($25, $38), token=$token, order=(0, 1), padding_mode=PaddingMode.UNDETERMINED, latency=None, allow_tma=None)
+$token.2: Token = tile_store_token_ordered(array=dst{$9, $11, $13, $15, dst_4}, index=($25, $38), tile=$66, token=$token, order=(0, 1), latency=None, allow_tma=None)
+return
+
+
+- launching kernel –
+
+
+--- kernel finished ---
+

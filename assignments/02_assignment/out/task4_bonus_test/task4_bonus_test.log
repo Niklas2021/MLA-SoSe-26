@@ -1,0 +1,13 @@
+=== Bandwidth Sweep  (M=8192, tile_M=64, tile_N=N) ===
+
+  N=   16  data=    0.5 MB  elapsed=  0.004 ms  bandwidth=130.1 GB/s
+  N=   32  data=    1.0 MB  elapsed=  0.004 ms  bandwidth=248.6 GB/s
+  N=   64  data=    2.1 MB  elapsed=  0.004 ms  bandwidth=518.9 GB/s
+  N=  128  data=    4.2 MB  elapsed=  0.006 ms  bandwidth=674.1 GB/s
+  N=  256  data=    8.4 MB  elapsed=  0.008 ms  bandwidth=1010.7 GB/s
+  N=  512  data=   16.8 MB  elapsed=  0.020 ms  bandwidth=830.1 GB/s
+  N= 1024  data=   33.6 MB  elapsed=  0.139 ms  bandwidth=240.7 GB/s
+  N= 2048  data=   67.1 MB  elapsed=  0.306 ms  bandwidth=219.1 GB/s
+  N= 4096  data=  134.2 MB  elapsed=  0.586 ms  bandwidth=229.0 GB/s
+
+Plot gespeichert in task4_2_bw.png

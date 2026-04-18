@@ -1,5 +1,14 @@
 # MLA-SoSe-26
 
+## Assignments
+
+| Assignment | Ordner |
+|------------|--------|
+| 01 – Tensors & Einsum | [assignments/01_assignment](assignments/01_assignment) |
+| 02 – GPU Architecture & cuTile | [assignments/02_assignment](assignments/02_assignment) |
+
+---
+
 ## Dokumentation
 
 Die vollständige Sphinx-Dokumentation ist online verfügbar unter:

@@ -1,0 +1,10 @@
+=== Task 4a – Correctness ===
+correctness check passed
+
+=== Task 4b – Bandwidth Sweep ===
+  N=  16  elapsed=   6.38 µs  bandwidth=20.53 GB/s
+  N=  32  elapsed=   6.40 µs  bandwidth=40.98 GB/s
+  N=  64  elapsed=   6.18 µs  bandwidth=84.80 GB/s
+  N= 128  elapsed=   6.32 µs  bandwidth=165.93 GB/s
+
+Plot gespeichert in task4_bw.png

@@ -24,17 +24,9 @@ Implementierte Funktionen
 Output
 -------------
 
-.. code-block:: text
-    
-    1: is correct:  True
-    2: is correct:  True
+.. literalinclude:: ../../../../assignments/02_assignment/out/task3/task3.log
+   :language: text
 
-    Benchmark results (average runtime):
-    sum_kl  (tile over K,L  | grid over M,N): 0.1410 ms
-    sum_mn  (tile over M,N  | grid over K,L): 0.4820 ms
-
-    Analysis:
-    sum_kl is faster by a factor of ~3.42x.
 
 Teilaufgabe a)
 -------------

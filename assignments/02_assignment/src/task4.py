@@ -6,10 +6,10 @@ from math import ceil
 
 # ---- config ----
 FIXED_ROWS  = 2048
-COL_SWEEP   = [16, 32, 64, 128]   # getestete N-Werte in Teil b
-TILE_H      = 64                   # tile_M bleibt konstant
+COL_SWEEP   = list(range(16, 129))  # N = 16 … 128 (jeder Wert, laut Aufgabenstellung)
+TILE_H      = 64                    # tile_M bleibt konstant
 WARMUP_RUNS = 10
-BENCH_RUNS  = 200
+BENCH_RUNS  = 100
 # ----------------
 
 
@@ -23,16 +23,37 @@ def copy_tile(src, dst, bh: ct.Constant[int], bw: ct.Constant[int]):
     ct.store(dst, index=(row_blk, col_blk), tile=data)
 
 
+def _next_pow2(n):
+    p = 1
+    while p < n:
+        p <<= 1
+    return p
+
+
 def launch_copy(src, dst, tile_h, tile_w):
     rows, cols = src.shape
-    # Gittergröße: wie viele Tiles passen in jede Dimension
-    grid = (ceil(rows / tile_h), ceil(cols / tile_w), 1)
+    # Tile-Dimensionen müssen Zweierpotenzen sein
+    th = _next_pow2(tile_h)
+    tw = _next_pow2(tile_w)
+    # Array auf Tile-Vielfaches auffüllen
+    pad_r = (th - rows % th) % th
+    pad_c = (tw - cols % tw) % tw
+    if pad_r or pad_c:
+        src_p = cp.pad(src, ((0, pad_r), (0, pad_c)))
+        dst_p = cp.zeros((rows + pad_r, cols + pad_c), dtype=dst.dtype)
+    else:
+        src_p, dst_p = src, dst
+
+    grid = (ceil(rows / th), ceil(cols / tw), 1)
     ct.launch(
         cp.cuda.get_current_stream(),
         grid,
         copy_tile,
-        (src, dst, tile_h, tile_w),
+        (src_p, dst_p, th, tw),
     )
+
+    if pad_r or pad_c:
+        cp.copyto(dst, dst_p[:rows, :cols])
 
 
 def bench_kernel(fn):
@@ -58,16 +79,23 @@ def bench_kernel(fn):
 def task4a():
     print("=== Task 4a – Correctness ===")
 
-    rows, cols = 512, 64
-    src = cp.random.rand(rows, cols).astype(cp.float16)
-    dst = cp.zeros((rows, cols), dtype=cp.float16)
+    test_cases = [
+        (512, 64,  "power-of-2 (512×64)"),
+        (500, 70,  "non-power-of-2 (500×70)"),
+        (1000, 96, "non-power-of-2 (1000×96)"),
+    ]
 
-    launch_copy(src, dst, 64, 64)
-    cp.cuda.Device().synchronize()
+    for rows, cols, label in test_cases:
+        src = cp.random.rand(rows, cols).astype(cp.float16)
+        dst = cp.zeros((rows, cols), dtype=cp.float16)
 
-    # src und dst müssen elementweise übereinstimmen
-    assert cp.allclose(src, dst), "Ausgabe stimmt nicht mit Eingabe überein"
-    print("correctness check passed\n")
+        launch_copy(src, dst, 64, 64)
+        cp.cuda.Device().synchronize()
+
+        assert cp.allclose(src, dst), f"Ausgabe stimmt nicht überein ({label})"
+        print(f"  correctness check passed: {label}")
+
+    print()
 
 
 # ------------------------------------------------------------------ #
@@ -104,19 +132,16 @@ def task4b():
 
 
 def _plot_results(n_vals, bw_vals):
-    _, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(
-        n_vals, bw_vals,
-        marker="o", linewidth=1.7, color="steelblue", label="gemessen"
-    )
-    ax.set_xlabel("N  (Anzahl Spalten)")
+    _, ax = plt.subplots(figsize=(8, 4))
+    ax.plot(n_vals, bw_vals, linewidth=1.5, color="steelblue", label="gemessen")
+    ax.set_xlabel("N  (Anzahl Spalten, 16 – 128)")
     ax.set_ylabel("Effektive Bandbreite  (GB/s)")
     ax.set_title(
         f"Copy Kernel – Speicherbandbreite\n"
-        f"M={FIXED_ROWS} fest,  tile_M={TILE_H},  tile_N=N"
+        f"M={FIXED_ROWS} fest,  tile_M={TILE_H},  tile_N=next_pow2(N)"
     )
-    ax.set_xticks(n_vals)
-    ax.grid(axis="y", alpha=0.35)
+    ax.set_xticks([16, 32, 48, 64, 80, 96, 112, 128])
+    ax.grid(axis="both", alpha=0.35)
     ax.legend()
     plt.tight_layout()
     plt.savefig("task4_bw.png", dpi=150)

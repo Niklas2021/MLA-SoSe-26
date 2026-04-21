@@ -8,8 +8,10 @@ Aufgabenstellung
 und kopieren. Jedes Kernel-Programm ist für ein Tile der Größe
 ``(tile_M, tile_N)`` zuständig.
 
-**b)** Die Bandbreite wird für ``M=2048`` und ``N ∈ {16, 32, 64, 128}``
+**b)** Die Bandbreite wird für ``M=2048`` und **alle** ``N ∈ {16, …, 128}``
 gemessen. Das Tile deckt immer die volle Breite ab (``tile_N = N``).
+Da cuTile nur Tile-Dimensionen als Zweierpotenzen unterstützt, wird intern
+``tile_N = next_pow2(N)`` verwendet und das Array entsprechend gepaddet.
 Die Formel lautet:
 
 .. code-block:: text
@@ -36,7 +38,11 @@ Unsere Lösung
 Der Kernel liest ein ``(tile_M, tile_N)``-Tile aus der Eingabematrix
 und schreibt es direkt in die Ausgabe.
 Das 2D-Grid ergibt sich aus ``ceil(M / tile_M)`` mal ``ceil(N / tile_N)``.
-Die Korrektheit wurde mit ``cp.allclose`` gegen die Eingabematrix verifiziert.
+Da cuTile ausschließlich Zweierpotenzen als Tile-Größe unterstützt, rundet
+``launch_copy`` die Tile-Dimensionen auf die nächste Zweierpotenz auf und
+paddet das Array entsprechend — der gültige Bereich wird nach dem Kernel-Aufruf
+zurückkopiert. Die Korrektheit wurde mit ``cp.allclose`` für Zweierpotenzen
+sowie für nicht-zweierpotenz-ausgerichtete Formen (500×70, 1000×96) verifiziert.
 
 Teil b – Bandwidth-Sweep
 -------------------------
@@ -58,46 +64,32 @@ Programmausgabe
 .. literalinclude:: ../../../../assignments/02_assignment/out/task4/task4.log
    :language: text
 
-Messergebnisse
-^^^^^^^^^^^^^^
+Auswertung
+^^^^^^^^^^
 
-Gemessen auf dem DGX Spark (CUDA 13.0), je 200 Runs nach 10 Warmup-Durchläufen:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 15 25 25 35
-
-   * - N
-     - Datenmenge (R+W)
-     - Laufzeit
-     - Effektive Bandbreite
-   * - 16
-     - 0.13 MB
-     - 6.38 µs
-     - 20.53 GB/s
-   * - 32
-     - 0.25 MB
-     - 6.40 µs
-     - 40.98 GB/s
-   * - 64
-     - 0.50 MB
-     - 6.18 µs
-     - 84.80 GB/s
-   * - 128
-     - 1.05 MB
-     - 6.32 µs
-     - 165.93 GB/s
+Gemessen auf dem DGX Spark (CUDA 13.0), je 50 Runs nach 5 Warmup-Durchläufen.
 
 .. image:: ../../_static/task4_bw.png
    :alt: Copy Kernel Bandbreite – M=2048, N=16..128
    :width: 100%
 
-Die Laufzeit bleibt über alle N nahezu konstant bei ca. 6.3 µs –
-der Kernel ist für diese kleinen Matrixgrößen vollständig
-Kernel-Launch-Overhead-dominiert. Die scheinbar steigende Bandbreite
-ist kein echter Skalierungseffekt, sondern eine Folge der
-Overhead-Amortisierung: doppelt so viele Daten im selben Zeitfenster
-ergeben doppelt so hohe scheinbare Bandbreite.
+Der Plot zeigt zwei überlagerte Effekte:
+
+**Spitzen bei Zweierpotenzen (N = 16, 32, 64, 128):**
+An diesen Stellen gilt ``tile_N = next_pow2(N) = N`` exakt — kein Padding
+nötig, der Kernel kopiert präzise die geforderten Daten ohne Verschwendung.
+Die Laufzeit sinkt auf ~4–7 µs (gegenüber ~30 µs für alle anderen N),
+was zu Bandbreiten von 69–269 GB/s führt. Bei nicht-zweierpotenz-ausgerichteten
+N hingegen wird ein übergroßes Tile kopiert (z. B. N=17 → tile_N=32),
+was die effektiv genutzte Speicherbandbreite für die eigentlichen Nutzdaten
+drastisch reduziert.
+
+**Kontinuierlicher Anstieg der Bandbreite zwischen den Spitzen:**
+Innerhalb eines Zweierpotenz-Intervalls (z. B. N=33..63) bleibt die
+Tile-Größe konstant (tile_N=64), sodass die Kernel-Laufzeit nahezu
+unverändert bei ~30 µs liegt. Die tatsächliche Datenmenge ``2·M·N·2 Byte``
+wächst jedoch linear mit N — bei konstantem Nenner steigt die berechnete
+Bandbreite deshalb proportional zu N an.
 
 Zusatz: Erweiterter Sweep *(nicht Teil der Bewertung)*
 -------------------------------------------------------

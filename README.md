@@ -24,3 +24,13 @@ Die vollständige Sphinx-Dokumentation ist online verfügbar unter:
 | `Abgabe/` | Offizielle `.tar`-Abgaben, die auch auf Moodle hochgeladen werden |
 | `slides/` | Unterrichtsfolien |
 | `docs/` | Sphinx-Quelldateien für die Dokumentation |
+
+
+---
+
+## Fetch von MLA Repo: 
+
+```bash
+git fetch upstream
+git merge upstream/main --no-ff
+```

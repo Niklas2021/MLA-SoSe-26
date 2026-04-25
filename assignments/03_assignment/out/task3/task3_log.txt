@@ -1,0 +1,76 @@
+=== Task 3a - square matmul, tiles (64,64,64) ===
+  M=N=K=  256      0.016 ms      2.09 TFLOPS
+  M=N=K=  512      0.033 ms      8.12 TFLOPS
+  M=N=K= 1024      0.105 ms     20.45 TFLOPS
+  M=N=K= 2048      0.460 ms     37.36 TFLOPS
+  M=N=K= 4096      8.150 ms     16.86 TFLOPS
+  M=N=K= 8192     80.154 ms     13.72 TFLOPS
+  plot gespeichert: /home/mla03/build/03_assignment/src/../out/task3/task3a_tflops.png
+
+=== Task 3b - tile sweep bei 2048^3 ===
+  tiles=( 32, 32, 32)     0.946 ms    18.16 TFLOPS
+  tiles=( 32, 32, 64)     0.943 ms    18.22 TFLOPS
+  tiles=( 32, 32,128)     0.714 ms    24.07 TFLOPS
+  tiles=( 32, 64, 32)     0.718 ms    23.94 TFLOPS
+  tiles=( 32, 64, 64)     0.602 ms    28.52 TFLOPS
+  tiles=( 32, 64,128)     0.626 ms    27.44 TFLOPS
+  tiles=( 32,128, 32)     0.582 ms    29.54 TFLOPS
+  tiles=( 32,128, 64)     0.544 ms    31.60 TFLOPS
+  tiles=( 32,128,128)     0.574 ms    29.93 TFLOPS
+  tiles=( 64, 32, 32)     0.685 ms    25.07 TFLOPS
+  tiles=( 64, 32, 64)     0.672 ms    25.56 TFLOPS
+  tiles=( 64, 32,128)     0.725 ms    23.70 TFLOPS
+  tiles=( 64, 64, 32)     0.514 ms    33.43 TFLOPS
+  tiles=( 64, 64, 64)     0.466 ms    36.87 TFLOPS
+  tiles=( 64, 64,128)     0.493 ms    34.82 TFLOPS
+  tiles=( 64,128, 32)     0.490 ms    35.03 TFLOPS
+  tiles=( 64,128, 64)     0.449 ms    38.24 TFLOPS
+  tiles=( 64,128,128)     0.461 ms    37.23 TFLOPS
+  tiles=(128, 32, 32)     0.529 ms    32.50 TFLOPS
+  tiles=(128, 32, 64)     0.566 ms    30.35 TFLOPS
+  tiles=(128, 32,128)     0.581 ms    29.59 TFLOPS
+  tiles=(128, 64, 32)     0.472 ms    36.37 TFLOPS
+  tiles=(128, 64, 64)     0.540 ms    31.82 TFLOPS
+  tiles=(128, 64,128)     0.442 ms    38.83 TFLOPS
+  tiles=(128,128, 32)     0.620 ms    27.71 TFLOPS
+  tiles=(128,128, 64)     0.404 ms    42.50 TFLOPS
+  tiles=(128,128,128)     0.877 ms    19.59 TFLOPS
+  --> bester tile shape bei 2048^3: (128, 128, 64) mit 42.50 TFLOPS
+
+  heatmap gespeichert: /home/mla03/build/03_assignment/src/../out/task3/task3b_heatmap_2048.png
+
+=== Task 3b - tile sweep bei 512^3 ===
+  tiles=( 32, 32, 32)     0.040 ms     6.79 TFLOPS
+  tiles=( 32, 32, 64)     0.041 ms     6.55 TFLOPS
+  tiles=( 32, 32,128)     0.036 ms     7.50 TFLOPS
+  tiles=( 32, 64, 32)     0.036 ms     7.55 TFLOPS
+  tiles=( 32, 64, 64)     0.034 ms     7.85 TFLOPS
+  tiles=( 32, 64,128)     0.034 ms     7.84 TFLOPS
+  tiles=( 32,128, 32)     0.037 ms     7.21 TFLOPS
+  tiles=( 32,128, 64)     0.034 ms     7.94 TFLOPS
+  tiles=( 32,128,128)     0.034 ms     7.85 TFLOPS
+  tiles=( 64, 32, 32)     0.035 ms     7.72 TFLOPS
+  tiles=( 64, 32, 64)     0.037 ms     7.35 TFLOPS
+  tiles=( 64, 32,128)     0.034 ms     7.88 TFLOPS
+  tiles=( 64, 64, 32)     0.033 ms     8.08 TFLOPS
+  tiles=( 64, 64, 64)     0.033 ms     8.20 TFLOPS
+  tiles=( 64, 64,128)     0.034 ms     7.97 TFLOPS
+  tiles=( 64,128, 32)     0.034 ms     8.00 TFLOPS
+  tiles=( 64,128, 64)     0.031 ms     8.77 TFLOPS
+  tiles=( 64,128,128)     0.032 ms     8.34 TFLOPS
+  tiles=(128, 32, 32)     0.034 ms     7.94 TFLOPS
+  tiles=(128, 32, 64)     0.034 ms     7.97 TFLOPS
+  tiles=(128, 32,128)     0.041 ms     6.63 TFLOPS
+  tiles=(128, 64, 32)     0.029 ms     9.11 TFLOPS
+  tiles=(128, 64, 64)     0.030 ms     9.05 TFLOPS
+  tiles=(128, 64,128)     0.030 ms     8.99 TFLOPS
+  tiles=(128,128, 32)     0.040 ms     6.71 TFLOPS
+  tiles=(128,128, 64)     0.031 ms     8.72 TFLOPS
+  tiles=(128,128,128)     0.052 ms     5.17 TFLOPS
+  --> bester tile shape bei 512^3: (128, 64, 32) mit 9.11 TFLOPS
+
+  heatmap gespeichert: /home/mla03/build/03_assignment/src/../out/task3/task3b_heatmap_512.png
+
+=== Task 3b - Summary ===
+  best @ 2048^3: tiles=(128, 128, 64)  42.50 TFLOPS
+  best @  512^3: tiles=(128, 64, 32)  9.11 TFLOPS

@@ -8,3 +8,4 @@ Team: Niklas Becker-Klöser und Daria Elagina
 
    assignments/01_assignment/assignment_01
    assignments/02_assignment/assignment_02
+   assignments/03_assignment/assignment_03

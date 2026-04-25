@@ -1,0 +1,6 @@
+=== Task 2 - Korrektheit ===
+  M=  256 K=  256 N=  256  tiles=(64,64,64)  max_err=0.0000  allclose=True
+  M= 1024 K=  512 N=  768  tiles=(64,64,64)  max_err=0.0001  allclose=True
+  M=  100 K=  200 N=  300  tiles=(64,64,64)  max_err=0.0000  allclose=True
+  M=  513 K=  257 N=  129  tiles=(64,64,64)  max_err=0.0000  allclose=True
+  M= 1000 K=  999 N=  777  tiles=(64,64,64)  max_err=0.0003  allclose=True

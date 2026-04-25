@@ -6,6 +6,7 @@
 |------------|--------|
 | 01 – Tensors & Einsum | [assignments/01_assignment](assignments/01_assignment) |
 | 02 – GPU Architecture & cuTile | [assignments/02_assignment](assignments/02_assignment) |
+| 03 – Matrix Multiplication mit cuTile | [assignments/03_assignment](assignments/03_assignment) |
 
 ---
 

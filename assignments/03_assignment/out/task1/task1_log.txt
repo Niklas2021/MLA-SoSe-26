@@ -1,0 +1,9 @@
+FP32: torch.allclose verification:  True
+FP16: torch.allclose verification:  True
+
+Benchmark results (average runtime):
+FP32: 1.7346 ms
+FP16: 0.0286 ms
+
+Analysis:
+FP16 is faster by a factor of ~60.70x.

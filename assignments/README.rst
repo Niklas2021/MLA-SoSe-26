@@ -13,6 +13,15 @@ Assignments
    * - 01
      - Tensors and Einsum
      - 04/13
+   * - 02
+     - GPU Architecture and cuTile
+     - 04/20
+   * - 03
+     - Matrix Multiplication on GPU
+     - 04/27
+   * - 04
+     - Tensor Contractions on GPUs
+     - 05/04
 
 
 ----

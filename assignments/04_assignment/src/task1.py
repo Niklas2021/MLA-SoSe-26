@@ -136,6 +136,7 @@ def d_contraction(A, B, C,
     out = ct.reshape(acc, (1,1,1,1,x,z)).astype(ct.float16)
     ct.store(C, index=(pid_e, pid_a, pid_b, pid_c, 0,0), tile=out)
 
+# --------------- Task 1 e)
 # eabklxy, ecklyz -> eabcxz
 # GEMM dims: exyz, meaning that you perform a 3D ct.mma inside the kernel. 
 # Sequentialize all other K-dimensions, parallelize the remaining dimensions.
@@ -173,8 +174,8 @@ def e_contraction(A, B, C,
          for l_i in range(l):
             a_tile = ct.load (A, index=(0, pid_a, pid_b, k_i, l_i, 0, 0), shape =(e,1,1,1,1,x,y))
             b_tile = ct.load (B, index=(0, pid_c, k_i, l_i, 0, 0), shape =(e,1,1,1,y,z))
-            a_tile = ct.reshape(a_tile, (x, y))
-            b_tile = ct.reshape(b_tile, (y, z))
+            a_tile = ct.reshape(a_tile, (e,x, y))
+            b_tile = ct.reshape(b_tile, (e,y, z))
             acc = ct.mma(a_tile, b_tile, acc)
         out = ct.reshape(acc, (e,1,1,1,x,z)).astype(ct.float16)
         ct.store(C, index=(0, pid_a, pid_b, pid_c, 0,0), tile=out)
@@ -211,6 +212,8 @@ def run_kernels():
     
     ref = torch.einsum('eabklxy,ecklyz->eabcxz', a_input.float(), b_input.float()).half()
     print("b) Verification:", torch.allclose(c_output, ref, atol=1e-2, rtol=1e-2))
+    ms_b = triton.testing.do_bench(lambda: ct.launch(torch.cuda.current_stream(), grid, b_contraction, (a_input, b_input, c_output, e,a,b,c,k,l,x,y,z)))
+    print(f"Runtime: {ms_b:.3f} ms")
 
 # Task 1 c)
     c_output = c_output.zero_() #start with empty ouput
@@ -224,6 +227,8 @@ def run_kernels():
                     e,a,b,c,k,l,x,y,z))            
     
     print("c) Verification:", torch.allclose(c_output, ref, atol=1e-2, rtol=1e-2))
+    ms_c = triton.testing.do_bench(lambda: ct.launch(torch.cuda.current_stream(), grid_c, c_contraction, (a_input, b_input, c_output, e,a,b,c,k,l,x,y,z)))
+    print(f"Runtime: {ms_c:.3f} ms")
 
 
 # Task 1 d)
@@ -238,6 +243,8 @@ def run_kernels():
                     e,a,b,c,k,l,x,y,z))            
     
     print("d) Verification:", torch.allclose(c_output, ref, atol=1e-2, rtol=1e-2))
+    ms_d = triton.testing.do_bench(lambda: ct.launch(torch.cuda.current_stream(), grid_d, d_contraction, (a_input, b_input, c_output, e,a,b,c,k,l,x,y,z)))
+    print(f"Runtime: {ms_d:.3f} ms")
 
 # Task 1 e)
     c_output = c_output.zero_() 
@@ -251,7 +258,8 @@ def run_kernels():
                     e,a,b,c,k,l,x,y,z))            
     
     print("e) Verification:", torch.allclose(c_output, ref, atol=1e-2, rtol=1e-2))
-
+    ms_e = triton.testing.do_bench(lambda: ct.launch(torch.cuda.current_stream(), grid_e, e_contraction, (a_input, b_input, c_output, e,a,b,c,k,l,x,y,z)))
+    print(f"Runtime: {ms_e:.3f} ms")
 
 if __name__ == "__main__":
     run_kernels()

@@ -1,0 +1,8 @@
+b) Verification: True
+Runtime: 6067.034 ms
+c) Verification: True
+Runtime: 11095.812 ms
+d) Verification: True
+Runtime: 6599.662 ms
+e) Verification: True
+Runtime: 14719.271 ms

@@ -1,8 +1,20 @@
 b) Verification: True
-Runtime: 6067.034 ms
+Runtime: 5992.442 ms
 c) Verification: True
-Runtime: 11095.812 ms
+Runtime: 11099.224 ms
 d) Verification: True
-Runtime: 6599.662 ms
+Runtime: 6468.040 ms
 e) Verification: True
-Runtime: 14719.271 ms
+Runtime: 14729.832 ms
+
+B VS C:
+large b:
+  b) 3.506 ms c) 7.733 ms  -> b) faster
+large e,a,b:
+  b) 0.716 ms c) 0.555 ms  -> c) faster
+
+B VS D:
+small GEMM dimensions:
+  b) 0.136 ms d) 0.137 ms  -> b) faster
+large l:
+  b) 2.940 ms d) 1.413 ms  -> d) faster

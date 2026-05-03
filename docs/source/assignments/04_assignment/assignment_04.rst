@@ -21,5 +21,6 @@ Jede Task-Seite enthält:
    :maxdepth: 1
    :caption: Tasks
 
+   task_1
    task_2_fusion
    task_3_sweep

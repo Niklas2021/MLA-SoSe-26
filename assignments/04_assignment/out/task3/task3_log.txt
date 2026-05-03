@@ -1,0 +1,240 @@
+=== Task 3 a) Korrektheit ===
+  m=  64 n=  64 k=  64   max_err=0.1250   allclose=True
+  m=  64 n= 128 k=  64   max_err=0.1250   allclose=True
+  m=  17 n=  17 k=  17   max_err=0.0625   allclose=True
+  m=  64 n= 129 k=  64   max_err=0.1250   allclose=True
+  m=  64 n=  64 k= 129   max_err=0.1250   allclose=True
+  m=  33 n=  51 k=  97   max_err=0.1250   allclose=True
+
+=== Task 3 b) sweep Task 3b - sweep n (m=64, k=64) ===
+  m= 64 n= 17 k= 64    0.1468 ms     7.77 TFLOPS
+  m= 64 n= 18 k= 64    0.1448 ms     8.34 TFLOPS
+  m= 64 n= 19 k= 64    0.1462 ms     8.72 TFLOPS
+  m= 64 n= 20 k= 64    0.1469 ms     9.14 TFLOPS
+  m= 64 n= 21 k= 64    0.1500 ms     9.39 TFLOPS
+  m= 64 n= 22 k= 64    0.1459 ms    10.12 TFLOPS
+  m= 64 n= 23 k= 64    0.1483 ms    10.40 TFLOPS
+  m= 64 n= 24 k= 64    0.1459 ms    11.04 TFLOPS
+  m= 64 n= 25 k= 64    0.1468 ms    11.43 TFLOPS
+  m= 64 n= 26 k= 64    0.1518 ms    11.49 TFLOPS
+  m= 64 n= 27 k= 64    0.1528 ms    11.86 TFLOPS
+  m= 64 n= 28 k= 64    0.1489 ms    12.62 TFLOPS
+  m= 64 n= 29 k= 64    0.1535 ms    12.68 TFLOPS
+  m= 64 n= 30 k= 64    0.1533 ms    13.13 TFLOPS
+  m= 64 n= 31 k= 64    0.1497 ms    13.90 TFLOPS
+  m= 64 n= 32 k= 64    0.1298 ms    16.55 TFLOPS
+  m= 64 n= 33 k= 64    0.2617 ms     8.46 TFLOPS
+  m= 64 n= 34 k= 64    0.2627 ms     8.69 TFLOPS
+  m= 64 n= 35 k= 64    0.2591 ms     9.07 TFLOPS
+  m= 64 n= 36 k= 64    0.2542 ms     9.50 TFLOPS
+  m= 64 n= 37 k= 64    0.2548 ms     9.75 TFLOPS
+  m= 64 n= 38 k= 64    0.2651 ms     9.62 TFLOPS
+  m= 64 n= 39 k= 64    0.2592 ms    10.10 TFLOPS
+  m= 64 n= 40 k= 64    0.2574 ms    10.43 TFLOPS
+  m= 64 n= 41 k= 64    0.2574 ms    10.69 TFLOPS
+  m= 64 n= 42 k= 64    0.2612 ms    10.79 TFLOPS
+  m= 64 n= 43 k= 64    0.2634 ms    10.95 TFLOPS
+  m= 64 n= 44 k= 64    0.2588 ms    11.41 TFLOPS
+  m= 64 n= 45 k= 64    0.2643 ms    11.43 TFLOPS
+  m= 64 n= 46 k= 64    0.2634 ms    11.72 TFLOPS
+  m= 64 n= 47 k= 64    0.2612 ms    12.08 TFLOPS
+  m= 64 n= 48 k= 64    0.2629 ms    12.25 TFLOPS
+  m= 64 n= 49 k= 64    0.2643 ms    12.44 TFLOPS
+  m= 64 n= 50 k= 64    0.2665 ms    12.59 TFLOPS
+  m= 64 n= 51 k= 64    0.2641 ms    12.96 TFLOPS
+  m= 64 n= 52 k= 64    0.2708 ms    12.89 TFLOPS
+  m= 64 n= 53 k= 64    0.2631 ms    13.52 TFLOPS
+  m= 64 n= 54 k= 64    0.2666 ms    13.59 TFLOPS
+  m= 64 n= 55 k= 64    0.2638 ms    13.99 TFLOPS
+  m= 64 n= 56 k= 64    0.2645 ms    14.21 TFLOPS
+  m= 64 n= 57 k= 64    0.2721 ms    14.06 TFLOPS
+  m= 64 n= 58 k= 64    0.2681 ms    14.52 TFLOPS
+  m= 64 n= 59 k= 64    0.2715 ms    14.58 TFLOPS
+  m= 64 n= 60 k= 64    0.2668 ms    15.09 TFLOPS
+  m= 64 n= 61 k= 64    0.2713 ms    15.09 TFLOPS
+  m= 64 n= 62 k= 64    0.2705 ms    15.38 TFLOPS
+  m= 64 n= 63 k= 64    0.2732 ms    15.47 TFLOPS
+  m= 64 n= 64 k= 64    0.2336 ms    18.39 TFLOPS
+  m= 64 n= 65 k= 64    0.3816 ms    11.43 TFLOPS
+  m= 64 n= 66 k= 64    0.3826 ms    11.58 TFLOPS
+  m= 64 n= 67 k= 64    0.3801 ms    11.83 TFLOPS
+  m= 64 n= 68 k= 64    0.3790 ms    12.04 TFLOPS
+  m= 64 n= 69 k= 64    0.3825 ms    12.11 TFLOPS
+  m= 64 n= 70 k= 64    0.3870 ms    12.14 TFLOPS
+  m= 64 n= 71 k= 64    0.3818 ms    12.48 TFLOPS
+  m= 64 n= 72 k= 64    0.3814 ms    12.67 TFLOPS
+  m= 64 n= 73 k= 64    0.3909 ms    12.53 TFLOPS
+  m= 64 n= 74 k= 64    0.3829 ms    12.97 TFLOPS
+  m= 64 n= 75 k= 64    0.3912 ms    12.87 TFLOPS
+  m= 64 n= 76 k= 64    0.3871 ms    13.18 TFLOPS
+  m= 64 n= 77 k= 64    0.3834 ms    13.48 TFLOPS
+  m= 64 n= 78 k= 64    0.3848 ms    13.60 TFLOPS
+  m= 64 n= 79 k= 64    0.3883 ms    13.65 TFLOPS
+  m= 64 n= 80 k= 64    0.3945 ms    13.61 TFLOPS
+  m= 64 n= 81 k= 64    0.3886 ms    13.99 TFLOPS
+  m= 64 n= 82 k= 64    0.3848 ms    14.30 TFLOPS
+  m= 64 n= 83 k= 64    0.3881 ms    14.35 TFLOPS
+  m= 64 n= 84 k= 64    0.3986 ms    14.14 TFLOPS
+  m= 64 n= 85 k= 64    0.3891 ms    14.66 TFLOPS
+  m= 64 n= 86 k= 64    0.3881 ms    14.87 TFLOPS
+  m= 64 n= 87 k= 64    0.3899 ms    14.97 TFLOPS
+  m= 64 n= 88 k= 64    0.3924 ms    15.05 TFLOPS
+  m= 64 n= 89 k= 64    0.3963 ms    15.07 TFLOPS
+  m= 64 n= 90 k= 64    0.3924 ms    15.39 TFLOPS
+  m= 64 n= 91 k= 64    0.3960 ms    15.42 TFLOPS
+  m= 64 n= 92 k= 64    0.3952 ms    15.62 TFLOPS
+  m= 64 n= 93 k= 64    0.3956 ms    15.78 TFLOPS
+  m= 64 n= 94 k= 64    0.3971 ms    15.89 TFLOPS
+  m= 64 n= 95 k= 64    0.3918 ms    16.27 TFLOPS
+  m= 64 n= 96 k= 64    0.3448 ms    18.69 TFLOPS
+  m= 64 n= 97 k= 64    0.4978 ms    13.08 TFLOPS
+  m= 64 n= 98 k= 64    0.5037 ms    13.06 TFLOPS
+  m= 64 n= 99 k= 64    0.5068 ms    13.11 TFLOPS
+  m= 64 n=100 k= 64    0.5139 ms    13.06 TFLOPS
+  m= 64 n=101 k= 64    0.5027 ms    13.48 TFLOPS
+  m= 64 n=102 k= 64    0.5022 ms    13.63 TFLOPS
+  m= 64 n=103 k= 64    0.5011 ms    13.79 TFLOPS
+  m= 64 n=104 k= 64    0.5100 ms    13.69 TFLOPS
+  m= 64 n=105 k= 64    0.5151 ms    13.68 TFLOPS
+  m= 64 n=106 k= 64    0.5085 ms    13.99 TFLOPS
+  m= 64 n=107 k= 64    0.5043 ms    14.24 TFLOPS
+  m= 64 n=108 k= 64    0.5118 ms    14.16 TFLOPS
+  m= 64 n=109 k= 64    0.5174 ms    14.14 TFLOPS
+  m= 64 n=110 k= 64    0.5107 ms    14.45 TFLOPS
+  m= 64 n=111 k= 64    0.5102 ms    14.60 TFLOPS
+  m= 64 n=112 k= 64    0.5078 ms    14.80 TFLOPS
+  m= 64 n=113 k= 64    0.5108 ms    14.85 TFLOPS
+  m= 64 n=114 k= 64    0.5136 ms    14.90 TFLOPS
+  m= 64 n=115 k= 64    0.5076 ms    15.20 TFLOPS
+  m= 64 n=116 k= 64    0.5127 ms    15.18 TFLOPS
+  m= 64 n=117 k= 64    0.5108 ms    15.37 TFLOPS
+  m= 64 n=118 k= 64    0.5142 ms    15.40 TFLOPS
+  m= 64 n=119 k= 64    0.5133 ms    15.56 TFLOPS
+  m= 64 n=120 k= 64    0.5202 ms    15.48 TFLOPS
+  m= 64 n=121 k= 64    0.5143 ms    15.79 TFLOPS
+  m= 64 n=122 k= 64    0.5161 ms    15.86 TFLOPS
+  m= 64 n=123 k= 64    0.5180 ms    15.93 TFLOPS
+  m= 64 n=124 k= 64    0.5175 ms    16.08 TFLOPS
+  m= 64 n=125 k= 64    0.5213 ms    16.09 TFLOPS
+  m= 64 n=126 k= 64    0.5133 ms    16.47 TFLOPS
+  m= 64 n=127 k= 64    0.5144 ms    16.57 TFLOPS
+  m= 64 n=128 k= 64    0.4395 ms    19.55 TFLOPS
+  m= 64 n=129 k= 64    0.6349 ms    13.64 TFLOPS
+  plot gespeichert: /home/mla03/build/04_assignment/src/../out/task3/task3b_sweep_n.png
+
+=== Task 3 b) sweep Task 3b - sweep k (m=64, n=64) ===
+  m= 64 n= 64 k= 17    0.1843 ms     6.19 TFLOPS
+  m= 64 n= 64 k= 18    0.1843 ms     6.55 TFLOPS
+  m= 64 n= 64 k= 19    0.1847 ms     6.90 TFLOPS
+  m= 64 n= 64 k= 20    0.1839 ms     7.30 TFLOPS
+  m= 64 n= 64 k= 21    0.1896 ms     7.43 TFLOPS
+  m= 64 n= 64 k= 22    0.1854 ms     7.96 TFLOPS
+  m= 64 n= 64 k= 23    0.1863 ms     8.29 TFLOPS
+  m= 64 n= 64 k= 24    0.1861 ms     8.65 TFLOPS
+  m= 64 n= 64 k= 25    0.1886 ms     8.90 TFLOPS
+  m= 64 n= 64 k= 26    0.1872 ms     9.32 TFLOPS
+  m= 64 n= 64 k= 27    0.1922 ms     9.43 TFLOPS
+  m= 64 n= 64 k= 28    0.1909 ms     9.84 TFLOPS
+  m= 64 n= 64 k= 29    0.1911 ms    10.19 TFLOPS
+  m= 64 n= 64 k= 30    0.1932 ms    10.42 TFLOPS
+  m= 64 n= 64 k= 31    0.1945 ms    10.70 TFLOPS
+  m= 64 n= 64 k= 32    0.1442 ms    14.90 TFLOPS
+  m= 64 n= 64 k= 33    0.2968 ms     7.46 TFLOPS
+  m= 64 n= 64 k= 34    0.2965 ms     7.69 TFLOPS
+  m= 64 n= 64 k= 35    0.3000 ms     7.83 TFLOPS
+  m= 64 n= 64 k= 36    0.2992 ms     8.07 TFLOPS
+  m= 64 n= 64 k= 37    0.2980 ms     8.33 TFLOPS
+  m= 64 n= 64 k= 38    0.2980 ms     8.56 TFLOPS
+  m= 64 n= 64 k= 39    0.3010 ms     8.69 TFLOPS
+  m= 64 n= 64 k= 40    0.2997 ms     8.96 TFLOPS
+  m= 64 n= 64 k= 41    0.3000 ms     9.17 TFLOPS
+  m= 64 n= 64 k= 42    0.3023 ms     9.32 TFLOPS
+  m= 64 n= 64 k= 43    0.3020 ms     9.56 TFLOPS
+  m= 64 n= 64 k= 44    0.3028 ms     9.75 TFLOPS
+  m= 64 n= 64 k= 45    0.3052 ms     9.89 TFLOPS
+  m= 64 n= 64 k= 46    0.3046 ms    10.13 TFLOPS
+  m= 64 n= 64 k= 47    0.3053 ms    10.33 TFLOPS
+  m= 64 n= 64 k= 48    0.3062 ms    10.52 TFLOPS
+  m= 64 n= 64 k= 49    0.3081 ms    10.67 TFLOPS
+  m= 64 n= 64 k= 50    0.3047 ms    11.01 TFLOPS
+  m= 64 n= 64 k= 51    0.3070 ms    11.15 TFLOPS
+  m= 64 n= 64 k= 52    0.3088 ms    11.30 TFLOPS
+  m= 64 n= 64 k= 53    0.3093 ms    11.50 TFLOPS
+  m= 64 n= 64 k= 54    0.3066 ms    11.82 TFLOPS
+  m= 64 n= 64 k= 55    0.3083 ms    11.97 TFLOPS
+  m= 64 n= 64 k= 56    0.3070 ms    12.24 TFLOPS
+  m= 64 n= 64 k= 57    0.3066 ms    12.47 TFLOPS
+  m= 64 n= 64 k= 58    0.3109 ms    12.52 TFLOPS
+  m= 64 n= 64 k= 59    0.3085 ms    12.83 TFLOPS
+  m= 64 n= 64 k= 60    0.3079 ms    13.08 TFLOPS
+  m= 64 n= 64 k= 61    0.3139 ms    13.04 TFLOPS
+  m= 64 n= 64 k= 62    0.3089 ms    13.47 TFLOPS
+  m= 64 n= 64 k= 63    0.3123 ms    13.54 TFLOPS
+  m= 64 n= 64 k= 64    0.2334 ms    18.40 TFLOPS
+  m= 64 n= 64 k= 65    0.4323 ms    10.09 TFLOPS
+  m= 64 n= 64 k= 66    0.4345 ms    10.19 TFLOPS
+  m= 64 n= 64 k= 67    0.4337 ms    10.37 TFLOPS
+  m= 64 n= 64 k= 68    0.4276 ms    10.67 TFLOPS
+  m= 64 n= 64 k= 69    0.4364 ms    10.61 TFLOPS
+  m= 64 n= 64 k= 70    0.4334 ms    10.84 TFLOPS
+  m= 64 n= 64 k= 71    0.4344 ms    10.97 TFLOPS
+  m= 64 n= 64 k= 72    0.4360 ms    11.08 TFLOPS
+  m= 64 n= 64 k= 73    0.4351 ms    11.26 TFLOPS
+  m= 64 n= 64 k= 74    0.4406 ms    11.27 TFLOPS
+  m= 64 n= 64 k= 75    0.4412 ms    11.41 TFLOPS
+  m= 64 n= 64 k= 76    0.4450 ms    11.46 TFLOPS
+  m= 64 n= 64 k= 77    0.4391 ms    11.77 TFLOPS
+  m= 64 n= 64 k= 78    0.4405 ms    11.88 TFLOPS
+  m= 64 n= 64 k= 79    0.4370 ms    12.13 TFLOPS
+  m= 64 n= 64 k= 80    0.4406 ms    12.19 TFLOPS
+  m= 64 n= 64 k= 81    0.4392 ms    12.38 TFLOPS
+  m= 64 n= 64 k= 82    0.4395 ms    12.52 TFLOPS
+  m= 64 n= 64 k= 83    0.4408 ms    12.64 TFLOPS
+  m= 64 n= 64 k= 84    0.4456 ms    12.65 TFLOPS
+  m= 64 n= 64 k= 85    0.4427 ms    12.89 TFLOPS
+  m= 64 n= 64 k= 86    0.4510 ms    12.80 TFLOPS
+  m= 64 n= 64 k= 87    0.4505 ms    12.96 TFLOPS
+  m= 64 n= 64 k= 88    0.4483 ms    13.17 TFLOPS
+  m= 64 n= 64 k= 89    0.4472 ms    13.36 TFLOPS
+  m= 64 n= 64 k= 90    0.4523 ms    13.35 TFLOPS
+  m= 64 n= 64 k= 91    0.4489 ms    13.61 TFLOPS
+  m= 64 n= 64 k= 92    0.4533 ms    13.62 TFLOPS
+  m= 64 n= 64 k= 93    0.4512 ms    13.83 TFLOPS
+  m= 64 n= 64 k= 94    0.4502 ms    14.01 TFLOPS
+  m= 64 n= 64 k= 95    0.4521 ms    14.10 TFLOPS
+  m= 64 n= 64 k= 96    0.3349 ms    19.23 TFLOPS
+  m= 64 n= 64 k= 97    0.5829 ms    11.17 TFLOPS
+  m= 64 n= 64 k= 98    0.5824 ms    11.29 TFLOPS
+  m= 64 n= 64 k= 99    0.5856 ms    11.35 TFLOPS
+  m= 64 n= 64 k=100    0.5766 ms    11.64 TFLOPS
+  m= 64 n= 64 k=101    0.5914 ms    11.46 TFLOPS
+  m= 64 n= 64 k=102    0.5887 ms    11.63 TFLOPS
+  m= 64 n= 64 k=103    0.5880 ms    11.76 TFLOPS
+  m= 64 n= 64 k=104    0.5926 ms    11.78 TFLOPS
+  m= 64 n= 64 k=105    0.5997 ms    11.75 TFLOPS
+  m= 64 n= 64 k=106    0.5862 ms    12.13 TFLOPS
+  m= 64 n= 64 k=107    0.5844 ms    12.29 TFLOPS
+  m= 64 n= 64 k=108    0.5932 ms    12.22 TFLOPS
+  m= 64 n= 64 k=109    0.5871 ms    12.46 TFLOPS
+  m= 64 n= 64 k=110    0.6078 ms    12.15 TFLOPS
+  m= 64 n= 64 k=111    0.5941 ms    12.54 TFLOPS
+  m= 64 n= 64 k=112    0.5967 ms    12.60 TFLOPS
+  m= 64 n= 64 k=113    0.5962 ms    12.72 TFLOPS
+  m= 64 n= 64 k=114    0.5975 ms    12.80 TFLOPS
+  m= 64 n= 64 k=115    0.6098 ms    12.66 TFLOPS
+  m= 64 n= 64 k=116    0.5959 ms    13.06 TFLOPS
+  m= 64 n= 64 k=117    0.6049 ms    12.98 TFLOPS
+  m= 64 n= 64 k=118    0.5983 ms    13.23 TFLOPS
+  m= 64 n= 64 k=119    0.6103 ms    13.09 TFLOPS
+  m= 64 n= 64 k=120    0.5973 ms    13.48 TFLOPS
+  m= 64 n= 64 k=121    0.5998 ms    13.54 TFLOPS
+  m= 64 n= 64 k=122    0.6132 ms    13.35 TFLOPS
+  m= 64 n= 64 k=123    0.6041 ms    13.66 TFLOPS
+  m= 64 n= 64 k=124    0.6076 ms    13.70 TFLOPS
+  m= 64 n= 64 k=125    0.6087 ms    13.78 TFLOPS
+  m= 64 n= 64 k=126    0.6061 ms    13.95 TFLOPS
+  m= 64 n= 64 k=127    0.6115 ms    13.94 TFLOPS
+  m= 64 n= 64 k=128    0.4333 ms    19.83 TFLOPS
+  m= 64 n= 64 k=129    0.7238 ms    11.96 TFLOPS
+  plot gespeichert: /home/mla03/build/04_assignment/src/../out/task3/task3b_sweep_k.png
+

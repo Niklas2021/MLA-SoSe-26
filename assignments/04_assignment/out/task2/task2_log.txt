@@ -1,0 +1,9 @@
+=== Task 2 - Kernel Fusion ===
+  config: e=8 a=8 b=16 c=8 k=8 l=4 x=32 y=32 z=32
+  contraction FLOPs: 17.18 GFLOP  (2048^3 matmul: 17.18 GFLOP)
+  a) fused      verification: True
+  b) sequential verification: True
+
+  fused       :  16.8534 ms
+  sequential  :  18.3626 ms
+  speedup     : 1.09x

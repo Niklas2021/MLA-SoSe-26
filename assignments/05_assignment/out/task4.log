@@ -1,0 +1,60 @@
+=== Task 4a: initiale Config ===
+--- generate_config Output ---
+  data_type:  FLOAT16
+  prim_main:  GEMM
+  prim_last:  NONE
+  prim_first: ZERO
+  dim_types:  ['C', 'M', 'K', 'N']
+  exec_types: ['SEQ', 'SEQ', 'SEQ', 'SEQ']
+  dim_sizes:  [4, 4096, 4096, 4096]
+  strides:
+    tensor 0: [16777216, 4096, 1, 0]
+    tensor 1: [16777216, 0, 4096, 1]
+    tensor 2: [16777216, 4096, 0, 1]
+
+=== Task 4b (Variante A) ===
+  Tile-Größen: m_prim=128, n_prim=128, k_prim=64, m_l2=8, n_l2=8
+--- L2-optimierte Config ---
+  data_type:  FLOAT16
+  prim_main:  GEMM
+  prim_last:  NONE
+  prim_first: ZERO
+  dim_types:  ['C', 'M', 'N', 'M', 'N', 'K', 'M', 'N', 'K']
+  exec_types: ['PAR', 'PAR', 'PAR', 'PAR', 'PAR', 'SEQ', 'PRIM', 'PRIM', 'PRIM']
+  dim_sizes:  [4, 4, 4, 8, 8, 64, 128, 128, 64]
+  strides:
+    tensor 0: [16777216, 4194304, 0, 524288, 0, 64, 4096, 0, 1]
+    tensor 1: [16777216, 0, 1024, 0, 128, 262144, 0, 1, 4096]
+    tensor 2: [16777216, 4194304, 1024, 524288, 128, 0, 4096, 1, 0]
+
+=== Task 4b (Variante B - strict) ===
+--- L2-Config strict ---
+  data_type:  FLOAT16
+  prim_main:  GEMM
+  prim_last:  NONE
+  prim_first: ZERO
+  dim_types:  ['C', 'M', 'N', 'K', 'M', 'N', 'M', 'N', 'K']
+  exec_types: ['PAR', 'PAR', 'PAR', 'SEQ', 'SEQ', 'SEQ', 'PRIM', 'PRIM', 'PRIM']
+  dim_sizes:  [4, 4, 4, 64, 8, 8, 128, 128, 64]
+  strides:
+    tensor 0: [16777216, 4194304, 0, 64, 524288, 0, 4096, 0, 1]
+    tensor 1: [16777216, 0, 1024, 262144, 0, 128, 0, 1, 4096]
+    tensor 2: [16777216, 4194304, 1024, 0, 524288, 128, 4096, 1, 0]
+
+=== Task 4c: Korrektheit ===
+  L2 (A)    :  max_err=0.2500  allclose=True
+  L2 strict :  max_err=0.2500  allclose=True
+  Baseline  :  max_err=0.2500  allclose=True
+
+  -- schiefe Größen (M=1234, N=567, K=890, C=3) --
+  L2 (A)    :  shape=(3, 1234, 567)  max_err=0.0625  allclose=True
+  L2 strict :  shape=(3, 1234, 567)  max_err=0.0625  allclose=True
+  Baseline  :  shape=(3, 1234, 567)  max_err=0.0625  allclose=True
+
+=== Task 4d: Benchmark ===
+  L2 Variante A:          8.317 ms   66.10 TFLOPS
+  L2 Variante B (strict): 12.484 ms   44.04 TFLOPS
+  Baseline:               14.241 ms   38.60 TFLOPS
+  Speedup A vs Baseline: 1.71x
+  Speedup B vs Baseline: 1.14x
+

@@ -8,6 +8,7 @@
 | 02 – GPU Architecture & cuTile | [assignments/02_assignment](assignments/02_assignment) |
 | 03 – Matrix Multiplication mit cuTile | [assignments/03_assignment](assignments/03_assignment) |
 | 04 – Tensor Contractions on GPUs | [assignments/04_assignment](assignments/04_assignment) |
+| 05 – Contraction Interface & L2 Optimization | [assignments/05_assignment](assignments/05_assignment) |
 
 ---
 

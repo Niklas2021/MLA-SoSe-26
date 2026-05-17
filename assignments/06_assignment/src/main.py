@@ -60,14 +60,14 @@ if __name__ == "__main__":
 
     plot_tensor(
         abcyx_fp32.cpu(),
-         path='torch_32.png',
-         title='Lightfield Tensorring Decomposition: FP32'
-     )
-    
+        path='results/torch_32.png',
+        title='Lightfield Tensorring Decomposition: FP32'
+    )
+
     plot_tensor(
         abcyx_fp16.cpu(),
-         path='torch_16.png',
-         title='Lightfield Tensorring Decomposition: FP16'
-     )
+        path='results/torch_16.png',
+        title='Lightfield Tensorring Decomposition: FP16'
+    )
 
     print( "Finished." )

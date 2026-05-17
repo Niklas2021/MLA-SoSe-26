@@ -31,7 +31,9 @@ class Optimizer:
         size_a = cfg.dim_sizes[dim_id_a]
         size_b = cfg.dim_sizes[dim_id_b]
 
-        # Adjazenz in jedem Tensor prüfen wo beide vorkommen
+        # Adjazenz und konsistente Reihenfolge über alle Tensoren prüfen
+        # order=True -> a ist outer, order=False -> b ist outer
+        order = None
         for t in range(len(cfg.strides)):
             sa = cfg.strides[t][dim_id_a]
             sb = cfg.strides[t][dim_id_b]
@@ -39,7 +41,15 @@ class Optimizer:
                 continue
             if sa == 0 or sb == 0:
                 raise ValueError(f"Tensor {t}: eine Dim fehlt, Fusion nicht möglich")
-            if not (sa == sb * size_b or sb == sa * size_a):
+            if sa == sb * size_b:
+                if order is False:
+                    raise ValueError(f"Tensor {t}: inkonsistente Reihenfolge – a ist outer, vorher war b outer")
+                order = True
+            elif sb == sa * size_a:
+                if order is True:
+                    raise ValueError(f"Tensor {t}: inkonsistente Reihenfolge – b ist outer, vorher war a outer")
+                order = False
+            else:
                 raise ValueError(f"Tensor {t}: Dims {dim_id_a} und {dim_id_b} sind nicht adjazent")
 
         # Strides zusammenführen: innerer Stride (der kleinere) bleibt

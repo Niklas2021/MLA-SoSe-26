@@ -1,14 +1,23 @@
 Assignment 06: Multi-Input Einsum Contraction
 ==========================================================
 
+In diesem Assignment kontrahieren wir zwei Zwischentensoren einer
+Lichtfeld-Tensor-Ring-Zerlegung – zuerst als Referenz mit ``torch.einsum``,
+dann mit einem selbst geschriebenen cuTile-Kernel, der durch die
+``Config``/``Optimizer``-Schnittstelle aus Assignment 05 konfiguriert wird.
 
-In this assignment we contracted two intermediate tensors of a light-field tensor-ring decomposition loaded from disk, 
-first by using PyTorch's torch.einsum as a reference, and then by building a cuTile kernel driven by the Config/Optimizer 
-interface we implemented in previous Assignment 05.
+Jede Task-Seite enthält:
+
+1. die Aufgabenstellung,
+2. unsere Lösung mit Begründung,
+3. die vollständige Implementierung,
+4. (wo vorhanden) die gemessene Programmausgabe.
 
 .. toctree::
    :maxdepth: 1
    :caption: Tasks
 
    task_1
-
+   task_2
+   task_3
+   task_4

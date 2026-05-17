@@ -1,0 +1,26 @@
+--- Task 2 – initiale Config ---
+  data_type:  FLOAT16
+  prim_main:  GEMM
+  prim_last:  NONE
+  prim_first: ZERO
+  dim_types:  ['M', 'M', 'K', 'K', 'M', 'N', 'N']
+  exec_types: ['SEQ', 'SEQ', 'SEQ', 'SEQ', 'SEQ', 'SEQ', 'SEQ']
+  dim_sizes:  [4, 3, 64, 64, 1536, 4, 1152]
+  strides:
+    tensor 0: [18874368, 6291456, 98304, 1536, 1, 0, 0]
+    tensor 1: [0, 0, 73728, 1152, 0, 4718592, 1]
+    tensor 2: [21233664, 1769472, 0, 0, 1, 5308416, 1536]
+
+--- Task 3 – optimierte Config ---
+  data_type:  FLOAT16
+  prim_main:  GEMM
+  prim_last:  NONE
+  prim_first: ZERO
+  dim_types:  ['M', 'M', 'M', 'N', 'N', 'M', 'N', 'K', 'M', 'N', 'K']
+  exec_types: ['PAR', 'PAR', 'PAR', 'PAR', 'PAR', 'PAR', 'PAR', 'SEQ', 'PRIM', 'PRIM', 'PRIM']
+  dim_sizes:  [4, 3, 6, 4, 3, 2, 3, 64, 128, 128, 64]
+  strides:
+    tensor 0: [18874368, 6291456, 256, 0, 0, 128, 0, 98304, 1, 0, 1536]
+    tensor 1: [0, 0, 0, 4718592, 384, 0, 128, 73728, 0, 1, 1152]
+    tensor 2: [21233664, 1769472, 256, 5308416, 589824, 128, 196608, 0, 1, 1536, 0]
+

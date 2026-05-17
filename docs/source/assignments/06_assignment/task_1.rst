@@ -1,6 +1,26 @@
 Task 1: PyTorch Reference Contraction
 =======================================
 
+Aufgabenstellung
+----------------
+
+Zwei Zwischentensoren einer Lichtfeld-Tensor-Ring-Zerlegung
+(``lf_tr_64_intermediate.npz``) werden kontrahiert.
+
+**a)** Jeden Index als M, N, K oder C klassifizieren.
+
+**b)** Einsum-String bestimmen und die Kontraktion mit ``torch.einsum``
+berechnen – einmal in FP32 und einmal in FP16.
+Tensoren vor dem Aufruf auf die GPU verschieben.
+
+**c)** Beide Ergebnisse mit ``plot_tensor()`` visualisieren und sichtbare
+Unterschiede zwischen FP32 und FP16 berichten.
+
+Vollständige Implementierung
+----------------------------
+
+.. literalinclude:: ../../../../assignments/06_assignment/src/main.py
+   :language: python
 
 Teilaufgabe a) – Index-Klassifikation
 ---------------------------------------
@@ -25,7 +45,7 @@ Es gibt keine Batch-Dimension (C) – kein Index kommt in beiden Inputs
 Teilaufgabe b) – torch.einsum
 ------------------------------
 
-Einsum-String: ``acspx, bspy -> abcyx``
+Einsum-String: ``acspx,bspy->abcyx``
 
 Die Tensoren werden von NumPy nach PyTorch konvertiert und auf die GPU
 geschoben. Die Kontraktion wird einmal mit FP32-Inputs und einmal mit
@@ -42,7 +62,6 @@ FP16-Inputs (per ``.half()``) ausgeführt:
 Teilaufgabe c) – Visualisierung
 ---------------------------------
 
-
 .. image:: ../../../../assignments/06_assignment/results/torch_32.png
    :alt: Lightfield FP32
    :width: 80%
@@ -51,10 +70,4 @@ Teilaufgabe c) – Visualisierung
    :alt: Lightfield FP16
    :width: 80%
 
-Zwischen FP32 und FP16 gibt es keinen sichtbaren Unterschied..
-
-Vollständige Implementierung
-----------------------------
-
-.. literalinclude:: ../../../../assignments/06_assignment/src/main.py
-   :language: python
+Zwischen FP32 und FP16 gibt es keinen sichtbaren Unterschied.

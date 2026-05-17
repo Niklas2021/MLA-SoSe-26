@@ -1,0 +1,13 @@
+--- Task 2 – initiale Config ---
+  data_type:  FLOAT16
+  prim_main:  GEMM
+  prim_last:  NONE
+  prim_first: ZERO
+  dim_types:  ['M', 'M', 'K', 'K', 'M', 'N', 'N']
+  exec_types: ['SEQ', 'SEQ', 'SEQ', 'SEQ', 'SEQ', 'SEQ', 'SEQ']
+  dim_sizes:  [4, 3, 64, 64, 1536, 4, 1152]
+  strides:
+    tensor 0: [18874368, 6291456, 98304, 1536, 1, 0, 0]
+    tensor 1: [0, 0, 73728, 1152, 0, 4718592, 1]
+    tensor 2: [21233664, 1769472, 0, 0, 1, 5308416, 1536]
+

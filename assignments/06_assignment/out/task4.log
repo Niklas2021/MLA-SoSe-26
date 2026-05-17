@@ -1,0 +1,4 @@
+=== Task 4 ===
+  allclose=True  max_err=0.0010
+  kernel:       13.959 ms   49.84 TFLOPS
+  torch.einsum: 43.013 ms   16.18 TFLOPS

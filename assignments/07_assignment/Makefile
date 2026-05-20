@@ -30,12 +30,12 @@ build/matmul_bfp16.s: src/matmul.cpp | build/
 obj_vadd: build/vadd.o
 
 build/vadd.o: src/vadd.cpp | build/
-	$(PEANO_CC) --target=aie2p-none-unknown-elf -c $< -o $@
+	$(PEANO_CC) $(KERNEL_FLAGS) -c $< -o $@
 
 obj_custom_vadd: build/custom_vadd.o
 
 build/custom_vadd.o: src/custom_vadd.s | build/
-	$(PEANO_CC) --target=aie2p-none-unknown-elf -c $< -o $@
+	$(PEANO_CC) $(KERNEL_FLAGS)-c $< -o $@
 
 # ── xclbin targets ────────────────────────────────────────────────────────────
 

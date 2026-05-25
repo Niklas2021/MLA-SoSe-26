@@ -20,13 +20,13 @@ Teilaufgabe 1 – instruction table
 Instruction                             Slot    Short description (optional)
 ======================================  ======  ==========================================
 ``vlda.conv.fp32.bf16 cml0, [p0, #0]``  A       Load Unit A mit bf16→fp32 Konvertierung
-``movx r6, #1``                          X      Scalar immediate move 
+``movx r6, #1``                         X       Scalar immediate move
 ``vldb x1, [p1, #0]``                   B       Vector Load über Load Unit B
 ``vmov bmhl2, bmhh4``                   M       Move zwischen Akkumulator-Registern
-``mova r0, #60``                         A       Scalar immediate move über AGU der Load-Unit A
-``vadd.f dm0, dm0, dm1, r0``            V        Vektor-Addition
-``ret lr``                               X       Return (Control Flow)
-``mov p1, p4``                           M       Move zwischen Pointer-Registern
+``mova r0, #60``                        A       Scalar immediate move im A-Slot
+``vadd.f dm0, dm0, dm1, r0``            V       Vektor-/Akkumulator-Addition
+``ret lr``                              X       Return (Control Flow)
+``mov p1, p4``                          M       Move zwischen Pointer-Registern
 ``vst.conv.bf16.fp32 cml0, [p2, #0]``   S       Store mit fp32→bf16 Konvertierung
 ======================================  ======  ==========================================
 
@@ -35,15 +35,14 @@ Instruction                             Slot    Short description (optional)
 Teilaufgabe 2 – register class table
 -------------------------------------------
 
-======  ==============================================  ==============================
-Slot    Register classes (dst / src)                    Example registers
-======  ==============================================  ==============================
-V       Vector / Accumulator (dst/src)                  x*, y*, cm*
-A       Pointer (src), Vector (dst)                     p0-p7, r*
-B       Pointer (src), Vector (dst)                     p0-p7, x*
-S       Vector/scalar (src), über Pointer (dst)         r*, x*, p*
-X       Scalar / Pointer / Control (dst/src)            r0-r31, m0-m7, p0-p7, lr
-M       Vector (dst/src)                                bm*, am*
-XM      Scalar <-> Vector                               r*, x*
-======  ==============================================  ==============================
-
+======  ==================================================  ==============================
+Slot    Register classes (dst / src)                        Example registers
+======  ==================================================  ==============================
+V       Accumulator / Vector / Scalar modifier              ``dm0``, ``dm1``, ``x6``, ``r0``
+A       Accumulator or scalar dst, pointer/immediate src     ``cml0``, ``cmh0``, ``p0``, ``r0``
+B       Vector dst, pointer src                              ``x1``, ``x4``, ``p1``
+S       Accumulator/vector src, pointer address              ``cml0``, ``cmh0``, ``p2``
+X       Scalar / Control                                     ``r6``, ``r29``, ``lr``
+M       Pointer / Vector / Accumulator moves                 ``p1``, ``p4``, ``bmhl2``
+XM      Shared X/M encoding                                  ``r0``, ``p1``, ``x1``, ``bmhh4``
+======  ==================================================  ==============================

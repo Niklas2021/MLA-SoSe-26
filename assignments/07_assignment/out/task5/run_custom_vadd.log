@@ -1,0 +1,35 @@
+cd build && aiecc.py --alloc-scheme=basic-sequential --no-compile-host \
+    --no-xchesscc --no-xbridge --peano /home/mla03/.cache/nix-amd-npu/venv-iron/lib/python3.12/site-packages/llvm-aie \
+    --aie-generate-npu-insts --npu-insts-name=insts_custom_vadd.bin \
+    --aie-generate-xclbin --xclbin-name=final_custom_vadd.xclbin \
+    ../src/custom_vadd.mlir
+
+
+****** Bootgen v2023.2
+  **** Build date : Mar 23 2026-15:30:22
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+
+[INFO]   : Bootimage generated successfully
+
+XRT Build Version: 2.21.0 ()
+       Build Date: 
+          Hash ID: 
+Creating a default 'in-memory' xclbin image.
+
+Section: 'MEM_TOPOLOGY'(6) was successfully added.
+Size   : 88 bytes
+Format : JSON
+File   : 'custom_vadd.mlir.prj/main_mem_topology.json'
+
+Section: 'AIE_PARTITION'(32) was successfully added.
+Size   : 4008 bytes
+Format : JSON
+File   : 'custom_vadd.mlir.prj/main_aie_partition.json'
+Info: Embedded Metadata section is missing project.platform.device.core element, adding it.
+Successfully wrote (10040 bytes) to the output file: final_custom_vadd.xclbin
+Leaving xclbinutil.
+Compilation completed successfully
+python3 src/driver.py custom_vadd
+[PASS] custom_vadd verification passed.

@@ -21,3 +21,4 @@ Jede Task-Seite enthält:
    task_3
    task_4
    task_5
+   task_6

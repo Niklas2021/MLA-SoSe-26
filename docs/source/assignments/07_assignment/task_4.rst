@@ -20,4 +20,25 @@ ausgefüllt werden.
 Lösung
 ------
 
-*Folgt nach Compile von* ``build/vadd.s`` *und Auszählen der Zyklen.*
+.. list-table::
+   :header-rows: 1
+
+   * - Instruction
+     - Output register
+     - First dependent instruction
+     - Cycles apart
+     - Latency
+   * - ``mova``
+     - ``r0``
+     - ``vadd.f dm0, dm0, dm1, r0``
+     - 1
+     - 1
+   * - ``vadd.f``
+     - ``dm0``
+     - ``vst.conv.bf16.fp32 cml0, [p2, #0]``
+     - 6
+     - 5
+
+Bei ``mova`` folgt der Konsument direkt im naechsten Zyklus. Bei
+``vadd.f`` liegen zwischen Produzent und erstem Store fuenf
+Zwischenzyklen; nach der Aufgabenregel ist die Latenz daher 5.

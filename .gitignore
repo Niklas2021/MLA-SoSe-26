@@ -6,5 +6,8 @@ __pycache__/
 # Sphinx build output 
 docs/_build/
 
+# Assignment build artifacts
+assignments/07_assignment/build/
+
 # other
 .claude/

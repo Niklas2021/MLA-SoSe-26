@@ -38,12 +38,13 @@ Die ``verify()``-Funktion berechnet die Referenz auf der CPU:
    expected = (in0.float() + in1.float()).bfloat16()
 
 Vergleich mit ``torch.allclose(..., atol=1e-2, rtol=1e-2)``.
-Für ``custom_vadd`` (Task 5) ist die Referenz ``A + B + B``.
 
 Output:
+------------------------
 
-.. code-block:: python
-    [PASS] vadd verification passed.
+.. code-block:: text
+
+   [PASS] vadd verification passed.
 
 **Frage:** Welcher Mnemonic wird für die BF16 elementweise Addition verwendet?
 

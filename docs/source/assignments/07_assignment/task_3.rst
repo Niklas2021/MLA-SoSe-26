@@ -35,15 +35,15 @@ Instruction                             Slot    Short description (optional)
 Teilaufgabe 2 – register class table
 -------------------------------------------
 
-====== ================================ ==========================
-Slot   Register classes (dst / src)     Example registers
-====== ================================ ==========================
-V      Vector / Accumulator (dst/src)   x*, y*, cm*
-A      Pointer (src), Vector (dst)      p0-p7, r*
-B      Pointer (src), Vector (dst)      p0-p7, x*
-S      Vector/scalar (src), über Pointer (dst)      r*, x*, p*
-X      Scalar / Pointer / Control (dst/src)   r0-r31, m0-m7, p0-p7, lr
-M      Vector (dst/src)                 bm*, am*
-XM     Scalar <-> Vector        r*, x*
-====== ================================ ==========================
+======  ==============================================  ==============================
+Slot    Register classes (dst / src)                    Example registers
+======  ==============================================  ==============================
+V       Vector / Accumulator (dst/src)                  x*, y*, cm*
+A       Pointer (src), Vector (dst)                     p0-p7, r*
+B       Pointer (src), Vector (dst)                     p0-p7, x*
+S       Vector/scalar (src), über Pointer (dst)         r*, x*, p*
+X       Scalar / Pointer / Control (dst/src)            r0-r31, m0-m7, p0-p7, lr
+M       Vector (dst/src)                                bm*, am*
+XM      Scalar <-> Vector                               r*, x*
+======  ==============================================  ==============================
 

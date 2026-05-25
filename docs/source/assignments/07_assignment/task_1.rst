@@ -13,8 +13,6 @@ BF16-Ausgabevektor schreibt.
 3. ``verify()`` in ``driver.py`` implementieren und Kernel ausführen:
    ``make run_vadd``
 
-**Frage:** Welcher Mnemonic wird für die BF16 elementweise Addition verwendet?
-
 Kernel-Implementierung
 -----------------------
 
@@ -26,10 +24,6 @@ Der Kernel nutzt die AIE-API:
 - ``aie::load_v<64>()`` lädt 64 BF16-Elemente in ein Vektor-Register
 - ``aie::add(v_in0, v_in1)`` addiert elementweise
 - ``aie::store_v()`` schreibt das Ergebnis zurück
-
-Die Template-Funktion ``vadd_template`` ist generisch über Datentyp und
-Vektorgröße, die ``extern "C"``-Wrapper-Funktion instanziiert sie für
-BF16 mit 64 Elementen.
 
 Driver und Verifikation
 ------------------------
@@ -45,6 +39,13 @@ Die ``verify()``-Funktion berechnet die Referenz auf der CPU:
 
 Vergleich mit ``torch.allclose(..., atol=1e-2, rtol=1e-2)``.
 Für ``custom_vadd`` (Task 5) ist die Referenz ``A + B + B``.
+
+Output:
+
+.. code-block:: python
+    [PASS] vadd verification passed.
+
+**Frage:** Welcher Mnemonic wird für die BF16 elementweise Addition verwendet?
 
 Antwort: BF16 Additions-Mnemonic
 ----------------------------------

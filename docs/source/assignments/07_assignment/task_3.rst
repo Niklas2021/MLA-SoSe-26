@@ -23,7 +23,7 @@ Instruction                             Slot    Short description (optional)
 ``movx r6, #1``                          X      Scalar immediate move 
 ``vldb x1, [p1, #0]``                   B       Vector Load über Load Unit B
 ``vmov bmhl2, bmhh4``                   M       Move zwischen Akkumulator-Registern
-``mova r0, #60``                         X       Scalar immediate move 
+``mova r0, #60``                         A       Scalar immediate move über AGU der Load-Unit A
 ``vadd.f dm0, dm0, dm1, r0``            V        Vektor-Addition
 ``ret lr``                               X       Return (Control Flow)
 ``mov p1, p4``                           M       Move zwischen Pointer-Registern

@@ -10,6 +10,7 @@
 | 04 – Tensor Contractions on GPUs | [assignments/04_assignment](assignments/04_assignment) |
 | 05 – Contraction Interface & L2 Optimization | [assignments/05_assignment](assignments/05_assignment) |
 | 06 – Multi-Input Einsum Contraction | [assignments/06_assignment](assignments/06_assignment) |
+| 07 – Inferring the VLIW ISA of XDNA2 | [assignments/07_assignment](assignments/07_assignment) |
 
 ---
 

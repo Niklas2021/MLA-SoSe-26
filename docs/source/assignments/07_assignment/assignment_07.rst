@@ -9,7 +9,8 @@ aus dem generierten Assembly ab.
 Jede Task-Seite enthält:
 
 1. die Aufgabenstellung,
-2. unsere Lösung mit Begründung.
+2. unsere Lösung mit Begründung,
+3. (wo vorhanden) die vollständige Implementierung und Programmausgabe.
 
 .. toctree::
    :maxdepth: 1

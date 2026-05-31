@@ -1,0 +1,5 @@
+python3 src/driver.py
+[error] max abs error  0.3567
+[error] mean abs error 0.0897
+[PASS] matmul verification passed.
+[bench] 2000 runs: 109.45 us/call, 0.30 GFLOPS (end-to-end, incl. host/DMA overhead)

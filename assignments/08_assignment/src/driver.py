@@ -7,16 +7,23 @@ Usage (from the assignment directory, after building xclbins):
 Requires: pyxrt, numpy, torch
 """
 
+import time
+
 import numpy as np
 import torch
 import pyxrt
 
+# ── Problem size (M x K @ K x N) ──────────────────────────────────────────────
+M, K, N = 16, 64, 16
+FLOPS = 2 * M * N * K          # multiply-add = 2 FLOPs
+NPU_CLOCK_HZ = 1.8e9           # XDNA2 compute-tile clock
+
 
 def verify(in0: torch.Tensor, in1: torch.Tensor, out: torch.Tensor) -> None:
     """
-    Verify the NPU output against a CPU reference.
+    Verify the NPU output against a CPU reference and report the error.
 
-    Computation: out += in0 @ in1
+    Computation: out += in0 @ in1  (out scratchpad is zero-initialized).
 
     Parameters
     ----------
@@ -24,9 +31,39 @@ def verify(in0: torch.Tensor, in1: torch.Tensor, out: torch.Tensor) -> None:
     out : bfloat16 torch tensor
     """
 
-    # TODO: implement verify() for tensor kernel.
+    expected = in0.float() @ in1.float()
+    diff = (out.float() - expected).abs()
+    max_abs = diff.max().item()
+    mean_abs = diff.mean().item()
+    print(f"[error] max abs error  {max_abs:.4f}")
+    print(f"[error] mean abs error {mean_abs:.4f}")
 
-    raise NotImplementedError("verify() not yet implemented")
+    assert torch.allclose(out.float(), expected, atol=0.5, rtol=0.2), (
+        f"[FAIL] matmul mismatch! max abs error: {max_abs}"
+    )
+
+
+def benchmark(kernel, bo_instr, insts_nbytes, bo_in0, bo_in1, bo_out,
+              iters: int = 2000) -> None:
+    """
+    Measure end-to-end kernel throughput (includes host launch + DMA overhead).
+
+    For the *compute* performance of the kernel itself use the analytical
+    cycle count: GFLOPS = FLOPS * NPU_CLOCK_HZ / cycles  (see Task 6).
+    """
+    # warmup
+    for _ in range(50):
+        kernel(3, bo_instr, insts_nbytes, bo_in0, bo_in1, bo_out).wait()
+
+    t0 = time.perf_counter()
+    for _ in range(iters):
+        kernel(3, bo_instr, insts_nbytes, bo_in0, bo_in1, bo_out).wait()
+    elapsed = time.perf_counter() - t0
+
+    per_call_us = elapsed / iters * 1e6
+    gflops = iters * FLOPS / elapsed / 1e9
+    print(f"[bench] {iters} runs: {per_call_us:.2f} us/call, "
+          f"{gflops:.2f} GFLOPS (end-to-end, incl. host/DMA overhead)")
 
 
 def run() -> None:
@@ -47,6 +84,7 @@ def run() -> None:
     bo_instr.write(insts.tobytes(), 0)
     bo_instr.sync(pyxrt.xclBOSyncDirection.XCL_BO_SYNC_BO_TO_DEVICE, insts.nbytes, 0)
 
+    torch.manual_seed(42)
     data_in0 = torch.randn(16, 64, dtype=torch.bfloat16)
     data_in1 = torch.randn(64, 16, dtype=torch.bfloat16)
     data_out = torch.zeros(16, 16, dtype=torch.bfloat16)
@@ -95,6 +133,8 @@ def run() -> None:
     verify(tensor_in0, tensor_in1, tensor_out)
 
     print("[PASS] matmul verification passed.")
+
+    benchmark(kernel, bo_instr, insts.nbytes, bo_in0, bo_in1, bo_out)
 
 
 if __name__ == "__main__":

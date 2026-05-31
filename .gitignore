@@ -8,6 +8,7 @@ docs/_build/
 
 # Assignment build artifacts
 assignments/07_assignment/build/
+assignments/08_assignment/build/
 
 # other
 .claude/

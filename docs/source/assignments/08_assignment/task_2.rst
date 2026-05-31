@@ -25,8 +25,8 @@ Instruction                             Slot    Latenz    Funktion
 ``vconv.bfp16ebs8.fp32``                M       4         Konvertierung FP32-Akku -> BFP16 (ex)
 ``vmul.f``                              V       6         Multiplikation (BF16 bzw. 8x8x8 bfp16)
 ``vmac.f``                              V       6         8x8x8 bfp16 Multiply-Accumulate
-``vst.conv.bf16.fp32``                  S       6         Store FP32-Akku -> BF16 (Mem-Commit ~5)
-``vbcst.16``                            M       1         Skalar in alle 16-bit-Lanes broadcasten
+``vst.conv.bf16.fp32``                  S       ~5        Store FP32-Akku -> BF16 (MemoryCycles 5, kein dst-Reg)
+``vbcst.16``                            M       2         Skalar in alle 16-bit-Lanes broadcasten (Bypass -> 1)
 ``vmov``                                M       1         Vektor-Register-Move
 ``mova`` / ``movx``                     A / X   1         Skalar-Immediate-Move (Mode-Register)
 ``movxm``                               XM      1         32-bit-Immediate-Move
@@ -43,3 +43,9 @@ Wichtige Eigenschaften für das Scheduling:
   (siehe Task 6).
 - ``vmac``/``vmul`` (V) und ``vconv``/``vshuffle`` (M) liegen auf verschiedenen
   Slots und können co-issued werden.
+- Einige Latenzen werden durch **Bypässe** verkürzt (Felder ``MV_Bypass`` /
+  ``VEC_Bypass`` in der ``.td``): ``vbcst.16`` hat nominal Latenz 2, zu einem
+  direkt folgenden ``vmov`` (Move-Bypass) aber effektiv 1 — deshalb steht das
+  ``vmov`` im Prolog schon einen Zyklus später. ``vst.conv`` hat keine
+  dst-Register-Latenz, sondern eine Speicher-Commit-Zeit (``MemoryCycles 5``);
+  beide liegen im Prolog/Epilog und damit nicht auf dem kritischen Pfad.

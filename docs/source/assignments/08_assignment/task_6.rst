@@ -32,12 +32,33 @@ First try (eng, nicht pipelined)    25          ≈ 438       ≈ 135
 Pipelined (``II = 16``)             16          ≈ 300       ≈ 197
 ==================================  ==========  ==========  ==========
 
-(Gesamtzyklen = Prolog 8 + 2 Pässe + ``ret``/Delay 6; ``f = 1.8 GHz``,
-``GFLOPS = 2·16·16·64·f / Zyklen``.)
+(Gesamtzyklen = Prolog 8 + 2 Pässe + ``ret``/Delay 6;
+``GFLOPS = 2·16·16·64·f / Zyklen`` mit **angenommenem** Compute-Tile-Takt
+``f = 1.8 GHz``.)
 
-Die pipelined Version ist **1,46× schneller** und erreicht **10,7 %** des
-theoretischen Peaks (1843,2 GFLOPS = ``8x8x8 ·2 ·1.8 GHz``, ein ``vmac`` pro
-Zyklus).
+Die pipelined Version ist **1,46× schneller** und erreicht **10,7 %** der
+theoretischen Ein-Tile-Obergrenze (1843,2 GFLOPS = ``8x8x8 ·2 ·1.8 GHz``, ein
+``vmac`` pro Zyklus).
+
+.. note::
+
+   **Einordnung der Zahlen.** Robust sind nur die **Zyklenzahlen** (438 → 300):
+   sowohl das ``1,46×`` als auch der **Peak-Anteil (10,7 %)** sind
+   *taktunabhängig* — der angenommene Takt kürzt sich heraus. Nur die
+   *absoluten* GFLOPS skalieren linear mit ``f``; bei real z. B. 1,5 GHz würden
+   aus 135/197 GFLOPS entsprechend 112/164, das Verhältnis bliebe gleich. Der
+   Takt von 1,8 GHz ist ein Richtwert (so in ``driver.py`` angenommen), den wir
+   auf dem Gerät nicht verifiziert haben.
+
+   Die 1843 GFLOPS sind eine **Ein-Tile-bf16/bfp16-Obergrenze** bei ideal einem
+   ``vmac`` pro Zyklus — der Kernel nutzt genau **einen** Compute-Tile
+   (``aie.tile(0,2)`` in ``matmul.mlir``). Das ist **nicht** mit den 50 TOPS des
+   AI-Max-390-NPUs vergleichbar: die 50 TOPS sind das *ganze* XDNA2-Array
+   (~32 Tiles) in *INT8*. Der naive Hochrechnungswert (32 × 1843 ≈ 59 TFLOPS
+   bf16) läge sogar über den 50 TOPS INT8 — was physikalisch nicht sein kann
+   (INT8 ≥ bf16). Das bestätigt, dass „ein ``vmac`` pro Zyklus" eine optimistische
+   Obergrenze ist; der reale Durchsatz pro Tile liegt wegen Issue-Intervall und
+   tatsächlichem Takt darunter.
 
 *Hinweis zur Messung:* Der ``[bench]``-Wert von ``driver.py`` (~0,3 GFLOPS,
 ~110 µs/call) misst **End-to-End** und ist fast vollständig Host-/DMA-Startkosten

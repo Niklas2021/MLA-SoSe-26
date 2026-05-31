@@ -16,7 +16,7 @@ import pyxrt
 # ── Problem size (M x K @ K x N) ──────────────────────────────────────────────
 M, K, N = 16, 64, 16
 FLOPS = 2 * M * N * K          # multiply-add = 2 FLOPs
-NPU_CLOCK_HZ = 1.8e9           # XDNA2 compute-tile clock
+NPU_CLOCK_HZ = 1.8e9           # XDNA2 compute-tile clock (assumed; not verified on device)
 
 
 def verify(in0: torch.Tensor, in1: torch.Tensor, out: torch.Tensor) -> None:

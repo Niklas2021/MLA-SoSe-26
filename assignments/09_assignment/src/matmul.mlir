@@ -16,14 +16,15 @@ module {
     aie.objectfifo.link [@out_L1L2_0_0] -> [@out_L2L3_0]([] [])
     %core_0_2 = aie.core(%tile_0_2) {
       %c0 = arith.constant 0 : index
-      %c4294967295 = arith.constant 4294967295 : index
+      %c128 = arith.constant 128 : index
       %c1 = arith.constant 1 : index
-      scf.for %arg0 = %c0 to %c4294967295 step %c1 {
-        // TODO: for a*b {
+      %c16 = arith.constant 16 : index
+      scf.for %arg0 = %c0 to %c128 step %c1 {
           %buffer_out = aie.objectfifo.acquire @out_L1L2_0_0(Produce, 1) : !aie.objectfifosubview<memref<2x2x8x8xbf16>>
           %out = aie.objectfifo.subview.access %buffer_out[0] : !aie.objectfifosubview<memref<2x2x8x8xbf16>> -> memref<2x2x8x8xbf16>
           func.call @zero(%out) : (memref<2x2x8x8xbf16>) -> ()
-          // TODO: for c {
+          
+          scf.for %arg1 = %c0 to %c16 step %c1 {
             %buffer_in0 = aie.objectfifo.acquire @in0_L2L1_0(Consume, 1) : !aie.objectfifosubview<memref<2x8x8x8xbf16>>
             %in0 = aie.objectfifo.subview.access %buffer_in0[0] : !aie.objectfifosubview<memref<2x8x8x8xbf16>> -> memref<2x8x8x8xbf16>
             %buffer_in1 = aie.objectfifo.acquire @in1_L2L1_0(Consume, 1) : !aie.objectfifosubview<memref<8x2x8x8xbf16>>
@@ -31,20 +32,17 @@ module {
             func.call @matmul(%in0, %in1, %out) : (memref<2x8x8x8xbf16>, memref<8x2x8x8xbf16>, memref<2x2x8x8xbf16>) -> ()
             aie.objectfifo.release @in0_L2L1_0(Consume, 1)
             aie.objectfifo.release @in1_L2L1_0(Consume, 1)
-          // }
+           }
           aie.objectfifo.release @out_L1L2_0_0(Produce, 1)
-        //  }
-      }
+          }
+      
       aie.end
     } {stack_size = 1024 : i32}
-    // TODO: Adapt memref sizes
-    aie.runtime_sequence(%arg0: memref<16x64xbf16>, %arg1: memref<64x16xbf16>, %arg2: memref<16x16xbf16>) {
-      // TODO: Add needed data movement operations; adapt offsets, sizes, and strides accordingly.
-      // Note: There are only 16 buffer descriptors (ids) on the shim tile; synchronize before reuse.
-      //       dma_wait will synchronize with the first issued corresponding data movement.
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 0][1, 1, 16, 16][0, 0, 16, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<16x16xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 0][1, 1, 16, 64][0, 0, 64, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<16x64xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][1, 1, 64, 16][0, 0, 16, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<64x16xbf16>
+    // -----------------------------------------------  AB HIER IST FALSCH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    aie.runtime_sequence(%arg0: memref<256x1024xbf16>, %arg1: memref<1024x128xbf16>, %arg2: memref<256x128xbf16>) {
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 0][16, 16, 16, 64][16384, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][16, 8, 64, 16][2048, 16, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 0][16, 8, 16, 16][2048, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
       aiex.npu.dma_wait {symbol = @out_L2L3_0}
     }
   }

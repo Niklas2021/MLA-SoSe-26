@@ -70,14 +70,42 @@ Diese **blockierende** Block-Barriere beseitigt Task 4.
 .. literalinclude:: ../../../../assignments/09_assignment/src/matmul.mlir
    :language: text
 
+Rundungsmodus (``conv_even``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mit dem kopierten 08-Kernel ergab sich zunächst ein **max abs error von 4.72**
+(``[FAIL]``). Eine lokale Simulation (FP32-Referenz vs. nachgebildetes
+``bfp16``-/``bf16``-Verhalten) zeigte: die Datenbewegung ist korrekt — der
+Fehler entsteht, weil die AIE-Konversion ``vst.conv.bf16.fp32`` **trunkiert**
+(round-toward-zero) und der Kernel ``out`` in der ``c``-Schleife **16-mal**
+(einmal pro ``c``-Tile) so nach bf16 zurückschreibt. Über ``K=1024`` summiert
+sich dieser Trunkierungsfehler auf.
+
+In Assignment 08 fiel das nicht auf, weil dort nur **einmal** trunkiert wurde
+(``max 0.357 < atol 0.5``). Der mlir-aie-Compiler setzt für bf16-Matmul
+automatisch den Rundungsmodus ``conv_even`` (round-to-nearest-even); ein
+hand-geschriebener ``.s``-Kernel erhält das nicht. Wir setzen ihn daher selbst
+als **erste Instruktion** im Kernel:
+
+.. code-block:: asm
+
+   mov crrnd, #12   // aie::set_rounding(aie::rounding_mode::conv_even)
+
+Damit rundet ``vst.conv`` statt zu trunkieren, und der Fehler fällt auf
+**max 2.04 / mean 0.27** → ``[PASS]``. Das ist der einzige Eingriff am Kernel;
+der MAC-Kern und die Datenbewegung bleiben unverändert.
+
 Verifikation
 ------------
 
 ``make run_matmul`` baut die ``xclbin``, lädt die Instruktionen und ruft
 ``driver.py`` auf. Die ``verify()``-Funktion vergleicht gegen die FP32-Referenz
-(``atol=2``, ``rtol=0.5``).
+(``atol=2``, ``rtol=0.5``):
 
-.. note::
+.. literalinclude:: ../../../../assignments/09_assignment/out/run_matmul.log
+   :language: text
 
-   Die Programmausgabe (``out/run_matmul.log``) wird nach dem Lauf auf dem
-   Server ergänzt.
+Der maximale absolute Fehler (2.04) wird über die relative Toleranz
+(``rtol=0.5``) abgedeckt; der mittlere Fehler (0.27) ist klein. Die Restabweichung
+ist die inhärente ``bfp16``-Rechengenauigkeit (gemeinsamer Block-Exponent,
+7-bit-Mantisse) plus die eine finale bf16-Rundung des Outputs.

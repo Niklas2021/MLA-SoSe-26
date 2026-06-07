@@ -1,0 +1,40 @@
+mkdir -p build
+/home/mla03/.cache/nix-amd-npu/venv-iron/lib/python3.12/site-packages/llvm-aie/bin/clang++ --target=aie2p-none-unknown-elf -c src/zero.s -o build/zero.o
+/home/mla03/.cache/nix-amd-npu/venv-iron/lib/python3.12/site-packages/llvm-aie/bin/clang++ --target=aie2p-none-unknown-elf -c src/matmul.s -o build/matmul.o
+cd build && aiecc.py --alloc-scheme=basic-sequential --no-compile-host \
+    --no-xchesscc --no-xbridge --peano /home/mla03/.cache/nix-amd-npu/venv-iron/lib/python3.12/site-packages/llvm-aie \
+    --aie-generate-npu-insts --npu-insts-name=insts_matmul.bin \
+    --aie-generate-xclbin --xclbin-name=final_matmul.xclbin \
+    ../src/matmul.mlir
+
+
+****** Bootgen v2023.2
+  **** Build date : Mar 23 2026-15:30:22
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+
+[INFO]   : Bootimage generated successfully
+
+XRT Build Version: 2.21.0 ()
+       Build Date: 
+          Hash ID: 
+Creating a default 'in-memory' xclbin image.
+
+Section: 'MEM_TOPOLOGY'(6) was successfully added.
+Size   : 88 bytes
+Format : JSON
+File   : 'matmul.mlir.prj/main_mem_topology.json'
+
+Section: 'AIE_PARTITION'(32) was successfully added.
+Size   : 6664 bytes
+Format : JSON
+File   : 'matmul.mlir.prj/main_aie_partition.json'
+Info: Embedded Metadata section is missing project.platform.device.core element, adding it.
+Successfully wrote (12697 bytes) to the output file: final_matmul.xclbin
+Leaving xclbinutil.
+Compilation completed successfully
+python3 src/driver.py
+[error] max abs error  2.0382
+[error] mean abs error 0.2719
+[PASS] matmul verification passed.

@@ -39,6 +39,9 @@ matmul:
 //   c14 nop
 //   c15 V vmac dm1,dm1,ex0,ex8   (ex8 ready c11+4=15)
 
+  mov   crrnd, #12                 // aie::set_rounding(conv_even): round-to-nearest-even
+                                   //   for vst.conv/vconv (default is truncate). Avoids the
+                                   //   16x truncating bf16 round-trip over the c-loop.
   movxm r3, #16256                 // 0x3F80 = bf16(1.0)
   vbcst.16 x10, r3
   vmov x11, x10

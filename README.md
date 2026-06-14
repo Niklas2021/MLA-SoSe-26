@@ -13,6 +13,7 @@
 | 07 – Inferring the VLIW ISA of XDNA2 | [assignments/07_assignment](assignments/07_assignment) |
 | 08 – XDNA GEMM Kernel | [assignments/08_assignment](assignments/08_assignment) |
 | 09 – XDNA GEMM | [assignments/09_assignment](assignments/09_assignment) |
+| 10 – Using the whole NPU | [assignments/10_assignment](assignments/10_assignment) |
 
 ---
 

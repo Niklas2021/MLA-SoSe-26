@@ -65,9 +65,7 @@ module {
     aie.objectfifo @in1_L3L2_0(%shim_noc_tile_0_0, {%mem_tile_0_1}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
     aie.objectfifo @in1_L2L1_0(%mem_tile_0_1 dimensionsToStream [<size = 8, stride = 128>, <size = 2, stride = 8>, <size = 8, stride = 16>, <size = 8, stride = 1>], {%tile_0_2, %tile_1_2, %tile_2_2, %tile_3_2, %tile_4_2, %tile_5_2, %tile_6_2, %tile_7_2}, 2 : i32) : !aie.objectfifo<memref<8x2x8x8xbf16>>
     aie.objectfifo.link [@in1_L3L2_0] -> [@in1_L2L1_0]([] [])
-    aie.objectfifo @out_L1L2_0_0(%tile_0_2, {%mem_tile_0_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
-    aie.objectfifo @out_L2L3_0(%mem_tile_0_1 dimensionsToStream [<size = 2, stride = 128>, <size = 8, stride = 8>, <size = 2, stride = 64>, <size = 8, stride = 1>], {%shim_noc_tile_0_0}, 2 : i32) : !aie.objectfifo<memref<16x16xbf16>>
-    aie.objectfifo.link [@out_L1L2_0_0] -> [@out_L2L3_0]([] [])
+//TASK 3: all output FIFOs (L1L2 + joined L2L3) are defined together below, after the inputs.
 
 //TASK 2: create in0 FIFOs for columns 1-7 (each broadcasts down its column)
     aie.objectfifo @in0_L3L2_1(%shim_noc_tile_1_0, {%mem_tile_1_1}, 2 : i32) : !aie.objectfifo<memref<16x64xbf16>>
@@ -110,6 +108,68 @@ module {
     aie.objectfifo @in1_L3L2_3(%shim_noc_tile_3_0, {%mem_tile_3_1}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
     aie.objectfifo @in1_L2L1_3(%mem_tile_3_1 dimensionsToStream [<size = 8, stride = 128>, <size = 2, stride = 8>, <size = 8, stride = 16>, <size = 8, stride = 1>], {%tile_0_5, %tile_1_5, %tile_2_5, %tile_3_5, %tile_4_5, %tile_5_5, %tile_6_5, %tile_7_5}, 2 : i32) : !aie.objectfifo<memref<8x2x8x8xbf16>>
     aie.objectfifo.link [@in1_L3L2_3] -> [@in1_L2L1_3]([] [])
+
+//TASK 3: output FIFOs. Per column: four L1L2 producers (one per row, pqmn = 2x2x8x8)
+//        are JOINed into one L2L3 FIFO. Each row y writes its 256-element pqmn block
+//        at src-offset y*256 into the joined buffer (layout ypqmn). The L2L3
+//        dimensionsToStream then reorders ypqmn -> ypmqn: the outer (y,p) merge into a
+//        single size-8 stride-128 dim (yp), q/m are swapped vs storage. With one row
+//        (yp=p, size 2) this reduces exactly to the single-tile L2L3 of assignment 09.
+    aie.objectfifo @out_L1L2_0_0(%tile_0_2, {%mem_tile_0_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_0_1(%tile_0_3, {%mem_tile_0_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_0_2(%tile_0_4, {%mem_tile_0_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_0_3(%tile_0_5, {%mem_tile_0_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L2L3_0(%mem_tile_0_1 dimensionsToStream [<size = 2, stride = 128>, <size = 8, stride = 8>, <size = 2, stride = 64>, <size = 8, stride = 1>], {%shim_noc_tile_0_0}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
+    aie.objectfifo.link [@out_L1L2_0_0, @out_L1L2_0_1, @out_L1L2_0_2, @out_L1L2_0_3] -> [@out_L2L3_0]([0, 256, 512, 768] [])
+
+    aie.objectfifo @out_L1L2_1_0(%tile_1_2, {%mem_tile_1_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_1_1(%tile_1_3, {%mem_tile_1_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_1_2(%tile_1_4, {%mem_tile_1_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_1_3(%tile_1_5, {%mem_tile_1_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L2L3_1(%mem_tile_1_1 dimensionsToStream [<size = 2, stride = 128>, <size = 8, stride = 8>, <size = 2, stride = 64>, <size = 8, stride = 1>], {%shim_noc_tile_1_0}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
+    aie.objectfifo.link [@out_L1L2_1_0, @out_L1L2_1_1, @out_L1L2_1_2, @out_L1L2_1_3] -> [@out_L2L3_1]([0, 256, 512, 768] [])
+
+    aie.objectfifo @out_L1L2_2_0(%tile_2_2, {%mem_tile_2_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_2_1(%tile_2_3, {%mem_tile_2_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_2_2(%tile_2_4, {%mem_tile_2_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_2_3(%tile_2_5, {%mem_tile_2_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L2L3_2(%mem_tile_2_1 dimensionsToStream [<size = 2, stride = 128>, <size = 8, stride = 8>, <size = 2, stride = 64>, <size = 8, stride = 1>], {%shim_noc_tile_2_0}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
+    aie.objectfifo.link [@out_L1L2_2_0, @out_L1L2_2_1, @out_L1L2_2_2, @out_L1L2_2_3] -> [@out_L2L3_2]([0, 256, 512, 768] [])
+
+    aie.objectfifo @out_L1L2_3_0(%tile_3_2, {%mem_tile_3_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_3_1(%tile_3_3, {%mem_tile_3_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_3_2(%tile_3_4, {%mem_tile_3_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_3_3(%tile_3_5, {%mem_tile_3_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L2L3_3(%mem_tile_3_1 dimensionsToStream [<size = 2, stride = 128>, <size = 8, stride = 8>, <size = 2, stride = 64>, <size = 8, stride = 1>], {%shim_noc_tile_3_0}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
+    aie.objectfifo.link [@out_L1L2_3_0, @out_L1L2_3_1, @out_L1L2_3_2, @out_L1L2_3_3] -> [@out_L2L3_3]([0, 256, 512, 768] [])
+
+    aie.objectfifo @out_L1L2_4_0(%tile_4_2, {%mem_tile_4_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_4_1(%tile_4_3, {%mem_tile_4_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_4_2(%tile_4_4, {%mem_tile_4_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_4_3(%tile_4_5, {%mem_tile_4_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L2L3_4(%mem_tile_4_1 dimensionsToStream [<size = 2, stride = 128>, <size = 8, stride = 8>, <size = 2, stride = 64>, <size = 8, stride = 1>], {%shim_noc_tile_4_0}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
+    aie.objectfifo.link [@out_L1L2_4_0, @out_L1L2_4_1, @out_L1L2_4_2, @out_L1L2_4_3] -> [@out_L2L3_4]([0, 256, 512, 768] [])
+
+    aie.objectfifo @out_L1L2_5_0(%tile_5_2, {%mem_tile_5_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_5_1(%tile_5_3, {%mem_tile_5_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_5_2(%tile_5_4, {%mem_tile_5_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_5_3(%tile_5_5, {%mem_tile_5_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L2L3_5(%mem_tile_5_1 dimensionsToStream [<size = 2, stride = 128>, <size = 8, stride = 8>, <size = 2, stride = 64>, <size = 8, stride = 1>], {%shim_noc_tile_5_0}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
+    aie.objectfifo.link [@out_L1L2_5_0, @out_L1L2_5_1, @out_L1L2_5_2, @out_L1L2_5_3] -> [@out_L2L3_5]([0, 256, 512, 768] [])
+
+    aie.objectfifo @out_L1L2_6_0(%tile_6_2, {%mem_tile_6_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_6_1(%tile_6_3, {%mem_tile_6_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_6_2(%tile_6_4, {%mem_tile_6_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_6_3(%tile_6_5, {%mem_tile_6_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L2L3_6(%mem_tile_6_1 dimensionsToStream [<size = 2, stride = 128>, <size = 8, stride = 8>, <size = 2, stride = 64>, <size = 8, stride = 1>], {%shim_noc_tile_6_0}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
+    aie.objectfifo.link [@out_L1L2_6_0, @out_L1L2_6_1, @out_L1L2_6_2, @out_L1L2_6_3] -> [@out_L2L3_6]([0, 256, 512, 768] [])
+
+    aie.objectfifo @out_L1L2_7_0(%tile_7_2, {%mem_tile_7_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_7_1(%tile_7_3, {%mem_tile_7_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_7_2(%tile_7_4, {%mem_tile_7_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L1L2_7_3(%tile_7_5, {%mem_tile_7_1}, 2 : i32) : !aie.objectfifo<memref<2x2x8x8xbf16>>
+    aie.objectfifo @out_L2L3_7(%mem_tile_7_1 dimensionsToStream [<size = 2, stride = 128>, <size = 8, stride = 8>, <size = 2, stride = 64>, <size = 8, stride = 1>], {%shim_noc_tile_7_0}, 2 : i32) : !aie.objectfifo<memref<64x16xbf16>>
+    aie.objectfifo.link [@out_L1L2_7_0, @out_L1L2_7_1, @out_L1L2_7_2, @out_L1L2_7_3] -> [@out_L2L3_7]([0, 256, 512, 768] [])
 
 // TASK 1: ADAPT THE FUSED ab-LOOP SIZE  
     %core_0_2 = aie.core(%tile_0_2) {
@@ -1073,102 +1133,85 @@ module {
     } {stack_size = 1024 : i32}
 
     aie.runtime_sequence(%arg0: memref<256x1024xbf16>, %arg1: memref<1024x128xbf16>, %arg2: memref<256x128xbf16>) {
+      // Spatial dims x (8 columns) and y (4 rows) are mapped to hardware tiles, so only
+      // a (=2) and b (=2) remain sequential. We emit ONE descriptor per a per shim:
+      //   - in0_L3L2_<x>  (8 columns):  view [b=2(repeat,stride0), c=16, pm=16, rk=64]
+      //                   base = (a*128 + x*16)*1024  (M-row of this column/a, K=0)
+      //   - in1_L3L2_<y>  (4 rows):     view [b=2, c=16, rk=64, qn=16], re-sent per a
+      //                   base = y*16  (N-offset of this row; in1 is a-independent)
+      //   - out_L2L3_<x>  (8 columns):  view [b=2, y=4, pm=16, qn=16]  (b,y kept separate)
+      //                   base = a*16384 + x*2048
+      // a=0 uses BD ids 0/1/2, a=1 uses 8/9/10 -> no id reuse, no mid-sequence barrier.
 
+      // ---- a = 0 -------------------------------------------------------------------
+      // out (id 0): base = x*2048
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0,     0][2, 4, 16, 16][64, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0,  2048][2, 4, 16, 16][64, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_1} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0,  4096][2, 4, 16, 16][64, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_2} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0,  6144][2, 4, 16, 16][64, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_3} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0,  8192][2, 4, 16, 16][64, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_4} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 10240][2, 4, 16, 16][64, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_5} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 12288][2, 4, 16, 16][64, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_6} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 14336][2, 4, 16, 16][64, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_7} : memref<256x128xbf16>
+      // in0 (id 1): base = x*16384
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0,      0][2, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0,  16384][2, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_1} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0,  32768][2, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_2} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0,  49152][2, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_3} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0,  65536][2, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_4} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0,  81920][2, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_5} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0,  98304][2, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_6} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 114688][2, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_7} : memref<256x1024xbf16>
+      // in1 (id 2): base = y*16
+      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0,  0][2, 16, 64, 16][64, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 16][2, 16, 64, 16][64, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_1} : memref<1024x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 32][2, 16, 64, 16][64, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_2} : memref<1024x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 48][2, 16, 64, 16][64, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_3} : memref<1024x128xbf16>
 
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 0][1, 8, 16, 16][0, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 0][8, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 2048][1, 8, 16, 16][0, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 16384][8, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
+      // ---- barrier: drain a=0 outputs before reprogramming the FIFOs for a=1 ------
       aiex.npu.dma_wait {symbol = @out_L2L3_0}
+      aiex.npu.dma_wait {symbol = @out_L2L3_1}
+      aiex.npu.dma_wait {symbol = @out_L2L3_2}
+      aiex.npu.dma_wait {symbol = @out_L2L3_3}
+      aiex.npu.dma_wait {symbol = @out_L2L3_4}
+      aiex.npu.dma_wait {symbol = @out_L2L3_5}
+      aiex.npu.dma_wait {symbol = @out_L2L3_6}
+      aiex.npu.dma_wait {symbol = @out_L2L3_7}
 
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 4096][1, 8, 16, 16][0, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 32768][8, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
+      // ---- a = 1 -------------------------------------------------------------------
+      // out (id 8): base = 16384 + x*2048
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 16384][2, 4, 16, 16][64, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 18432][2, 4, 16, 16][64, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_1} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 20480][2, 4, 16, 16][64, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_2} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 22528][2, 4, 16, 16][64, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_3} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 24576][2, 4, 16, 16][64, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_4} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 26624][2, 4, 16, 16][64, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_5} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 28672][2, 4, 16, 16][64, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_6} : memref<256x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 30720][2, 4, 16, 16][64, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_7} : memref<256x128xbf16>
+      // in0 (id 9): base = 131072 + x*16384
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 131072][2, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 147456][2, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_1} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 163840][2, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_2} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 180224][2, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_3} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 196608][2, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_4} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 212992][2, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_5} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 229376][2, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_6} : memref<256x1024xbf16>
+      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 245760][2, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_7} : memref<256x1024xbf16>
+      // in1 (id 10): base = y*16 (in1 is a-independent, re-sent for a=1)
+      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0,  0][2, 16, 64, 16][64, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 16][2, 16, 64, 16][64, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_1} : memref<1024x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 32][2, 16, 64, 16][64, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_2} : memref<1024x128xbf16>
+      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 48][2, 16, 64, 16][64, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_3} : memref<1024x128xbf16>
 
+      // ---- wait for all eight column outputs to land in L3 -------------------------
       aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 6144][1, 8, 16, 16][0, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 49152][8, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 8192][1, 8, 16, 16][0, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 65536][8, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 10240][1, 8, 16, 16][0, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 81920][8, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 12288][1, 8, 16, 16][0, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 98304][8, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 14336][1, 8, 16, 16][0, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 114688][8, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 16384][1, 8, 16, 16][0, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 131072][8, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 18432][1, 8, 16, 16][0, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 147456][8, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 20480][1, 8, 16, 16][0, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 163840][8, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 22528][1, 8, 16, 16][0, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 180224][8, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 24576][1, 8, 16, 16][0, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 196608][8, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 26624][1, 8, 16, 16][0, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 212992][8, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 28672][1, 8, 16, 16][0, 16, 128, 1]) {id = 0 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 229376][8, 16, 16, 64][0, 64, 1024, 1]) {id = 1 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 2 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-
-      aiex.npu.dma_memcpy_nd(%arg2[0, 0, 0, 30720][1, 8, 16, 16][0, 16, 128, 1]) {id = 8 : i64, metadata = @out_L2L3_0} : memref<256x128xbf16>
-      aiex.npu.dma_memcpy_nd(%arg0[0, 0, 0, 245760][8, 16, 16, 64][0, 64, 1024, 1]) {id = 9 : i64, metadata = @in0_L3L2_0} : memref<256x1024xbf16>
-      aiex.npu.dma_memcpy_nd(%arg1[0, 0, 0, 0][8, 16, 64, 16][16, 8192, 128, 1]) {id = 10 : i64, metadata = @in1_L3L2_0} : memref<1024x128xbf16>
-
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
-      aiex.npu.dma_wait {symbol = @out_L2L3_0}
+      aiex.npu.dma_wait {symbol = @out_L2L3_1}
+      aiex.npu.dma_wait {symbol = @out_L2L3_2}
+      aiex.npu.dma_wait {symbol = @out_L2L3_3}
+      aiex.npu.dma_wait {symbol = @out_L2L3_4}
+      aiex.npu.dma_wait {symbol = @out_L2L3_5}
+      aiex.npu.dma_wait {symbol = @out_L2L3_6}
+      aiex.npu.dma_wait {symbol = @out_L2L3_7}
     }
   }
 }

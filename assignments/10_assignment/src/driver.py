@@ -1,5 +1,5 @@
 """
-XRT Python driver for Assignment 09.
+XRT Python driver for Assignment 10.
 
 Usage (from the assignment directory, after building xclbins):
     python3 src/driver.py

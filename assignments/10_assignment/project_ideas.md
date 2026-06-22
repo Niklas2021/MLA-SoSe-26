@@ -6,25 +6,25 @@ Team: Niklas Becker-Klöser und Daria Elagina
 ## Idee A — XDNA NPU: Durchsatz-optimierter Whole-NPU-GEMM
 
 In Assignment 10 haben wir den GEMM zwar erfolgreich über alle 32 Compute-Tiles
-zum Laufen gebracht, mussten die Datenbewegung aber bewusst ausbremsen, damit das
-Ergebnis stimmt: Zwischen den beiden Durchläufen über die `a`-Dimension steht eine
-Barriere, die das eigentlich mögliche Überlappen von Datentransfer und Rechnung
-verhindert. In diesem Projekt wollen wir genau dort ansetzen und die Datenbewegung
-so umbauen, dass die Transfers von L3 über L2 nach L1 wieder parallel zur Rechnung
-laufen (Double-Buffering), und nebenbei die Aufteilung der Matrix auf die Tiles für
-beliebige Größen einstellbar machen. Am Ende wollen wir über verschiedene
-Konfigurationen messen, wie viel schneller das wird und ab welchem Punkt nicht mehr
-die Rechenleistung, sondern die Speicherbandbreite des NPU der limitierende Faktor
-ist.
+zum Laufen gebracht, die Datenbewegung und die Layout-Transformationen sind aber
+noch stark auf genau die vorgegebenen Größen festgeschrieben. In diesem Projekt
+wollen wir daraus einen parametrisierbaren Whole-NPU-GEMM machen: Aus Matrixgrößen
+und Tile-Splits sollen die FIFO-Typen, `dimensionsToStream`-Angaben,
+DMA-Deskriptoren und Offsets systematisch erzeugt werden, inklusive einer sauberen
+Beschreibung des Output-Layouts auf dem Memory-Tile. Danach benchmarken wir mehrere
+zulässige Split-Konfigurationen und vergleichen, ob wir uns dem bekannten
+bf16-XDNA2-Referenzwert von 14.71 TOPS annähern können oder ob Kernel-Performance,
+Speicherbandbreite oder Descriptor-Scheduling limitieren.
 
 ## Idee B — GPU / cuTile: Auto-Tuning für Tensor-Kontraktionen
 
 In Assignment 05 haben wir die L2-optimale Aufteilung für eine Kontraktion von Hand
 hergeleitet und begründet — für eine neue Kontraktion oder eine andere GPU müsste
 man diese Überlegung aber jedes Mal von vorne anstellen. Die Idee für dieses Projekt
-ist, den Optimizer aus Assignment 05 so zu erweitern, dass er die guten
-Tiling-Konfigurationen selbst findet, indem er verschiedene Varianten durchprobiert
-und mit `do_bench` misst, welche davon am schnellsten läuft. Als Testfälle nehmen wir
-die batched Matmul aus Assignment 05 und die Tensor-Ring-Kontraktion aus Assignment
-06 und schauen, ob das automatische Tuning unsere handgemachte Lösung erreicht oder
-sogar schlägt.
+ist ein bewusst eingeschränkter Auto-Tuner für den Optimizer aus Assignment 05:
+Er erzeugt nur einen kleinen, gültigen Suchraum an Tile-Splits und
+Ausführungsreihenfolgen, generiert daraus cuTile-Kernelvarianten aus Templates und
+misst sie mit `do_bench`. Als Mindestziel reproduzieren wir die handoptimierte
+batched Matmul aus Assignment 05; danach erweitern wir auf die Tensor-Ring-
+Kontraktion aus Assignment 06 und werten aus, ob das automatische Tuning die
+manuelle Lösung erreicht oder schlägt.

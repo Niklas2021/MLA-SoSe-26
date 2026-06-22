@@ -37,16 +37,20 @@ Testfälle A05 (batched matmul, `kernel_l2` in `task4.py`) und A06 (Tensor-Ring)
 
 *Saubere Ausgangsbasis schaffen, A05-Code wiederverwendbar machen, Referenzwerte einfrieren.*
 
-- [ ] Projektstruktur: `project/src/` (Code), `project/results/` (Logs/Plots), `project/cache/` (optional Config-Cache).
-- [ ] `task1-3.py` aus A05 als importierbares Modul übernehmen (z. B. `config.py`, `optimizer.py`),
-      **ohne die Semantik zu ändern** — sie sind in A05 getestet.
-- [ ] Smoke-Test der Umgebung: minimaler `ct.kernel` + `ct.launch` + `triton.testing.do_bench`
-      lauffähig auf der Ziel-GPU; CUDA-/cuTile-Version + **GPU-Modell + L2-Größe** ins Log schreiben
-      (L2-Größe brauchen wir fürs Kostenmodell, z. B. via `torch.cuda.get_device_properties`).
-- [ ] Baselines fixieren: A05 Hand-L2 = 66.10 TFLOPS, Baseline = 38.60 TFLOPS, A06 Hand-cuTile = 49.84,
-      `torch.einsum` = 16.18. Diese Zahlen stammen von **unserer** GPU — falls wir auf anderer Hardware
-      tunen, **neu messen**, sonst sind die ≥95 %-Ziele bedeutungslos.
-
+- [x] Projektstruktur: `project/src/` (Code), `project/results/` (Logs/Plots), `project/cache/` (optional Config-Cache).
+- [x] `task1-3.py` aus A05 als importierbares Modul übernehmen → Package `project/src/autotuner/`
+      (`config.py` ← task1, `optimizer.py` ← task3, `generate.py` ← task2), **Semantik unverändert**, importierbar verifiziert.
+- [x] Smoke-Test der Umgebung: Skript `project/src/smoke_test.py` (minimaler `ct.kernel` + `ct.launch` +
+      `triton.testing.do_bench`   lauffähig auf der Ziel-GPU; CUDA-/cuTile-Version + 
+**GPU-Modell + L2-Größe** ins Log schreiben
+      (L2-Größe brauchen wir fürs Kostenmodell, z. B. via 
+`torch.cuda.get_device_properties`). 
+- [x] Baselines fixieren: A05 Hand-L2 = 66.10 TFLOPS, Baseline 
+= 38.60 TFLOPS, A06 Hand-cuTile = 49.84,
+      `torch.einsum` = 16.18. Diese Zahlen stammen von 
+**unserer** GPU — falls wir auf anderer Hardware
+      tunen, **neu messen**, sonst sind die ≥95 %-Ziele 
+bedeutungslos.
 ## M1 — Config-Suchraum (Enumerator + Pruning + Ranking)
 
 *Suchraum hart einschränken, billig statisch vorfiltern, dann ranken — alles **vor** dem Kompilieren.*

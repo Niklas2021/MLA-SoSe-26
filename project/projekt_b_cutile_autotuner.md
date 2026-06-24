@@ -32,13 +32,30 @@ M4 ist die Erweiterung und prüft, ob das Ganze auch auf die schwierigere A06-Ko
 
 ## Stand (24.06.2026)
 
-M0 ist fertig und geprüft, M1.1 und M1.2 (Knöpfe + Enumerator) stehen in
-`project/src/autotuner/search.py` und laufen. Als Nächstes ist das Pruning (M1.3) dran.
+M0 und M1 stehen in `project/src/autotuner/search.py` und laufen GPU-frei. M2 ist angefangen
+(generischer Kernel + Mess-Skript), und genau hier brauchen wir jetzt die GB10: **`measure_compile.py`
+muss auf dem Server laufen**, bevor wir weiterbauen (siehe M2).
 
 Der Enumerator zählt für die A05-Shape 486 Kandidaten auf (nicht die 81 aus dem Pitch — die zählten
 nur die Tile-Größen ohne asymmetrisches `m_l2≠n_l2` und ohne die zweite Exec-Variante). Der
 Akzeptanztest geht durch: die handoptimierte A05-Config ist im Set enthalten. Krumme Shapes (z. B.
 M=1234) werden korrekt hochgepaddet, und A06 fällt mit einer klaren Meldung als M4 raus.
+
+Das Pruning bringt bei A05 nur 486 → 342 (126 wegen SMEM, 18 wegen Akku-Registern; Padding und MMA
+greifen hier nicht, weil 4096 glatt teilbar ist). Das ist weniger als erhofft, und der Grund ist
+strukturell: das pro-Block-SMEM hängt nur an den Prim-Größen, nicht an `m_l2/n_l2` oder der Variante.
+Statisches Pruning kann diese beiden Achsen also gar nicht beschneiden — die bleiben für M1.4/M3 übrig.
+
+Wichtig ist auch, was wir mit den Hardware-Daten *nicht* mehr prunen können: die L2-Reuse-Regel aus
+der Vorlesung würde verlangen, dass der Working-Set einer Swizzle-Gruppe ins L2 passt — bei der
+größten überlebenden Gruppe sind das aber nur rund 256 KB gegen 25 MB L2. Die Regel greift auf der
+GB10 also schlicht nicht; das L2 ist zu groß, um die Gruppengröße einzuschränken. Genau deshalb
+verschiebt sich die Entscheidung über `m_l2/n_l2` und Variante komplett auf die Messung.
+
+Als optionale, *verlustbehaftete* Reduktion gibt es noch `dedup_mn_symmetry`: bei quadratischen
+Problemen sind gespiegelte `(m_prim,m_l2)/(n_prim,n_l2)`-Paare grob austauschbar (342 → 186 bei A05).
+Grob, weil M und N im Speicher nicht symmetrisch sind — deshalb nicht im Default-Pfad, nur als
+schnelle Vorauswahl für einen ersten Mess-Durchlauf.
 
 Beim Durchsehen der Umgebung sind ein paar Dinge aufgefallen, die in M1 einfließen. Die Ziel-GPU ist
 eine **NVIDIA GB10** (DGX Spark, Compute Capability 12.1, 48 SMs, cuTile 1.4.0, CUDA 13). Wichtig für
@@ -114,13 +131,22 @@ Block auf der GB10 ist `MaxSharedMemoryPerBlockOptin − ReservedSharedMemoryPer
 fp16-Operanden plus `M_PRIM*N_PRIM * 4` Byte Akku, mit Double-Buffering nochmal Faktor zwei auf den
 Operanden. Die `device_props` reichen wir aus `device_props.py` rein.
 
-- [ ] `prune` schreiben, Anzahl vorher/nachher loggen.
+Umgesetzt sind vier Filter, vom Fundamentalsten zum Weichsten: MMA-Teilbarkeit (Guard), das
+SMEM-Budget (der harte Filter), ein Register-Check für den Akku (`M_PRIM*N_PRIM` fp32 gegen die halbe
+Registerdatei) und Padding-Verschwendung (gepaddetes Volumen gegen das Original). `prune` gibt
+`(kept, rejected)` zurück, wobei `rejected` den Grund mitführt, damit nachvollziehbar bleibt was
+warum wegfällt. Die Hardware-Werte kommen als `DeviceProperties` rein; für die Tests ohne GPU liegt
+ein fertiges `GB10`-Objekt in `device_props.py` (der cupy-Import ist dort jetzt lazy).
+
+- [x] `prune` mit allen vier Filtern geschrieben, kept/rejected + Gründe geloggt.
+- [x] Akzeptanztest: A05-Hand-Config überlebt, alle 256×256-Tiles fallen weg, Padding/MMA-Filter
+      mit Mini-Shapes bzw. ungeraden Knöpfen verifiziert.
 
 Ehrlich gesagt kennen wir die cuTile-internen SMEM/Register-Limits nicht genau — es kann gut sein,
 dass cuTile beim 48-KB-Default bleibt statt das Opt-in-Limit zu nutzen (Notiz dazu steht im
-`project_diary.md`). Das Pruning ist also eine Heuristik, kein Beweis. Deshalb kapseln wir später in
-M2/M3 jeden Compile in ein `try/except` und protokollieren Fehlschläge als „verworfen", statt uns auf
-den statischen Filter allein zu verlassen.
+`project_diary.md`). Deshalb sind `buffer_stages`, `smem_limit`, `reg_fraction` und `max_padding`
+Parameter mit optimistischen Defaults (Opt-in-SMEM, Double Buffering). Das Pruning bleibt eine
+Heuristik, kein Beweis — der eigentliche Schutz ist das `try/except` ums Kompilieren in M2/M3.
 
 ### M1.4 — Ranking
 
@@ -148,10 +174,21 @@ Kernel, den der JIT pro Konstanten-Kombination spezialisiert (so wie Triton das 
 Dass diese Spezialisierung wirklich pro Wert passiert, sollten wir gleich zu Beginn von M2 verifizieren
 — davon hängt der ganze Ansatz ab.
 
-- [ ] Generischen Kernel nach Vorlage `kernel_l2` / `kernel_l2_strict` aus `assignments/05_assignment/src/task4.py`,
-      parametrisiert über `M_PRIM, N_PRIM, K_PRIM, M_L2, N_L2` und das Exec-Muster.
-- [ ] `build_launch(config) -> (kernel, grid, args)`: Grid-Größe, Padding-Buffer (am Ende zurückslicen),
-      pid-Zerlegung aus `dim_sizes`/`exec_types`.
+Erster Schritt steht: der generische Kernel `matmul_variant_a` (Variante A, Swizzling) plus Launcher
+`run_variant_a` in `project/src/autotuner/kernels.py`, mit den Tile-Größen als `ct.Constant`. Dazu das
+Mess-Skript `project/src/measure_compile.py`, das auf der GB10 die offenen Fragen klärt: kompiliert der
+Kernel überhaupt, stimmt das Ergebnis gegen torch, wie lange dauert ein Compile (hochgerechnet auf 342
+bzw. 186 Configs), und spezialisiert `ct.Constant` wirklich pro Wert (zweite Config mit anderem M_PRIM).
+
+> **➡ Auf dem Server auszuführen:** `python measure_compile.py` (aus `project/src/`). Das Ergebnis
+> entscheidet, wie es weitergeht — liegt die Compile-Zeit im Minutenbereich für alle Configs, sparen wir
+> uns M1.4 und messen einfach alles; ist sie hoch, bauen wir das Ranking aus. Log landet in
+> `results/measure_compile.log`.
+
+- [x] Generischen Kernel `matmul_variant_a` + `run_variant_a` geschrieben (Variante A).
+- [ ] Auf der GB10 verifizieren: kompiliert, korrekt, `ct.Constant`-Spezialisierung, Compile-Zeit.
+- [ ] Variante B als zweiten Kernel (m_l2/n_l2 als SEQ-Loops), sobald A bestätigt ist.
+- [ ] `build_launch(candidate) -> (kernel, grid, args)`: aus einem `Candidate` automatisch starten.
 - [ ] Smoke-Test: aus der A05-Config erzeugter Kernel liefert dasselbe wie der handgeschriebene.
 
 Scope-Grenze für jetzt: zwei Inputs, GEMM-artig, eine K-Dim und je eine M-/N-Dim. Alles Allgemeinere

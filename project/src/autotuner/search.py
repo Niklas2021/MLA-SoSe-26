@@ -72,6 +72,10 @@ class Candidate:
     orig_m: int
     orig_n: int
     orig_k: int
+    # gepaddete Groessen (so wie sie in der Config stehen)
+    padded_m: int
+    padded_n: int
+    padded_k: int
 
     def label(self):
         return (f"{self.variant}: m_prim={self.m_prim} n_prim={self.n_prim} "
@@ -225,6 +229,7 @@ def build_one_config(einsum_str, input_shapes, variant,
         config=cfg, variant=variant,
         m_prim=m_prim, n_prim=n_prim, k_prim=k_prim, m_l2=m_l2, n_l2=n_l2,
         orig_m=orig_m, orig_n=orig_n, orig_k=orig_k,
+        padded_m=padded_m, padded_n=padded_n, padded_k=padded_k,
     )
 
 
@@ -257,6 +262,110 @@ def enumerate_candidates(einsum_str, input_shapes, space=None):
 
 
 # ---------------------------------------------------------------------------
+# M1.3  -  Static Pruning
+# ---------------------------------------------------------------------------
+# Alles rauswerfen, was schon ohne Kompilieren chancenlos ist. Das ist eine
+# HEURISTIK, kein Beweis - der echte Schutz ist das try/except ums Kompilieren
+# in M2/M3. Wichtig: das pro-Block-SMEM haengt nur an den Prim-Groessen, NICHT
+# an m_l2/n_l2 oder der Variante. Pruning entfernt also ganze Prim-Kombis.
+
+MMA_ALIGN = 16          # fp16-Tensor-Cores wollen M/N/K-Prim als Vielfache von 16
+DEFAULT_BUFFER_STAGES = 2   # Annahme: Double Buffering. cuTile koennte mehr fahren -> Parameter
+DEFAULT_REG_FRACTION = 0.5  # max Anteil der Register, den der Akku belegen darf
+DEFAULT_MAX_PADDING = 8.0   # prune wenn gepaddetes Volumen > Faktor * Original
+
+
+def estimate_smem_bytes(cand, buffer_stages):
+    """Geschaetztes SMEM pro Block: die beiden fp16-Operand-Tiles, mal Stages.
+    Der Akku liegt (wie bei Triton) in Registern, nicht im SMEM."""
+    a_tile = cand.m_prim * cand.k_prim
+    b_tile = cand.k_prim * cand.n_prim
+    return (a_tile + b_tile) * 2 * buffer_stages   # 2 Byte pro fp16
+
+
+def estimate_acc_registers(cand):
+    """Akku ist M_PRIM x N_PRIM in fp32 -> so viele 32-bit-Register pro Block."""
+    return cand.m_prim * cand.n_prim
+
+
+def padding_ratio(cand):
+    orig = cand.orig_m * cand.orig_n * cand.orig_k
+    padded = cand.padded_m * cand.padded_n * cand.padded_k
+    return padded / orig if orig > 0 else float("inf")
+
+
+def prune_reason(cand, dev, buffer_stages, reg_fraction, max_padding, smem_limit):
+    """Liefert den Grund, warum der Kandidat rausfliegt - oder None wenn er bleibt.
+    Reihenfolge = vom Fundamentalsten zum Weichsten."""
+
+    # 1) MMA-Teilbarkeit (Guard - triggert beim aktuellen Knopf-Set eigentlich nie)
+    if (cand.m_prim % MMA_ALIGN or cand.n_prim % MMA_ALIGN or cand.k_prim % MMA_ALIGN):
+        return "mma_align"
+
+    # 2) SMEM-Budget (der eigentliche harte Filter)
+    if estimate_smem_bytes(cand, buffer_stages) > smem_limit:
+        return "smem_exceeded"
+
+    # 3) Register-Druck durch den Akku (optional, weicher)
+    if estimate_acc_registers(cand) > dev.regs_per_block * reg_fraction:
+        return "acc_registers"
+
+    # 4) Padding-Verschwendung (optional, nur bei krummen/kleinen Shapes relevant)
+    if padding_ratio(cand) > max_padding:
+        return "padding_waste"
+
+    return None
+
+
+def prune(candidates, dev,
+          buffer_stages=DEFAULT_BUFFER_STAGES,
+          reg_fraction=DEFAULT_REG_FRACTION,
+          max_padding=DEFAULT_MAX_PADDING,
+          smem_limit=None):
+    """Filtert die Kandidatenliste. Gibt (kept, rejected) zurueck, wobei
+    rejected eine Liste von (candidate, grund) ist - damit nachvollziehbar
+    bleibt was warum wegfaellt."""
+    if smem_limit is None:
+        smem_limit = dev.usable_smem_per_block()
+
+    kept, rejected = [], []
+    for cand in candidates:
+        reason = prune_reason(cand, dev, buffer_stages, reg_fraction,
+                              max_padding, smem_limit)
+        if reason is None:
+            kept.append(cand)
+        else:
+            rejected.append((cand, reason))
+    return kept, rejected
+
+
+# ---------------------------------------------------------------------------
+# Optionale Reduktion: M/N-Symmetrie bei quadratischen Problemen
+# ---------------------------------------------------------------------------
+# ACHTUNG - das ist NICHT verlustfrei. M und N sind im Speicher unterschiedlich
+# angeordnet (A ist [M,K] mit K contiguous, B ist [K,N] mit N contiguous, C ist
+# [M,N] mit N contiguous). Eine gespiegelte Config kann also real anders schnell
+# sein. Deshalb per Default NICHT in der Pipeline - nur als Werkzeug fuer einen
+# schnellen ersten Mess-Durchlauf, wenn man das Risiko bewusst eingeht.
+
+def dedup_mn_symmetry(candidates):
+    """Bei quadratischen Problemen (orig_m == orig_n) die gespiegelten
+    (m_prim,m_l2)/(n_prim,n_l2)-Paare auf je einen Vertreter zusammenfassen.
+    Nicht-quadratische Kandidaten bleiben unangetastet."""
+    seen = set()
+    kept = []
+    for c in candidates:
+        if c.orig_m == c.orig_n:
+            sides = tuple(sorted([(c.m_prim, c.m_l2), (c.n_prim, c.n_l2)]))
+            key = (c.variant, c.k_prim, sides)
+            if key in seen:
+                continue
+            seen.add(key)
+        kept.append(c)
+    return kept
+
+
+# ---------------------------------------------------------------------------
 # Selbsttest (M1-Akzeptanztest): laeuft die A05-Hand-Config durch und ist sie
 # im enumerierten Set drin?
 # ---------------------------------------------------------------------------
@@ -283,3 +392,28 @@ if __name__ == "__main__":
         print(f"     dim_sizes : {hand[0].config.dim_sizes}")
     else:
         print("FEHLER: A05-Hand-Config NICHT im enumerierten Set!")
+
+    # --- M1.3: Pruning ---
+    from collections import Counter
+    from .device_props import GB10
+
+    print()
+    print(f"Pruning gegen {GB10.gpu_name} "
+          f"(nutzbares SMEM/Block = {GB10.usable_smem_per_block()} B)")
+    kept, rejected = prune(cands, GB10)
+    print(f"  {len(cands)} -> {len(kept)} bleiben, {len(rejected)} verworfen")
+    print(f"  Gruende: {dict(Counter(r for _, r in rejected))}")
+
+    # Akzeptanz: die A05-Hand-Config darf NICHT weggepruned werden
+    hand_kept = any(c.variant == "A" and c.m_prim == 128 and c.n_prim == 128
+                    and c.k_prim == 64 and c.m_l2 == 8 and c.n_l2 == 8 for c in kept)
+    print("  A05-Hand-Config ueberlebt Pruning:", "OK" if hand_kept else "FEHLER!")
+
+    # Sanity: die dicksten Tiles (256x256) sollten alle weg sein
+    big_left = [c for c in kept if c.m_prim == 256 and c.n_prim == 256]
+    print(f"  256x256-Kombis nach Pruning: {len(big_left)} (erwartet 0)")
+
+    # optionale Symmetrie-Reduktion (nur quadratisch, verlustbehaftet)
+    dedup = dedup_mn_symmetry(kept)
+    print(f"  optional dedup_mn_symmetry: {len(kept)} -> {len(dedup)} "
+          f"(A05 ist quadratisch)")

@@ -9,7 +9,8 @@ pip install cuda-tile
 
 *Ordner vom lokalen Rechner auf flambe kopieren:*
 
-```bashscp -r  /Users/dascha/Desktop/MLA-SoSe-26/project mla05@flambe.inf-ra.uni-jena.de:/home/mla05/test```
+```bash
+scp -r  /Users/dascha/Desktop/MLA-SoSe-26/project mla05@flambe.inf-ra.uni-jena.de:/home/mla05/test```
 
 --------------------------------------
 #### Welche GPU Properties sind für uns wichtig?

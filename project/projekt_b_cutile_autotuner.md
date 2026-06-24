@@ -186,7 +186,7 @@ bzw. 186 Configs), und spezialisiert `ct.Constant` wirklich pro Wert (zweite Con
 > `results/measure_compile.log`.
 
 - [x] Generischen Kernel `matmul_variant_a` + `run_variant_a` geschrieben (Variante A).
-- [ ] Auf der GB10 verifizieren: kompiliert, korrekt, `ct.Constant`-Spezialisierung, Compile-Zeit.
+- [x] Auf der GB10 verifizieren: kompiliert, korrekt, `ct.Constant`-Spezialisierung, Compile-Zeit - output im "results" Ordner - "measure_compile.log"
 - [ ] Variante B als zweiten Kernel (m_l2/n_l2 als SEQ-Loops), sobald A bestätigt ist.
 - [ ] `build_launch(candidate) -> (kernel, grid, args)`: aus einem `Candidate` automatisch starten.
 - [ ] Smoke-Test: aus der A05-Config erzeugter Kernel liefert dasselbe wie der handgeschriebene.

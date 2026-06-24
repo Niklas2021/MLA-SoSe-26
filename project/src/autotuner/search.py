@@ -25,7 +25,6 @@ def ceildiv(a, b):
 # ---------------------------------------------------------------------------
 # Bewusst klein gehalten. Die Werte stammen aus dem Pitch; ob sie auf der GB10
 # wirklich alle Sinn ergeben, sehen wir spaetestens beim Pruning/Messen.
-
 M_PRIM_CHOICES = [64, 128, 256]
 N_PRIM_CHOICES = [64, 128, 256]
 K_PRIM_CHOICES = [32, 64, 128]

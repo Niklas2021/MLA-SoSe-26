@@ -11,9 +11,16 @@ class DeviceProperties:
     number_sm: int                 # Anzahl SMs, fuer Grid size
     regs_per_block: int            # max 32-bit Register pro Block (Akku-Check)
     reserved_smem_per_block: int   # reserviertes SMEM, muss vom Budget abgezogen werden
+    mem_clock_khz: int             # Speichertakt (effektive Datenrate) in kHz
+    mem_bus_bits: int              # Breite des Speicherbusses in Bit
 
     def usable_smem_per_block(self):
         return self.smem_per_block - self.reserved_smem_per_block
+
+    def peak_dram_bandwidth(self):
+        """Peak-DRAM-Bandbreite in Byte/s. MemoryClockRate ist bei der GB10
+        schon die effektive Datenrate (8533 MT/s), daher kein zusaetzliches x2."""
+        return self.mem_clock_khz * 1e3 * (self.mem_bus_bits / 8)
 
 
 def get_device_properties() -> DeviceProperties:
@@ -31,6 +38,8 @@ def get_device_properties() -> DeviceProperties:
         number_sm = attr["MultiProcessorCount"],
         regs_per_block = attr["MaxRegistersPerBlock"],
         reserved_smem_per_block = attr["ReservedSharedMemoryPerBlock"],
+        mem_clock_khz = attr["MemoryClockRate"],
+        mem_bus_bits = attr["GlobalMemoryBusWidth"],
     )
 
 
@@ -44,4 +53,6 @@ GB10 = DeviceProperties(
     number_sm = 48,
     regs_per_block = 65536,
     reserved_smem_per_block = 1024,
+    mem_clock_khz = 8533000,        # 8533 MT/s
+    mem_bus_bits = 256,
 )

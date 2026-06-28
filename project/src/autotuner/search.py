@@ -339,6 +339,76 @@ def prune(candidates, dev,
 
 
 # ---------------------------------------------------------------------------
+# M1.4  -  Ranking (analytisches Kostenmodell)
+# ---------------------------------------------------------------------------
+# Das ist NICHT zum Zeitsparen da, sondern das eigentliche Forschungsstueck:
+# wir messen spaeter alle Kandidaten (Ground Truth) und pruefen, ob dieses
+# Modell die wirklich beste Config in seine Top-k / Top-1 zieht.
+#
+# GB10 ist bandbreitenlimitiert (~270 GB/s, 25 MB L2). Die FLOPs sind fuer alle
+# Kandidaten praktisch gleich -> entscheidend ist der DRAM-Traffic. Den senkt
+# eine groessere Swizzle-Gruppe, weil A/B seltener nachgeladen werden.
+
+def estimate_dram_bytes(cand, dtype_bytes=2):
+    """Geschaetzte Bytes, die von/zu DRAM bewegt werden (pro Batch-Element).
+    Reuse-Modell: A wird einmal pro Gruppen-Spalte gelesen, B einmal pro
+    Gruppen-Zeile, C einmal geschrieben. Auf gepaddeten Groessen, weil der
+    Kernel die Null-Ueberhaenge tatsaechlich mitlaedt."""
+    group_cols = ceildiv(cand.padded_n, cand.n_l2 * cand.n_prim)
+    group_rows = ceildiv(cand.padded_m, cand.m_l2 * cand.m_prim)
+    a_bytes = cand.padded_m * cand.padded_k * dtype_bytes * group_cols
+    b_bytes = cand.padded_k * cand.padded_n * dtype_bytes * group_rows
+    c_bytes = cand.padded_m * cand.padded_n * dtype_bytes
+    return a_bytes + b_bytes + c_bytes
+
+
+def estimate_grid(cand):
+    """Anzahl CTAs pro Batch-Element. Variante A verteilt m_l2/n_l2 ueber die
+    bid (mehr CTAs), Variante B macht sie als Loop (weniger CTAs)."""
+    blocks = (cand.padded_m // cand.m_prim) * (cand.padded_n // cand.n_prim)
+    if cand.variant == "A":
+        return blocks
+    return blocks // (cand.m_l2 * cand.n_l2)
+
+
+def occupancy_factor(grid, dev):
+    """Grober Auslastungsfaktor in (0,1]: wenn das Grid weniger CTAs hat als die
+    GPU SMs, kann die Speicherbandbreite nicht gesaettigt werden. >= 1 Wave -> 1."""
+    return min(1.0, grid / dev.number_sm)
+
+
+def rank(candidates, dev, batch=1, model="bw"):
+    """Sortiert die Kandidaten nach vorhergesagter Laufzeit (beste zuerst).
+
+    Es werden ZWEI Modelle berechnet, damit wir sie gegeneinander (und gegen die
+    Messung) evaluieren koennen:
+      - "bw"     : reine DRAM-Bandbreiten-Zeit
+      - "bw_occ" : dieselbe Zeit, aber durch den Occupancy-Faktor geteilt
+                   (bestraft zu kleine Grids, z.B. Variante B mit grosser Gruppe)
+    model waehlt nur die Sortier-Reihenfolge; beide Werte stehen in metrics.
+
+    Liefert eine Liste von (cand, metrics)."""
+    bw = dev.peak_dram_bandwidth()
+    ranked = []
+    for cand in candidates:
+        dram = estimate_dram_bytes(cand) * batch
+        grid = estimate_grid(cand) * batch
+        est_ms = dram / bw * 1e3
+        occ = occupancy_factor(grid, dev)
+        ranked.append((cand, {
+            "dram_bytes": dram,
+            "grid": grid,
+            "occupancy": occ,
+            "est_ms": est_ms,
+            "est_ms_occ": est_ms / occ,
+        }))
+
+    key = "est_ms_occ" if model == "bw_occ" else "est_ms"
+    ranked.sort(key=lambda x: (x[1][key], -x[1]["grid"]))
+    return ranked
+
+
+# ---------------------------------------------------------------------------
 # Optionale Reduktion: M/N-Symmetrie bei quadratischen Problemen
 # ---------------------------------------------------------------------------
 # ACHTUNG - das ist NICHT verlustfrei. M und N sind im Speicher unterschiedlich
@@ -416,3 +486,17 @@ if __name__ == "__main__":
     dedup = dedup_mn_symmetry(kept)
     print(f"  optional dedup_mn_symmetry: {len(kept)} -> {len(dedup)} "
           f"(A05 ist quadratisch)")
+
+    # --- M1.4: Ranking ---
+    print()
+    print("Ranking (Modell-Vorhersage, beste zuerst), Top-10:")
+    ranked = rank(kept, GB10, batch=4)   # C=4 bei A05
+    for i, (c, m) in enumerate(ranked[:10]):
+        print(f"  #{i+1:2d}  est={m['est_ms']:6.2f} ms  grid={m['grid']:6d}  | {c.label()}")
+
+    # wo landet die gemessene 66.54-TFLOPS-Config (128/128/64, 8x8, A)?
+    for i, (c, m) in enumerate(ranked):
+        if (c.variant == "A" and c.m_prim == 128 and c.n_prim == 128
+                and c.k_prim == 64 and c.m_l2 == 8 and c.n_l2 == 8):
+            print(f"\n  gemessene Referenz-Config steht im Modell auf Rang #{i+1} von {len(ranked)}")
+            break

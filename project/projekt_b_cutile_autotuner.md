@@ -157,13 +157,20 @@ Swizzle-Gruppe `M_L2 × N_L2` wird A über `N_L2` und B über `M_L2` wiederverwe
 k-Schritt ist etwa `M_L2*M_PRIM*K_PRIM + N_L2*N_PRIM*K_PRIM` (mal 2 Byte). Score ist der geschätzte
 DRAM-Traffic, Tie-Break die Occupancy.
 
-- [ ] `rank` schreiben, Top-k an M3 übergeben.
+Wichtig: das Ranking ist *nicht* zum Zeitsparen da. Der Compile kostet nur ~0.4 s (Server-Messung), wir
+könnten alle 342 problemlos durchmessen. Der eigentliche Zweck ist die Forschungsfrage: zieht unser
+Modell die tatsächlich beste Config in seine Top-k bzw. Top-1? Das prüfen wir in M3 gegen die
+Vollmessung (Ground Truth).
 
-Mit den 25 MB L2 der GB10 könnte das Modell allerdings kaum noch differenzieren, weil fast jeder
-sinnvolle Working-Set hineinpasst. Falls das so ist, ist das selbst ein Ergebnis („auf der GB10 zählt
-eher Bandbreite und Occupancy als L2-Reuse"), und wir gewichten entsprechend um. Im Zweifel halten wir
-M1.4 minimal und lassen einfach die Messung in M3 entscheiden — bei nur ~40–60 Kandidaten ist es
-durchaus vertretbar, alle zu messen, statt ein wackeliges Modell zu bauen.
+- [x] `rank` als bandbreitenbasiertes Kostenmodell geschrieben (DRAM-Traffic / Peak-Bandbreite, Grid
+      als Tie-Break). Bandbreite kommt aus `device_props` (~270 GB/s auf der GB10).
+
+Erster Befund aus dem Modell (A05): die gemessene 66.54-TFLOPS-Config (128×128, 8×8, A) steht auf
+Rang #10 von 342 — das Modell bevorzugt größere Tiles (128×256 / 256×128), weil die weniger DRAM-Traffic
+machen. Zwei Schwächen zeigt es sofort: es kann Variante A und B nicht unterscheiden (gleiche Tile-Form =
+gleiche Bytes), und es übersieht Occupancy — Variante B mit großer Gruppe hat nur grid=32 CTAs bei 48 SMs
+(< 1 Wave), kriegt aber dieselbe Vorhersage wie A. Ob das in der Realität durchschlägt, zeigt M3. Optional
+bauen wir einen Occupancy-Term ein und evaluieren beide Modell-Varianten gegeneinander (Ablation).
 
 ## M2 — Kernel-Instanziierung
 
@@ -186,34 +193,41 @@ bzw. 186 Configs), und spezialisiert `ct.Constant` wirklich pro Wert (zweite Con
 > `results/measure_compile.log`.
 
 - [x] Generischen Kernel `matmul_variant_a` + `run_variant_a` geschrieben (Variante A).
-- [x] Auf der GB10 verifizieren: kompiliert, korrekt, `ct.Constant`-Spezialisierung, Compile-Zeit - output im "results" Ordner - "measure_compile.log"
-- [ ] Variante B als zweiten Kernel (m_l2/n_l2 als SEQ-Loops), sobald A bestätigt ist.
-- [ ] `build_launch(candidate) -> (kernel, grid, args)`: aus einem `Candidate` automatisch starten.
-- [ ] Smoke-Test: aus der A05-Config erzeugter Kernel liefert dasselbe wie der handgeschriebene.
+- [x] Auf der GB10 verifiziert: kompiliert, korrekt, `ct.Constant`-Spezialisierung, Compile ~0.4 s,
+      66.54 TFLOPS (= Hand-L2) — Output in `results/measure_compile.log`.
+- [x] Variante B (`matmul_variant_b` + `run_variant_b`, m_l2/n_l2 als SEQ-Loops).
+- [x] `run_candidate(cand, A, B)`: Dispatcher, der aus einem `Candidate` den passenden Kernel startet.
+- [x] Smoke-Test: aus der A05-Config erzeugter Variante-A-Kernel == handgeschriebener (66.54 TFLOPS).
 
 Scope-Grenze für jetzt: zwei Inputs, GEMM-artig, eine K-Dim und je eine M-/N-Dim. Alles Allgemeinere
 heben wir uns für M4 auf.
 
-## M3 — Benchmark & Ranking
+## M3 — Vollmessung & Modell-Evaluation
 
-Die Top-k-Kandidaten messen, die beste Config küren und die Tuning-Kosten ehrlich ausweisen.
-Korrektheit prüfen wir wie in A05 (task4c) gegen die `torch.einsum`-Referenz in fp32, dann nach fp16
-gecastet, mit `allclose(rtol=1e-2, atol=1e-1)` und zusätzlich dem max-Fehler, auch für krumme Shapes.
-Gemessen wird mit `triton.testing.do_bench` (A05 nutzt warmup = 200, rep = 2000), und aus
-`2 * Produkt der Original-Dim-Größen` und der Zeit rechnen wir die TFLOPS.
+Der Harness steht: `project/src/tune.py`. Er enumeriert und prunt (ohne dedup — wir messen fair alles),
+kompiliert jeden Kandidaten in einem `try/except`, prüft Korrektheit gegen `torch.einsum`
+(`allclose(rtol=1e-2, atol=1e-1)`) und misst mit `do_bench`. Die nach TFLOPS sortierte Liste ist unsere
+Ground Truth. Compile-Fehler und inkorrekte Configs werden als solche protokolliert, nicht verschwiegen.
 
-- [ ] Korrektheitscheck gegen torch.einsum.
-- [ ] Benchmark mit do_bench, TFLOPS auf der Original-Shape.
-- [ ] Top-k ausgeben, Vergleich gegen Hand-L2 (Ziel ≥ 95 % von 66.10) und gegen die Baseline.
-- [ ] Ablation: welcher Knopf wirkt am stärksten (Prim-Größe, L2-Gruppe, Exec-Muster)?
+Das eigentliche Ergebnis ist die Modell-Evaluation: für beide Modelle (`bw` und `bw_occ`) berichtet der
+Harness, auf welchem Modell-Rang die *gemessen* beste Config steht, recall@k für k ∈ {1,5,10,20}, und
+die Spearman-Korrelation zwischen Modell-Schätzung und Messung. Damit beantworten wir direkt: zieht
+unsere Eingrenzung die besten Configs nach oben, und hilft der Occupancy-Term?
 
-Zwei Punkte, die wir nicht unter den Tisch fallen lassen sollten. Erstens: die eigentlichen
-Tuning-Kosten stecken in der Compile-Zeit mal der Anzahl Kandidaten, nicht in der do_bench-Laufzeit.
-Das „Minuten statt Stunden"-Argument aus dem Pitch belegen wir nur, wenn wir Anzahl kompilierter
-Kandidaten und die gesamte Wall-Clock mitloggen. Zweitens: realistischerweise reproduzieren wir die
-schon handoptimierte A05-Lösung — sie zu *schlagen* ist nicht garantiert, weil unser Suchraum klein
-ist und die Hand-Lösung nah am Optimum liegt. Das Minimalziel ist, die 95 % zu erreichen und zu zeigen,
-dass es ohne Handarbeit gefunden wird.
+> **➡ Auf dem Server auszuführen:** `python tune.py` (aus `project/src/`). Voll-Sweep über die ~342
+> Kandidaten mit moderaten do_bench-Settings (warmup=50, rep=300, ~10–15 min). Output:
+> `results/tune_a05.csv` (alle Configs, fürs Plotten) + `results/tune_a05.log` (Zusammenfassung).
+
+- [x] Harness `tune.py`: Korrektheit + do_bench über alle Kandidaten, CSV/Log-Output.
+- [x] Zwei Modelle dagegen evaluiert: Modell-Rang der Messsieger-Config, recall@k, Spearman.
+- [ ] Auf der GB10 laufen lassen und Ergebnisse auswerten.
+- [ ] Ablation aus dem CSV: welcher Knopf wirkt am stärksten (Prim-Größe, L2-Gruppe, Variante)?
+
+Zwei Dinge, die wir ehrlich halten. Erstens: das Modell ist ein *relativer Ranker*, kein absoluter
+Prädiktor — es schätzte für die Referenz-Config 4.42 ms, gemessen wurden 8.26 ms (Faktor ~2 daneben).
+Worauf es ankommt, ist die Reihenfolge, nicht die absolute Zahl. Zweitens: realistischerweise
+reproduzieren wir die schon handoptimierte A05-Lösung — sie zu *schlagen* ist nicht garantiert, weil
+unser Suchraum klein ist. Das Minimalziel bleibt, die 95 % ohne Handarbeit zu treffen.
 
 ## M4 — Transfer auf A06 (Erweiterung)
 

@@ -1,0 +1,50 @@
+=== M3 Tuning + Evaluation (a05) ===
+Zeit: 2026-06-28T15:13:17
+GPU: NVIDIA GB10   Einsum: cmk, ckn -> cmn   Shapes: [(4, 4096, 4096), (4, 4096, 4096)]
+enumeriert 486, geprunt -> 342 zu messen (144 vorab verworfen)
+do_bench: warmup=50, rep=300
+
+  ... 25/342 gemessen
+  ... 50/342 gemessen
+  ... 75/342 gemessen
+  ... 100/342 gemessen
+  ... 125/342 gemessen
+  ... 150/342 gemessen
+  ... 175/342 gemessen
+  ... 200/342 gemessen
+  ... 225/342 gemessen
+  ... 250/342 gemessen
+  ... 275/342 gemessen
+  ... 300/342 gemessen
+  ... 325/342 gemessen
+
+gemessen: 342 ok, 0 fehlgeschlagen/inkorrekt
+
+--- gemessene Top-10 (Ground Truth) ---
+  # 1    8.171 ms   67.28 TFLOPS  | A: m_prim=128 n_prim=128 k_prim=64 m_l2=8 n_l2=4
+  # 2    8.225 ms   66.84 TFLOPS  | A: m_prim=128 n_prim=128 k_prim=64 m_l2=8 n_l2=2
+  # 3    8.432 ms   65.20 TFLOPS  | A: m_prim=128 n_prim=128 k_prim=64 m_l2=8 n_l2=8
+  # 4    8.556 ms   64.25 TFLOPS  | A: m_prim=128 n_prim=128 k_prim=64 m_l2=4 n_l2=4
+  # 5    8.598 ms   63.94 TFLOPS  | A: m_prim=128 n_prim=128 k_prim=64 m_l2=4 n_l2=2
+  # 6    8.628 ms   63.72 TFLOPS  | A: m_prim=64 n_prim=256 k_prim=64 m_l2=8 n_l2=2
+  # 7    8.664 ms   63.45 TFLOPS  | B: m_prim=64 n_prim=256 k_prim=64 m_l2=2 n_l2=4
+  # 8    8.794 ms   62.52 TFLOPS  | B: m_prim=128 n_prim=128 k_prim=64 m_l2=2 n_l2=4
+  # 9    8.796 ms   62.50 TFLOPS  | B: m_prim=64 n_prim=256 k_prim=32 m_l2=2 n_l2=4
+  #10    8.826 ms   62.29 TFLOPS  | B: m_prim=128 n_prim=128 k_prim=32 m_l2=2 n_l2=4
+  (A05 Hand-L2 Referenz: 66.10 TFLOPS)
+
+--- Modell 'bw' ---
+gemessen beste Config steht im Modell auf Rang #48 von 342
+  k= 1:  beste∈Top-k? nein   recall@k (Schnittmenge) = 0.00
+  k= 5:  beste∈Top-k? nein   recall@k (Schnittmenge) = 0.00
+  k=10:  beste∈Top-k? nein   recall@k (Schnittmenge) = 0.10
+  k=20:  beste∈Top-k? nein   recall@k (Schnittmenge) = 0.05
+  Spearman(Modell, Messung) = -0.112
+
+--- Modell 'bw_occ' ---
+gemessen beste Config steht im Modell auf Rang #48 von 342
+  k= 1:  beste∈Top-k? nein   recall@k (Schnittmenge) = 0.00
+  k= 5:  beste∈Top-k? nein   recall@k (Schnittmenge) = 0.00
+  k=10:  beste∈Top-k? nein   recall@k (Schnittmenge) = 0.10
+  k=20:  beste∈Top-k? nein   recall@k (Schnittmenge) = 0.05
+  Spearman(Modell, Messung) = -0.112

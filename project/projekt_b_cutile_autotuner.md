@@ -32,9 +32,11 @@ M4 ist die Erweiterung und prüft, ob das Ganze auch auf die schwierigere A06-Ko
 
 ## Stand (24.06.2026)
 
-M0 und M1 stehen in `project/src/autotuner/search.py` und laufen GPU-frei. M2 ist angefangen
-(generischer Kernel + Mess-Skript), und genau hier brauchen wir jetzt die GB10: **`measure_compile.py`
-muss auf dem Server laufen**, bevor wir weiterbauen (siehe M2).
+M0 bis M3 sind durch, inklusive einer Multi-Shape-Studie über acht Regime (`problems.py`). Kurzfassung:
+der Tuner ist dem Handkernel gleichwertig, wo Handtuning passt, und bis zu 21 % besser, wo nicht (krumme
+Shape) — und das in ~3 s pro Shape, wenn man nur die Modell-Top-7 misst. Das analytische Ranking taugt
+dabei nur als grobe Vorauswahl, nicht als exakter Ranker (Spearman im Schnitt −0.26). Details in M3.
+Offen ist noch M4 (Transfer auf A06).
 
 Der Enumerator zählt für die A05-Shape 486 Kandidaten auf (nicht die 81 aus dem Pitch — die zählten
 nur die Tile-Größen ohne asymmetrisches `m_l2≠n_l2` und ohne die zweite Exec-Variante). Der
@@ -219,15 +221,56 @@ unsere Eingrenzung die besten Configs nach oben, und hilft der Occupancy-Term?
 > `results/tune_a05.csv` (alle Configs, fürs Plotten) + `results/tune_a05.log` (Zusammenfassung).
 
 - [x] Harness `tune.py`: Korrektheit + do_bench über alle Kandidaten, CSV/Log-Output.
-- [x] Zwei Modelle dagegen evaluiert: Modell-Rang der Messsieger-Config, recall@k, Spearman.
-- [ ] Auf der GB10 laufen lassen und Ergebnisse auswerten.
-- [ ] Ablation aus dem CSV: welcher Knopf wirkt am stärksten (Prim-Größe, L2-Gruppe, Variante)?
+- [x] Auf der GB10 gelaufen: 342 Kandidaten, alle korrekt, 0 Fehlschläge (`results/tune_a05.*`).
+- [x] Auswertung reproduzierbar in `analyze_tune.py` (läuft lokal aus dem CSV).
+- [x] Ablation: Prim-Form dominiert klar; L2-Gruppe und Variante wirken nur zweitrangig.
 
-Zwei Dinge, die wir ehrlich halten. Erstens: das Modell ist ein *relativer Ranker*, kein absoluter
-Prädiktor — es schätzte für die Referenz-Config 4.42 ms, gemessen wurden 8.26 ms (Faktor ~2 daneben).
-Worauf es ankommt, ist die Reihenfolge, nicht die absolute Zahl. Zweitens: realistischerweise
-reproduzieren wir die schon handoptimierte A05-Lösung — sie zu *schlagen* ist nicht garantiert, weil
-unser Suchraum klein ist. Das Minimalziel bleibt, die 95 % ohne Handarbeit zu treffen.
+### Ergebnisse
+
+Gemessen wurde auf der GB10 über acht Shapes (in `problems.py`), jeweils alle 342 geprunten Configs.
+Insgesamt 22 min Sweep, und alle 8×342 Messungen liefen durch — keine ist am Compile gescheitert oder
+falsch gewesen, auch nicht die unteilbare `krumm`-Shape, womit der Padding-Pfad auf der echten Hardware
+bestätigt ist. Reproduzierbar ist die ganze Auswertung mit `analyze_tune.py` (läuft lokal aus den CSVs).
+
+**Was die beste Config ist.** In 7 von 8 Fällen gewinnt `128/128/64` (Prim-Größen), nur bei großem K
+will der Kernel ein größeres k_prim (`64/128/128`). Es gibt also eine ziemlich robuste Quasi-Universal-
+Wahl; die L2-Gruppe und A-vs-B feilen oben nur noch ein paar Prozent. Die asymmetrischen 256-breiten
+Tiles sind dagegen Gift (3–14 TFLOPS statt ~65) — die sprengen das Registerbudget.
+
+**Lohnt sich der Tuner gegenüber dem Handkernel?** Der Handkernel ist hier unsere Default-Config
+(`128/128/64`, 8×8). Auf den regulären GEMMs holt der Tuner praktisch nichts heraus (1.00×) — er
+*bestätigt* die Handarbeit. Wo es vom Heimvorteil weggeht, schlägt er sie aber: +3 % bei großem K und
++21 % auf der krummen Shape, wo die feste 8×8-Gruppe einfach schlecht passt.
+
+| Shape | Hand | Tuner (top-7) | abs. Best | Tuner/Hand |
+|---|---|---|---|---|
+| a05 / square_1b / tall / wide | 60–65 | = Hand | +1–3 % | 1.00× |
+| small_k | 36.4 | = Hand | 36.9 | 1.00× |
+| large_k | 44.3 | 45.5 | 47.5 | 1.03× |
+| krumm | 33.6 | 40.7 | 42.4 | **1.21×** |
+| batch16 | 46.0 | 46.0 | 46.0 | 1.00× |
+
+Im Schnitt ist der Tuner 1.03× über dem Handkernel, nie schlechter, und erreicht 97.6 % des absoluten
+Optimums.
+
+**Das Ranking-Modell taugt nicht als Ranker — aber als Vorfilter.** Das reine Bandbreitenmodell ist über
+alle Shapes negativ korreliert (Spearman im Schnitt −0.26), weil es ausgerechnet die 256-breiten
+Register-Fresser nach oben sortiert. Auch die Hoffnung, dass es im bandbreitenlimitierten `small_k`
+greift, geht nicht auf (−0.30) — das 25-MB-L2 schluckt den Traffic auch dort. Filtert man die
+Register-Fresser raus (v2, Akku ≤ 0.4·Registerdatei), verschwindet die Anti-Korrelation, ein guter
+Ranker wird es trotzdem nicht (Schnitt ~0).
+
+Der Witz ist: als *exakter* Ranker scheitert es, aber als *Vorauswahl* reicht es. Misst man nur die
+Modell-Top-7 und nimmt die schnellste davon, landet man in jedem der acht Regime bei ≥ 95 % des
+Optimums (im Schnitt 97.6 %). Und das kostet ~3 s statt ~3 min Voll-Sweep, weil pro Config der Compile
+(~0.4 s) dominiert und wir eben nur 7 statt 342 kompilieren. Die exakte Beste erwischt man so meist
+nicht (die sitzt im Modell tief, und das Spitzenfeld liegt ohnehin innerhalb ~3 % im Messrauschen) —
+das ist der ehrliche Preis.
+
+Unterm Strich: die Eingrenzung (enumerate + prune) ist das Sichere und Wertvolle, das analytische
+Ranking taugt auf dieser Hardware nur grob zur Vorauswahl, und die eigentliche Entscheidung muss man
+messen. Genau das rechtfertigt den Tuner: gleichwertig dort, wo Handtuning passt, klar besser dort, wo
+nicht — bei vernachlässigbarem Aufwand.
 
 ## M4 — Transfer auf A06 (Erweiterung)
 

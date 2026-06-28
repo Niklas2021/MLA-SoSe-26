@@ -1,18 +1,5 @@
-"""Server-Test fuer M2 - beantwortet die offenen Fragen, BEVOR wir die
-Tuning-Maschinerie bauen:
-
-  1. Kompiliert der generische ct.Constant-Kernel ueberhaupt? (Falls nein ->
-     wir muessen doch zu String-Templates greifen.)
-  2. Stimmt das Ergebnis gegen torch.einsum?
-  3. Wie lange dauert EIN Compile (erster Launch) vs. ein gecachter Launch?
-     -> hochgerechnet auf 342 / 186 Configs sehen wir, ob wir alle messen
-        koennen oder Top-k-Ranking brauchen.
-  4. Spezialisiert ct.Constant pro Wert? (zweite Config mit anderem M_PRIM ->
-     wenn die auch erst kompiliert werden muss, ist die Antwort ja.)
-
-Ausfuehren auf der GB10:   python measure_compile.py   (aus project/src/)
-"""
-
+# Schneller Check auf der GB10: kompiliert der generische Kernel, stimmt er,
+# wie lange dauert ein Compile, und spezialisiert ct.Constant pro Wert?
 import datetime
 import os
 import time

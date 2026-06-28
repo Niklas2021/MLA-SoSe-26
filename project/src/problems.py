@@ -1,16 +1,6 @@
-"""Shape-Liste fuer die Multi-Shape-Studie.
-
-Frei editierbar - jede Zeile ist eine Kontraktion, die der Tuner durchmessen
-soll. Felder:
-  name    : Kurzname (Dateiname der CSV: tune_<name>.csv)
-  einsum  : Kontraktion (zwei Inputs, ein M/N/K; optional Batch-Dim)
-  shapes  : Shapes der beiden Input-Tensoren
-  regime  : nur ein Label fuer die Auswertung
-
-Die Groessen sind bewusst so gewaehlt, dass sie verschiedene Regime abdecken
-(quadratisch / rechteckig / klein-K / gross-K / unteilbar / Batch) und der ganze
-Sweep in vertretbarer Zeit durchlaeuft.
-"""
+# Shapes die der Tuner durchmisst. Frei editierbar.
+# name -> tune_<name>.csv, einsum (zwei Inputs, ein M/N/K, optional Batch), shapes, regime-Label.
+# Verschiedene Regime: quadratisch / rechteckig / klein-K / gross-K / unteilbar / Batch.
 
 PROBLEMS = [
     # die Referenz aus A05 (Heimvorteil: dafuer wurde von Hand getunt)

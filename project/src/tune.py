@@ -1,15 +1,6 @@
-"""M3 - Vollmessung ueber mehrere Shapes (Multi-Shape-Studie).
-
-Fuer jede Shape in problems.py: enumerieren + prunen, jeden Kandidaten
-kompilieren/auf Korrektheit pruefen/mit do_bench messen, Ergebnis nach
-results/tune_<name>.csv schreiben. Die Modell-Auswertung (L2/Bandbreiten-
-Prognose vs. Messung) passiert separat in analyze_tune.py, das ohne GPU laeuft.
-
-Pro Shape wird die Wall-Clock des Sweeps geloggt (ehrliche Tuning-Kosten).
-
-Auf der GB10 ausfuehren:  python tune.py   (aus project/src/)
-"""
-
+# Misst fuer jede Shape in problems.py alle geprunten Configs und schreibt
+# results/tune_<name>.csv. Auswertung dann mit analyze_tune.py (ohne GPU).
+# Auf der GB10:  python tune.py
 import datetime
 import os
 import time
@@ -26,7 +17,6 @@ try:
     DEV = get_device_properties()
 except Exception:
     from autotuner.device_props import GB10 as DEV
-
 
 WARMUP = 50    # ms-Budget fuer do_bench
 REP = 200
@@ -56,7 +46,6 @@ def sweep_problem(problem, log):
 
     cands, _ = enumerate_candidates(einsum, shapes)
     kept, rejected = prune(cands, DEV)
-
     log(f"--- {problem['name']}  ({problem['regime']}) ---")
     log(f"einsum {einsum}  shapes {shapes}")
     log(f"enumeriert {len(cands)} -> {len(kept)} zu messen ({len(rejected)} verworfen)")
@@ -69,8 +58,7 @@ def sweep_problem(problem, log):
     results = {}
     t_start = time.perf_counter()
     for cand in kept:
-        row = {"cand": cand, "ok": False, "ms": float("inf"),
-               "tflops": 0.0, "note": ""}
+        row = {"cand": cand, "ok": False, "ms": float("inf"), "tflops": 0.0, "note": ""}
         try:
             out = run_candidate(cand, A, B)
             torch.cuda.synchronize()
@@ -125,7 +113,6 @@ def main():
         except Exception as e:
             log(f"--- {problem['name']}: ABGEBROCHEN ({type(e).__name__}: {e}) ---")
             log("")
-
     log(f"Gesamt-Wall-Clock aller Sweeps: {total/60:.1f} min")
     _write_log(lines)
 
@@ -143,8 +130,7 @@ def _write_csv(results, name):
         for r in results.values():
             c = r["cand"]
             f.write(f"{c.variant},{c.m_prim},{c.n_prim},{c.k_prim},{c.m_l2},"
-                    f"{c.n_l2},{int(r['ok'])},{r['ms']:.5f},{r['tflops']:.3f},"
-                    f"{r['note']}\n")
+                    f"{c.n_l2},{int(r['ok'])},{r['ms']:.5f},{r['tflops']:.3f},{r['note']}\n")
     print(f"[CSV: {path}]")
 
 

@@ -1,8 +1,7 @@
-"""Kleine Statistik-Helfer ohne scipy (Rangkorrelation fuer die Auswertung)."""
-
+# Rangkorrelation ohne scipy.
 
 def rankdata(values):
-    """Durchschnittsraenge (1-basiert), Ties gemittelt."""
+    # Durchschnittsraenge, Ties gemittelt
     order = sorted(range(len(values)), key=lambda i: values[i])
     ranks = [0.0] * len(values)
     i = 0

@@ -1,17 +1,5 @@
-"""M0, Punkt 3 -- Smoke-Test 
-
-Beweist auf der Ziel-GPU (NVIDIA DGX Spark, CUDA), dass die Toolchain
-läuft, BEVOR wir in M1-M3 investieren:
-
-  1. minimaler ct.kernel + ct.launch kompiliert und startet
-  2. das Ergebnis ist korrekt (gegen torch)
-  3. triton.testing.do_bench misst
-  4. CUDA-/cuTile-Version + GPU-Modell + L2-Cache-Groesse werden geloggt
-     (die L2-Groesse brauchen wir für das Ranking-Kostenmodell in M1.4).
-
-Das Log wird in in project/results/smoke_test.log geschrieben
-"""
-
+# Smoke-Test: laeuft die Toolchain (ct.kernel + ct.launch + do_bench) auf der GPU
+# und welche Properties hat die Karte. Log nach results/smoke_test.log.
 import datetime
 import os
 import sys

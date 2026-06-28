@@ -267,6 +267,25 @@ Optimums (im Schnitt 97.6 %). Und das kostet ~3 s statt ~3 min Voll-Sweep, weil 
 nicht (die sitzt im Modell tief, und das Spitzenfeld liegt ohnehin innerhalb ~3 % im Messrauschen) —
 das ist der ehrliche Preis.
 
+Will man näher ans Optimum, gibt es eine Mittelstufe: für ≥ 99 % muss man bis ~top-90 messen (worst
+case `small_k`, sonst top-20–40), das sind ~45 s pro Shape statt ~3 s. Damit hat man drei Stufen —
+top-7 / ~3 s / ≥ 95 %, top-90 / ~45 s / ≥ 99 %, Voll-Sweep / ~3 min / 100 %. Die letzten paar Prozent
+liegen aber im Messrauschen, also lohnt der Aufwand selten; top-7 ist praktisch der sweet spot.
+
+Und ob sich Tuning überhaupt lohnt, hängt an der Wiederverwendung: eine Kontraktion läuft in ~8 ms,
+die 3 s Tuning sind also nur ein Einmalkosten-Posten, der sich erst über viele Aufrufe derselben Shape
+amortisiert (bei ~2–3 % Gewinn über den Default braucht es Tausende Aufrufe, bei den Ausreißer-Shapes
+wie `krumm` mit +26 % nur ein paar hundert). Für eine einmalige Rechnung also einfach rechnen lassen,
+für Schleifen mit fester Shape tunen und die Config cachen (Key = Shape + GPU).
+
+In der Praxis ist die Wiederverwendung der Normalfall: in einem Netz sind die Layer-Dimensionen fix,
+jeder Trainings-Step macht dieselben Matmuls — über ein Training also millionenfach dieselbe Shape
+(Inferenz genauso). Den Break-even von ~15.000 Aufrufen erreicht man damit in Sekunden, die einmaligen
+3 s sind vernachlässigbar. Genau deshalb tunen Frameworks wie cuBLAS, Triton (`autotune`) oder
+torch.compile pro Shape einmal und cachen. Nicht auf geht die Rechnung nur bei stark dynamischen Shapes
+(z. B. ständig wechselnde Sequenzlängen), wo jede Shape selten vorkommt — dagegen hilft in der Praxis
+Bucketing/Padding auf wenige feste Shapes.
+
 Unterm Strich: die Eingrenzung (enumerate + prune) ist das Sichere und Wertvolle, das analytische
 Ranking taugt auf dieser Hardware nur grob zur Vorauswahl, und die eigentliche Entscheidung muss man
 messen. Genau das rechtfertigt den Tuner: gleichwertig dort, wo Handtuning passt, klar besser dort, wo

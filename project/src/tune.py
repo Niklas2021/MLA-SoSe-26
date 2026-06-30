@@ -8,7 +8,8 @@ import time
 import torch
 import triton.testing
 
-from autotuner.search import enumerate_candidates, prune, _classify_einsum
+from autotuner.search import enumerate_candidates, prune
+from autotuner.einsum_parser import parse_einsum
 from autotuner.kernels import run_candidate
 from problems import PROBLEMS, DEFAULT_CONFIG
 
@@ -27,16 +28,11 @@ def sig(c):
 
 
 def flops_and_batch(einsum, shapes):
-    _, m, n, k, batch_chars = _classify_einsum(einsum)
-    size = {}
-    lhs = einsum.replace(" ", "").split("->")[0]
-    for tstr, shp in zip(lhs.split(","), shapes):
-        for c, s in zip(tstr, shp):
-            size[c] = s
+    e = parse_einsum(einsum, shapes)
     batch = 1
-    for c in batch_chars:
-        batch *= size[c]
-    return 2.0 * batch * size[m] * size[n] * size[k], batch
+    for c in e.batch_chars:
+        batch *= e.size_of[c]
+    return 2.0 * batch * e.orig_m * e.orig_n * e.orig_k, batch
 
 
 def sweep_problem(problem, log):

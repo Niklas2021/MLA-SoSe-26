@@ -4,7 +4,8 @@ import csv
 import os
 
 from autotuner.search import (enumerate_candidates, prune, rank,
-                              estimate_acc_registers, _classify_einsum)
+                              estimate_acc_registers)
+from autotuner.einsum_parser import parse_einsum
 from autotuner.device_props import GB10
 from autotuner.stats import spearman
 from problems import PROBLEMS, DEFAULT_CONFIG
@@ -19,15 +20,10 @@ def sig(c):
 
 
 def batch_of(einsum, shapes):
-    _, _, _, _, batch_chars = _classify_einsum(einsum)
-    size = {}
-    lhs = einsum.replace(" ", "").split("->")[0]
-    for tstr, shp in zip(lhs.split(","), shapes):
-        for c, s in zip(tstr, shp):
-            size[c] = s
+    e = parse_einsum(einsum, shapes)
     b = 1
-    for c in batch_chars:
-        b *= size[c]
+    for c in e.batch_chars:
+        b *= e.size_of[c]
     return b
 
 

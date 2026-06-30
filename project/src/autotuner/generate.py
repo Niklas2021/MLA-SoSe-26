@@ -1,50 +1,31 @@
 from .config import Config, DimType, ExecType, PrimType, LastType, FirstType, DataType
 
 
-def generate_config(einsum_str, input_shapes):
-    # Einsum parsen, z.B. "cmk, ckn -> cmn"
-    lhs, rhs = einsum_str.replace(" ", "").split("->")
-    input_strs = lhs.split(",")
-    output_str = rhs
+def generate_config(einsum_props, size_of):
+    # Kein Re-Parsing: alles kommt aus den schon geparsten einsum_props.
+    # size_of wird explizit reingereicht (kann gepaddete Groessen enthalten).
+    all_dims = einsum_props.all_dims
 
-    # alle einzigartigen Dims in Reihenfolge des ersten Auftretens sammeln
-    all_dims = []
-    for s in input_strs + [output_str]:
-        for c in s:
-            if c not in all_dims:
-                all_dims.append(c)
-
-    in_a = set(input_strs[0])
-    in_b = set(input_strs[1])
-    in_out = set(output_str)
-
-    # Dimensionstyp bestimmen
+    # Dimensionstyp pro Dim, aligned mit all_dims (aus den Props, nicht neu klassifiziert)
     dim_types = []
     for d in all_dims:
-        if d in in_a and d in in_b and d in in_out:
+        if d in einsum_props.batch_chars:
             dim_types.append(DimType.C)
-        elif d in in_a and d in in_b and d not in in_out:
+        elif d == einsum_props.k_char:
             dim_types.append(DimType.K)
-        elif d in in_a and d not in in_b and d in in_out:
+        elif d == einsum_props.m_char:
             dim_types.append(DimType.M)
         else:
             dim_types.append(DimType.N)
 
-    # Größen der Dims aus den input_shapes lesen
-    dim_to_size = {}
-    for tensor_str, shape in zip(input_strs, input_shapes):
-        for char, size in zip(tensor_str, shape):
-            dim_to_size[char] = size
-
-    dim_sizes = [dim_to_size[d] for d in all_dims]
+    dim_sizes = [size_of[d] for d in all_dims]
 
     # Row-major Strides pro Tensor berechnen (0 wenn Dim nicht vorkommt)
-    all_tensor_strs = input_strs + [output_str]
     strides = []
-    for tensor_str in all_tensor_strs:
+    for tensor_str in (einsum_props.in_a, einsum_props.in_b, einsum_props.out):
         # Stride von rechts aufbauen
         tensor_dims = list(tensor_str)
-        tensor_sizes = [dim_to_size[d] for d in tensor_dims]
+        tensor_sizes = [size_of[d] for d in tensor_dims]
         tensor_strides = [0] * len(tensor_dims)
         s = 1
         for i in reversed(range(len(tensor_dims))):

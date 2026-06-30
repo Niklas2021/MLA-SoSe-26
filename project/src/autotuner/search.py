@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from .config import Config, DimType, ExecType
 from .generate import generate_config
 from .optimizer import Optimizer
+from .einsum_parser import parse_einsum
 
 
 def ceildiv(a, b):
@@ -56,38 +57,6 @@ class Candidate:
                 f"k_prim={self.k_prim} m_l2={self.m_l2} n_l2={self.n_l2}")
 
 
-def _classify_einsum(einsum_str):
-    # wer ist M, N, K und was bleibt als Batch uebrig. Buchstaben behalten.
-    lhs, rhs = einsum_str.replace(" ", "").split("->")
-    in_a, in_b = lhs.split(",")
-    out = rhs
-
-    all_dims = []
-    for s in (in_a, in_b, out):
-        for c in s:
-            if c not in all_dims:
-                all_dims.append(c)
-
-    set_a, set_b, set_out = set(in_a), set(in_b), set(out)
-    m_chars, n_chars, k_chars, batch_chars = [], [], [], []
-    for d in all_dims:
-        if d in set_a and d in set_b and d in set_out:
-            batch_chars.append(d)
-        elif d in set_a and d in set_b:
-            k_chars.append(d)
-        elif d in set_a and d in set_out:
-            m_chars.append(d)
-        else:
-            n_chars.append(d)
-
-    # nur ein M/N/K. Mehrfach-K (A06) kann das hier nicht -> M4.
-    if not (len(m_chars) == 1 and len(n_chars) == 1 and len(k_chars) == 1):
-        raise NotImplementedError(
-            f"nur ein M/N/K. Gefunden M={m_chars} N={n_chars} K={k_chars}")
-
-    return all_dims, m_chars[0], n_chars[0], k_chars[0], batch_chars
-
-
 def _split_tracked(opt, labels, target_label, outer_size, inner_size,
                    outer_label, inner_label):
     # split_dim aufrufen und die labels-Liste mitfuehren, damit wir Dims ueber
@@ -98,57 +67,45 @@ def _split_tracked(opt, labels, target_label, outer_size, inner_size,
     labels.insert(idx + 1, inner_label)
 
 
-def build_one_config(einsum_str, input_shapes, variant,
+def build_one_config(einsum_props, variant,
                      m_prim, n_prim, k_prim, m_l2, n_l2):
     # split_dim will exakte Teilbarkeit, also runden wir krumme Groessen hoch.
     # dim_sizes sind damit gepaddet, der Ueberhang wird im Kernel genullt.
-    all_dims, m_char, n_char, k_char, batch_chars = _classify_einsum(einsum_str)
-
-    size_of = {}
-    lhs = einsum_str.replace(" ", "").split("->")[0]
-    in_a, in_b = lhs.split(",")
-    for tensor_str, shape in zip((in_a, in_b), input_shapes):
-        for c, s in zip(tensor_str, shape):
-            size_of[c] = s
-
-    orig_m, orig_n, orig_k = size_of[m_char], size_of[n_char], size_of[k_char]
-
-    m_l2_outer = ceildiv(orig_m, m_prim * m_l2)
-    n_l2_outer = ceildiv(orig_n, n_prim * n_l2)
-    k_outer = ceildiv(orig_k, k_prim)
+    m_l2_outer = ceildiv(einsum_props.orig_m, m_prim * m_l2)
+    n_l2_outer = ceildiv(einsum_props.orig_n, n_prim * n_l2)
+    k_outer = ceildiv(einsum_props.orig_k, k_prim)
 
     padded_m = m_l2_outer * m_l2 * m_prim
     padded_n = n_l2_outer * n_l2 * n_prim
     padded_k = k_outer * k_prim
 
-    padded_size = dict(size_of)
-    padded_size[m_char] = padded_m
-    padded_size[n_char] = padded_n
-    padded_size[k_char] = padded_k
-    padded_shapes = [tuple(padded_size[c] for c in in_a),
-                     tuple(padded_size[c] for c in in_b)]
+    # Kopie, damit die invariante size_of der einsum_props NICHT mutiert wird.
+    padded_size = {**einsum_props.size_of,
+                   einsum_props.m_char: padded_m,
+                   einsum_props.n_char: padded_n,
+                   einsum_props.k_char: padded_k}
 
-    cfg = generate_config(einsum_str, padded_shapes)
+    cfg = generate_config(einsum_props, padded_size)
     opt = Optimizer(cfg)
-    labels = list(all_dims)
+    labels = list(einsum_props.all_dims)
 
     # M/N -> l2_outer, l2, prim   (prim ganz rechts -> wird PRIM); K -> outer, prim
-    _split_tracked(opt, labels, m_char, padded_m // m_prim, m_prim, "m_rest", "m_prim")
+    _split_tracked(opt, labels, einsum_props.m_char, padded_m // m_prim, m_prim, "m_rest", "m_prim")
     _split_tracked(opt, labels, "m_rest", m_l2_outer, m_l2, "m_l2_outer", "m_l2")
-    _split_tracked(opt, labels, n_char, padded_n // n_prim, n_prim, "n_rest", "n_prim")
+    _split_tracked(opt, labels, einsum_props.n_char, padded_n // n_prim, n_prim, "n_rest", "n_prim")
     _split_tracked(opt, labels, "n_rest", n_l2_outer, n_l2, "n_l2_outer", "n_l2")
-    _split_tracked(opt, labels, k_char, k_outer, k_prim, "k_outer", "k_prim")
+    _split_tracked(opt, labels, einsum_props.k_char, k_outer, k_prim, "k_outer", "k_prim")
 
     if variant == "A":
         opt.make_executable()
     elif variant == "B":
         # strict wie A05 task4b_strict: m_l2/n_l2 als SEQ
-        target_order = (list(batch_chars) +
+        target_order = (list(einsum_props.batch_chars) +
                         ["m_l2_outer", "n_l2_outer", "k_outer",
                          "m_l2", "n_l2", "m_prim", "n_prim", "k_prim"])
         opt.permute_dims([labels.index(lbl) for lbl in target_order])
         labels = target_order
-        n_batch = len(batch_chars)
+        n_batch = len(einsum_props.batch_chars)
         cfg.exec_types = ([ExecType.PAR] * (n_batch + 2) +
                           [ExecType.SEQ] * 3 + [ExecType.PRIM] * 3)
         opt.verify()
@@ -158,7 +115,7 @@ def build_one_config(einsum_str, input_shapes, variant,
     return Candidate(
         config=cfg, variant=variant,
         m_prim=m_prim, n_prim=n_prim, k_prim=k_prim, m_l2=m_l2, n_l2=n_l2,
-        orig_m=orig_m, orig_n=orig_n, orig_k=orig_k,
+        orig_m=einsum_props.orig_m, orig_n=einsum_props.orig_n, orig_k=einsum_props.orig_k,
         padded_m=padded_m, padded_n=padded_n, padded_k=padded_k,
     )
 
@@ -167,6 +124,8 @@ def enumerate_candidates(einsum_str, input_shapes, space=None):
     # ungueltige Configs (verify wirft) fallen raus. Noch kein Pruning.
     if space is None:
         space = SearchSpace()
+    # einmal parsen -- die Ground Truth ist für alle Kandidaten gleich
+    einsum_props = parse_einsum(einsum_str, input_shapes)
     candidates = []
     skipped = 0
     for variant in space.variants:
@@ -177,7 +136,7 @@ def enumerate_candidates(einsum_str, input_shapes, space=None):
                         for n_l2 in space.n_l2_choices:
                             try:
                                 candidates.append(build_one_config(
-                                    einsum_str, input_shapes, variant,
+                                    einsum_props, variant,
                                     m_prim, n_prim, k_prim, m_l2, n_l2))
                             except (ValueError, NotImplementedError):
                                 skipped += 1

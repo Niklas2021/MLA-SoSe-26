@@ -13,6 +13,13 @@ class DeviceProperties:
     reserved_smem_per_block: int
     mem_clock_khz: int
     mem_bus_bits: int
+    core_clock_khz: int = 0        # SM-Takt (ClockRate), fuers Compute-Peak
+    # fp16-Tensor-FMAs pro SM pro Takt. Der EINZIGE Wert, der nicht aus den CUDA-
+    # Attributen lesbar ist -> Architektur-Schaetzung. 512 passt zur GB10: 48 SM *
+    # 2.418 GHz * 512 * 2 ~ 119 TFLOPS, und der gemessene Bestwert (75) liegt bei ~63 %.
+    # Setzt nur den Roofline-Umschaltpunkt (memory vs compute), nicht die Reihenfolge
+    # innerhalb eines Regimes.
+    tensor_flop_per_sm_cycle: int = 512
 
     def usable_smem_per_block(self):
         return self.smem_per_block - self.reserved_smem_per_block
@@ -20,6 +27,10 @@ class DeviceProperties:
     def peak_dram_bandwidth(self):
         # MemoryClockRate ist bei der GB10 schon die effektive Datenrate -> kein x2
         return self.mem_clock_khz * 1e3 * (self.mem_bus_bits / 8)
+
+    def peak_tensor_flops(self):
+        # SMs * Takt * FMAs/SM/Takt * 2 (FMA = 2 FLOP)
+        return self.number_sm * self.core_clock_khz * 1e3 * self.tensor_flop_per_sm_cycle * 2
 
 
 def get_device_properties():
@@ -37,6 +48,7 @@ def get_device_properties():
         reserved_smem_per_block=attr["ReservedSharedMemoryPerBlock"],
         mem_clock_khz=attr["MemoryClockRate"],
         mem_bus_bits=attr["GlobalMemoryBusWidth"],
+        core_clock_khz=attr["ClockRate"],
     )
 
 
@@ -51,4 +63,5 @@ GB10 = DeviceProperties(
     reserved_smem_per_block=1024,
     mem_clock_khz=8533000,
     mem_bus_bits=256,
+    core_clock_khz=2418000,
 )

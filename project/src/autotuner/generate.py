@@ -9,11 +9,12 @@ def generate_config(einsum_props, size_of):
     # Dimensionstyp pro Dim, aligned mit all_dims (aus den Props, nicht neu klassifiziert)
     dim_types = []
     for d in all_dims:
+        # Listen, nicht die prim-Chars -- sonst landen a06s extra-Dims (a,c,s,b) faelschlich in N
         if d in einsum_props.batch_chars:
             dim_types.append(DimType.C)
-        elif d == einsum_props.k_char:
+        elif d in einsum_props.k_chars:
             dim_types.append(DimType.K)
-        elif d == einsum_props.m_char:
+        elif d in einsum_props.m_chars:
             dim_types.append(DimType.M)
         else:
             dim_types.append(DimType.N)

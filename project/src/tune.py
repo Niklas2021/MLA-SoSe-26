@@ -1,8 +1,10 @@
 # Misst fuer jede Shape in problems.py alle geprunten Configs und schreibt
 # results/tune_<name>.csv. Auswertung dann mit analyze_tune.py (ohne GPU).
-# Auf der GB10:  python tune.py
+# Auf der GB10:  python tune.py            (alle Shapes)
+#                python tune.py a06        (nur Namen, die mit a06 anfangen)
 import datetime
 import os
+import sys
 import time
 
 import torch
@@ -28,11 +30,19 @@ def sig(c):
 
 
 def flops_and_batch(einsum, shapes):
+    # 2 * (Produkt aller Output-Dims) * (Produkt aller K-Dims). Gilt auch fuer
+    # A06 mit mehreren M/N/K -- die alte batch*m*n*k-Formel unterschlaegt a,c,b,s.
     e = parse_einsum(einsum, shapes)
+    out_vol = 1
+    for c in e.out:
+        out_vol *= e.size_of[c]
+    k_vol = 1
+    for c in e.k_chars:
+        k_vol *= e.size_of[c]
     batch = 1
     for c in e.batch_chars:
         batch *= e.size_of[c]
-    return 2.0 * batch * e.orig_m * e.orig_n * e.orig_k, batch
+    return 2.0 * out_vol * k_vol, batch
 
 
 def sweep_problem(problem, log):
@@ -100,17 +110,27 @@ def main():
         _write_log(lines)
         return
     log(f"GPU: {DEV.gpu_name}   do_bench warmup={WARMUP} rep={REP}")
+
+    # optionale Namensfilter als Argumente (Praefix), sonst alle. Bei Filter eine
+    # eigene Log (study_<keys>.log), damit ein Teil-Lauf die volle Studie nicht ueberschreibt.
+    selected = PROBLEMS
+    log_name = "study.log"
+    if len(sys.argv) > 1:
+        keys = sys.argv[1:]
+        selected = [p for p in PROBLEMS if any(p["name"].startswith(k) for k in keys)]
+        log_name = "study_" + "_".join(keys) + ".log"
+        log(f"Filter {keys} -> {[p['name'] for p in selected]}")
     log("")
 
     total = 0.0
-    for problem in PROBLEMS:
+    for problem in selected:
         try:
             total += sweep_problem(problem, log)
         except Exception as e:
             log(f"--- {problem['name']}: ABGEBROCHEN ({type(e).__name__}: {e}) ---")
             log("")
     log(f"Gesamt-Wall-Clock aller Sweeps: {total/60:.1f} min")
-    _write_log(lines)
+    _write_log(lines, log_name)
 
 
 def _results_dir():
@@ -130,8 +150,8 @@ def _write_csv(results, name):
     print(f"[CSV: {path}]")
 
 
-def _write_log(lines):
-    path = os.path.abspath(os.path.join(_results_dir(), "study.log"))
+def _write_log(lines, name="study.log"):
+    path = os.path.abspath(os.path.join(_results_dir(), name))
     with open(path, "w") as f:
         f.write("\n".join(lines) + "\n")
     print(f"[Log: {path}]")

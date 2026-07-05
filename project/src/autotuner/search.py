@@ -1,5 +1,6 @@
 # Config-Suchraum: enumerieren, prunen, ranken. Reines Python, kein cuTile,
 # damit man es ohne GPU testen kann.
+import math
 from dataclasses import dataclass, field
 
 from .config import Config, DimType, ExecType
@@ -51,6 +52,7 @@ class Candidate:
     padded_m: int        # so wie es in der Config steht
     padded_n: int
     padded_k: int
+    multi: bool = False   # A06-Fall (mehrere M/N/K) -> Ring-Kernel statt GEMM
 
     def label(self):
         return (f"{self.variant}: m_prim={self.m_prim} n_prim={self.n_prim} "
@@ -97,8 +99,13 @@ def build_one_config(einsum_props, variant,
     _split_tracked(opt, labels, einsum_props.k_char, k_outer, k_prim, "k_outer", "k_prim")
 
     if variant == "A":
+        # make_executable markiert die jeweils letzte M/N/K-Dim als PRIM und legt
+        # den Rest (extra-M/N -> PAR, seq-K -> SEQ) korrekt ab -- gilt auch fuer A06.
         opt.make_executable()
     elif variant == "B":
+        if einsum_props.is_multi():
+            # der strict-Loop-Kernel deckt den Mehrdim-Fall (A06) nicht ab -> nur A
+            raise NotImplementedError("Variante B nur fuer Single-M/N/K")
         # strict wie A05 task4b_strict: m_l2/n_l2 als SEQ
         target_order = (list(einsum_props.batch_chars) +
                         ["m_l2_outer", "n_l2_outer", "k_outer",
@@ -117,6 +124,7 @@ def build_one_config(einsum_props, variant,
         m_prim=m_prim, n_prim=n_prim, k_prim=k_prim, m_l2=m_l2, n_l2=n_l2,
         orig_m=einsum_props.orig_m, orig_n=einsum_props.orig_n, orig_k=einsum_props.orig_k,
         padded_m=padded_m, padded_n=padded_n, padded_k=padded_k,
+        multi=einsum_props.is_multi(),
     )
 
 
@@ -201,14 +209,24 @@ def prune(candidates, dev,
 # GB10 ist bandbreitenlimitiert, FLOPs sind fuer alle gleich -> DRAM-Traffic
 # entscheidet. Groessere Gruppe = weniger Nachladen = weniger Traffic.
 
-def estimate_dram_bytes(cand, dtype_bytes=2):
-    # A einmal pro Gruppen-Spalte, B einmal pro Gruppen-Zeile, C einmal schreiben
+def estimate_dram_bytes(cand, dev=None, dtype_bytes=2):
+    # Worst case (kein L2): A einmal pro Gruppen-Spalte, B einmal pro Gruppen-Zeile.
     group_cols = ceildiv(cand.padded_n, cand.n_l2 * cand.n_prim)
     group_rows = ceildiv(cand.padded_m, cand.m_l2 * cand.m_prim)
     a_bytes = cand.padded_m * cand.padded_k * dtype_bytes * group_cols
     b_bytes = cand.padded_k * cand.padded_n * dtype_bytes * group_rows
     c_bytes = cand.padded_m * cand.padded_n * dtype_bytes
-    return a_bytes + b_bytes + c_bytes
+    worst = a_bytes + b_bytes + c_bytes
+    if dev is None:
+        return worst
+    # L2-bewusst (das ist der portable Umschalter): passt der Working-Set einer
+    # Swizzle-Gruppe ins L2, treffen die Reloads das L2 -> nur Kaltladen aus DRAM.
+    # Auf der L2-grossen GB10 immer -> Traffic winzig -> compute uebernimmt. Auf einer
+    # GPU mit kleinem L2 greift der worst case -> Gruppengroesse zaehlt (memory-bound).
+    cold = (cand.padded_m * cand.padded_k + cand.padded_k * cand.padded_n +
+            cand.padded_m * cand.padded_n) * dtype_bytes
+    group_ws = (cand.m_l2 * cand.m_prim + cand.n_l2 * cand.n_prim) * cand.padded_k * dtype_bytes
+    return cold if group_ws <= dev.l2_cache else worst
 
 
 def estimate_grid(cand):
@@ -222,20 +240,60 @@ def occupancy_factor(grid, dev):
     return min(1.0, grid / dev.number_sm)
 
 
+def estimate_blocks_per_sm(cand, dev, reg_fraction=DEFAULT_REG_FRACTION):
+    # grobe Occupancy-Schaetzung: wie viele Bloecke passen pro SM. Akku (M_PRIM*N_PRIM
+    # fp32) ist der Haupt-Registerfresser, das Operanden-SMEM der zweite Deckel.
+    acc = estimate_acc_registers(cand)
+    reg_blocks = int((dev.regs_per_block * reg_fraction) // acc) if acc else 1
+    smem = estimate_smem_bytes(cand, DEFAULT_BUFFER_STAGES)
+    smem_blocks = int(dev.smem_per_sm // smem) if smem else 1
+    return max(1, min(reg_blocks, smem_blocks))
+
+
+def occupancy_util(cand, dev, batch=1):
+    # Wave-Quantisierung: Anteil der SM-Kapazitaet, der wirklich gefuellt wird. 1.0 =
+    # volle Waves; <1 bei zu wenig Bloecken (Variante B) oder schlechtem Tail-Wave.
+    grid = estimate_grid(cand) * batch
+    capacity = dev.number_sm * estimate_blocks_per_sm(cand, dev)
+    if grid <= 0 or capacity <= 0:
+        return 0.0
+    waves = math.ceil(grid / capacity)
+    return grid / (waves * capacity)
+
+
 def rank(candidates, dev, batch=1, model="bw"):
-    # model "bw" = reine Bandbreiten-Zeit, "bw_occ" = durch Occupancy geteilt
-    # (bestraft zu kleine Grids). Beide Werte stehen in metrics.
+    # "bw"       = reine Bandbreiten-Zeit (Traffic / Peak-BW)
+    # "bw_occ"   = bw / Occupancy (bestraft kleine Grids)
+    # "roofline" = max(memory_ms, compute_ms). Die Hardware entscheidet das Regime:
+    #              compute_ms = padded-FLOPs / (Tensor-Peak * util). Auf der L2-grossen
+    #              GB10 dominiert compute, auf bandbreitenlimitierten GPUs memory.
+    # Wichtig: im compute-Regime haengt compute_ms NICHT von m_l2/n_l2 ab (Occupancy und
+    # FLOPs sind gruppen-unabhaengig) -> viele Gleichstaende. Die loesen wir NICHT ueber
+    # grid auf (das bevorzugt kleine Tiles, falsch), sondern ueber den worst-case-Traffic
+    # (est_ms) -- der traegt das L2-Reuse-Signal, das die Gruppengroesse entscheidet.
+    # Alle Zwischenwerte stehen in metrics (auch das gewaehlte 'bound').
     bw = dev.peak_dram_bandwidth()
+    peak_flops = dev.peak_tensor_flops()
     ranked = []
     for cand in candidates:
-        dram = estimate_dram_bytes(cand) * batch
         grid = estimate_grid(cand) * batch
-        est_ms = dram / bw * 1e3
         occ = occupancy_factor(grid, dev)
-        ranked.append((cand, {"dram_bytes": dram, "grid": grid, "occupancy": occ,
-                              "est_ms": est_ms, "est_ms_occ": est_ms / occ}))
-    key = "est_ms_occ" if model == "bw_occ" else "est_ms"
-    ranked.sort(key=lambda x: (x[1][key], -x[1]["grid"]))
+        util = occupancy_util(cand, dev, batch)
+        memory_ms = estimate_dram_bytes(cand) * batch / bw * 1e3           # bw: worst case (wie M3)
+        memory_ms_l2 = estimate_dram_bytes(cand, dev) * batch / bw * 1e3   # L2-bewusst, fuer roofline
+        padded_flops = 2 * cand.padded_m * cand.padded_n * cand.padded_k * batch
+        compute_ms = padded_flops / (peak_flops * util) * 1e3 if util > 0 else float("inf")
+        roof_ms = max(memory_ms_l2, compute_ms)
+        ranked.append((cand, {"grid": grid, "occupancy": occ, "util": util,
+                              "est_ms": memory_ms, "est_ms_occ": memory_ms / occ,
+                              "compute_ms": compute_ms, "roof_ms": roof_ms,
+                              "bound": "compute" if compute_ms >= memory_ms_l2 else "memory"}))
+    if model == "roofline":
+        # Tie-Break: worst-case-Traffic (L2-Reuse), nicht grid
+        ranked.sort(key=lambda x: (x[1]["roof_ms"], x[1]["est_ms"]))
+    else:
+        key = "est_ms_occ" if model == "bw_occ" else "est_ms"
+        ranked.sort(key=lambda x: (x[1][key], -x[1]["grid"]))
     return ranked
 
 

@@ -53,6 +53,8 @@ class Candidate:
     padded_n: int
     padded_k: int
     multi: bool = False   # A06-Fall (mehrere M/N/K) -> Ring-Kernel statt GEMM
+    par_batch_extra: int = 1   # unabh. PAR-Batches, nicht im estimate_grid (A06: a*c*b)
+    seq_batch: int = 1         # zusaetzliche SEQ-Reduktion (A06: s)
 
     def label(self):
         return (f"{self.variant}: m_prim={self.m_prim} n_prim={self.n_prim} "
@@ -125,6 +127,9 @@ def build_one_config(einsum_props, variant,
         orig_m=einsum_props.orig_m, orig_n=einsum_props.orig_n, orig_k=einsum_props.orig_k,
         padded_m=padded_m, padded_n=padded_n, padded_k=padded_k,
         multi=einsum_props.is_multi(),
+        par_batch_extra=math.prod(einsum_props.size_of[c]
+                                  for c in einsum_props.extra_m_chars + einsum_props.extra_n_chars),
+        seq_batch=math.prod(einsum_props.size_of[c] for c in einsum_props.seq_k_chars),
     )
 
 
@@ -276,12 +281,13 @@ def rank(candidates, dev, batch=1, model="bw"):
     peak_flops = dev.peak_tensor_flops()
     ranked = []
     for cand in candidates:
-        grid = estimate_grid(cand) * batch
+        gb = batch * cand.par_batch_extra   # gesamte Grid-/Traffic-Replikation (A06: a*c*b)
+        grid = estimate_grid(cand) * gb
         occ = occupancy_factor(grid, dev)
-        util = occupancy_util(cand, dev, batch)
-        memory_ms = estimate_dram_bytes(cand) * batch / bw * 1e3           # bw: worst case (wie M3)
-        memory_ms_l2 = estimate_dram_bytes(cand, dev) * batch / bw * 1e3   # L2-bewusst, fuer roofline
-        padded_flops = 2 * cand.padded_m * cand.padded_n * cand.padded_k * batch
+        util = occupancy_util(cand, dev, gb)
+        memory_ms = estimate_dram_bytes(cand) * gb / bw * 1e3           # bw: worst case (wie M3)
+        memory_ms_l2 = estimate_dram_bytes(cand, dev) * gb / bw * 1e3   # L2-bewusst, fuer roofline
+        padded_flops = 2 * cand.padded_m * cand.padded_n * cand.padded_k * gb * cand.seq_batch
         compute_ms = padded_flops / (peak_flops * util) * 1e3 if util > 0 else float("inf")
         roof_ms = max(memory_ms_l2, compute_ms)
         ranked.append((cand, {"grid": grid, "occupancy": occ, "util": util,

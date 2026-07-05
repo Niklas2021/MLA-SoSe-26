@@ -334,8 +334,8 @@ Umgesetzt (Code fertig, Messung auf der GB10 steht noch aus):
       (auch `a06_krumm` mit Padding auf x, y und p) — der Ring-Kernel kompiliert und rechnet korrekt.
       Output: `results/tune_a06*.csv` + `results/study_a06.log`, 21 min Sweep.
 - [x] Ziel ≥ 90 % der Hand-cuTile-Performance klar erreicht — sogar **übertroffen**: siehe Ergebnisse.
-- [ ] Optional: Config-Cache, keyed nach `(einsum, shapes, GPU-Modell)`. Das GPU-Modell muss in den Key,
-      weil die optimale L2-Gruppe von der L2-Größe abhängt. (noch offen)
+- [x] Optional: Config-Cache, keyed nach `(einsum, shapes, GPU-Modell)` (`autotuner/cache.py` + `autotune.py`).
+      Das GPU-Modell muss in den Key, weil die optimale L2-Gruppe von der L2-Größe abhängt.
 
 ### Ergebnisse
 
@@ -391,8 +391,13 @@ Diagnose (kein Code-Bug): im compute-Regime hängt `compute_ms` *nicht* von `m_l
 FLOPs sind gruppen-unabhängig. Alle Configs mit gleichem `(m_prim,n_prim,k_prim)` bekommen denselben Score,
 und der alte Tie-Break `-grid` schob dann die kleinen 64×64-Tiles nach oben (mehr Blöcke), die real langsamer
 sind. Die einzige Größe, die `m_l2/n_l2` sieht, ist der Traffic-Term — den wirft `max()` im compute-Regime
-weg. **Fix:** den Gleichstand über den worst-case-Traffic auflösen (holt das L2-Reuse-Signal zurück). Damit
-springt die Roofline-Top-7 von **66 % → 93.5 %** (`a06_krumm` von 24 % → 100 %).
+weg. **Fix:** den Gleichstand über den worst-case-Traffic auflösen (holt das L2-Reuse-Signal zurück).
+
+Ein zweiter Schritt macht die Physik dann ehrlich: die Grid-/Traffic-/FLOP-Schätzer bekommen die
+A06-Batch-Faktoren (`a·c·b` fürs Grid/Traffic, `s` für die Compute-Arbeit) mitgereicht. Vorher war die
+Ring-Familie fälschlich `memory`-gelabelt und wurde deshalb *zufällig* nach Traffic gerankt (was gut aussah);
+jetzt ist sie korrekt `compute`-limitiert wie A05 — und *genau dadurch* fällt ihre Roofline-Top-7 (weil im
+compute-Regime dieselbe `m_l2/n_l2`-Blindheit greift). Das ist der ehrlichere, nicht der schönere Wert.
 
 Endergebnis über alle 16 Shapes (`analyze_tune.py`):
 
@@ -400,18 +405,27 @@ Endergebnis über alle 16 Shapes (`analyze_tune.py`):
 |---|---|---|
 | bw (Bandbreite, wie M3) | +0.03 | 83 % |
 | v2 (bw + Register-Filter) | +0.38 | **97.8 %** |
-| roofline (Traffic-Tie-Break) | **+0.48** | 93.5 % |
+| roofline (Traffic-Tie-Break, korrektes Regime) | **+0.50** | 85.5 % |
 
-Das Fazit ist differenziert: die Roofline ist der **bessere globale Ranker** (höchste Korrelation, korrekt
-compute-limitiert), aber **v2 bleibt der bessere Top-k-Vorfilter**. Grund: an der Spitze erreichen alle
-Configs ähnliche Occupancy — was sie dann trennt (L2-Reuse, Tile-Effizienz) ist zweite Ordnung, und da
-liefert der Compute-Term der Roofline keinen Mehrwert über den reinen Traffic + Register-Filter. Deshalb
-bleibt der **Tuner-Default v2**; die Roofline ist als dokumentierte, portablere Modell-Variante drin.
+Das Fazit ist differenziert und wird durch den Regime-Fix *geschärft*: die Roofline ist der **bessere globale
+Ranker** (höchste Korrelation, jetzt korrekt compute-limitiert auf allen Shapes), aber genau *weil* sie das
+Regime richtig trifft, ist sie ein **schlechterer Top-k-Vorfilter** — im compute-Regime entscheiden L2-Reuse
+und Tile-Effizienz (zweite Ordnung), und da hilft der Compute-Term nicht. **v2 bleibt der Default** (nutzt
+direkt Traffic + Register-Filter, unberührt vom Regime-Fix). Die Roofline ist als dokumentierte, portablere
+und physikalisch selbstumschaltende Variante drin.
 
-Zwei ehrliche Grenzen: (1) Portabilität ist *by construction* (alles parametrisiert über `device_props`),
-aber nur auf *einer* GPU validiert — über GPUs hinweg ist sie nicht empirisch belegt. (2) Das Regime-Label
-für die A06-Familie ist ungenau (die Schätzer zählen nur das x/y-Tiling-Grid, nicht die a/c/b-Batches) —
-ein konstanter Faktor pro Shape, der das *Ranking* nicht beeinflusst, wohl aber das angezeigte `bound`.
+Bleibt eine ehrliche Grenze: Portabilität ist *by construction* (alles über `device_props` parametrisiert),
+aber nur auf *einer* GPU validiert — der eigentliche Cross-GPU-Test (Roofline schaltet auf einer
+bandbreitenlimitierten diskreten GPU auf `memory` um) steht mangels zweiter Karte noch aus.
+
+### Config-Cache
+
+Damit sich das Tuning amortisiert (eine Shape einmal tunen, dann wiederverwenden), gibt es `autotuner/cache.py`
+(JSON, Key = `einsum|shapes|GPU-Modell` — das GPU-Modell muss rein, weil die optimale L2-Gruppe von der
+L2-Größe abhängt) und den praktischen Tuner `autotune.py`: `autotune(einsum, shapes, dev)` sieht erst im Cache
+nach und misst sonst die v2-Modell-Top-7, cacht die schnellste und gibt sie zurück. `candidate_from_config`
+baut aus den gecachten Knöpfen wieder einen `Candidate` für `run_candidate`. So kostet die erste getunte Shape
+~3 s, jede weitere Nutzung 0 s.
 
 ## Offene Fragen (Auflösung)
 
@@ -429,13 +443,14 @@ Die Planungsfragen von M0 sind inzwischen weitgehend beantwortet:
 - **Scope-Disziplin gehalten?** → *Ja:* kein allgemeiner Tensor-Compiler. A06 ist als *zweite Familie*
   aufgegangen (eigener Ring-Kernel), ohne das Kernprojekt zu berühren.
 
-Echt offen bleiben:
+Inzwischen ebenfalls erledigt:
+
+- **Config-Cache** → *gebaut:* `autotuner/cache.py` + `autotune.py` (Key inkl. GPU-Modell). Siehe M4.
+- **A06-Regime-Label** → *gefixt:* die Batch-Faktoren (`a·c·b`, `s`) laufen jetzt durch die Schätzer, die
+  Ring-Familie wird korrekt als `compute`-limitiert gelabelt.
+
+Echt offen bleibt:
 
 - **Hardware-Übergreifend nur by construction.** Alles liest aus `device_props`, aber validiert ist es nur
   auf der GB10. Über GPUs hinweg (v.a. bandbreitenlimitierte diskrete GPUs, wo Roofline auf `memory`
   umschalten sollte) ist die Portabilität nicht empirisch belegt. Bei GPU-Wechsel neu messen.
-- **Config-Cache** (M4-Optional): keyed nach `(einsum, shapes, GPU-Modell)`, damit getunte Configs über
-  Läufe hinweg wiederverwendet werden. Noch nicht umgesetzt.
-- **A06-Regime-Label ungenau:** die Grid-/Traffic-Schätzer zählen nur das x/y-Tiling, nicht die
-  a/c/b-Batches — konstant pro Shape, stört das Ranking nicht, aber das angezeigte `bound` stimmt für die
-  Ring-Familie nicht. Sauber wäre, die Batch-Faktoren durch die Schätzer zu reichen.

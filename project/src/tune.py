@@ -59,7 +59,12 @@ def sweep_problem(problem, log):
     torch.manual_seed(0)
     A = torch.randn(shapes[0], dtype=torch.float16, device="cuda")
     B = torch.randn(shapes[1], dtype=torch.float16, device="cuda")
-    ref = torch.einsum(einsum.replace(" ", ""), A.float(), B.float()).half()
+    es = einsum.replace(" ", "")
+    ref = torch.einsum(es, A.float(), B.float()).half()
+
+    # externe Referenz: torch.einsum in fp16 ("einfach die Library nehmen")
+    torch_ms = triton.testing.do_bench(lambda: torch.einsum(es, A, B), warmup=WARMUP, rep=REP)
+    torch_tflops = flops / (torch_ms * 1e-3) / 1e12
 
     results = {}
     t_start = time.perf_counter()
@@ -91,6 +96,7 @@ def sweep_problem(problem, log):
         if default and default["ok"]:
             gain = f", Default {default['tflops']:.1f} -> Gewinn {best['tflops']/default['tflops']:.3f}x"
         log(f"best {best['tflops']:.2f} TFLOPS | {best['cand'].label()}{gain}")
+        log(f"torch.einsum {torch_tflops:.2f} TFLOPS -> Tuner {best['tflops']/torch_tflops:.2f}x")
     log(f"{len(good)} ok, {n_fail} fehlgeschlagen/inkorrekt   Sweep-Wall-Clock {wall:.1f} s")
     log("")
     return wall

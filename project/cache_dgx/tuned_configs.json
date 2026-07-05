@@ -1,0 +1,178 @@
+{
+  "acspx,bspy->abcyx|2,2,128,128,1024;2,128,128,1024|NVIDIA GB10": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 70.174
+  },
+  "acspx,bspy->abcyx|2,2,64,64,2048;2,64,64,2048|NVIDIA GB10": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 66.924
+  },
+  "acspx,bspy->abcyx|2,2,64,64,4096;2,64,64,512|NVIDIA GB10": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 4,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 67.412
+  },
+  "acspx,bspy->abcyx|2,2,64,64,512;2,64,64,4096|NVIDIA GB10": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 4,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 63.078
+  },
+  "acspx,bspy->abcyx|3,2,48,48,1500;3,48,48,1000|NVIDIA GB10": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 4,
+      "n_prim": 256,
+      "variant": "A"
+    },
+    "tflops": 21.02
+  },
+  "acspx,bspy->abcyx|4,2,8,32,2048;4,8,32,2048|NVIDIA GB10": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 8,
+      "n_prim": 256,
+      "variant": "A"
+    },
+    "tflops": 22.855
+  },
+  "acspx,bspy->abcyx|4,3,64,64,1536;4,64,64,1152|NVIDIA GB10": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 4,
+      "m_prim": 128,
+      "n_l2": 2,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 62.256
+  },
+  "acspx,bspy->abcyx|8,4,32,64,1024;8,32,64,1024|NVIDIA GB10": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 62.647
+  },
+  "cmk,ckn->cmn|1,1024,4096;1,4096,8192|NVIDIA GB10": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 61.277
+  },
+  "cmk,ckn->cmn|1,1024,8192;1,8192,1024|NVIDIA GB10": {
+    "config": {
+      "k_prim": 128,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 45.495
+  },
+  "cmk,ckn->cmn|1,4096,4096;1,4096,4096|NVIDIA GB10": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 63.316
+  },
+  "cmk,ckn->cmn|1,4096,512;1,512,4096|NVIDIA GB10": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 35.971
+  },
+  "cmk,ckn->cmn|1,8192,4096;1,4096,1024|NVIDIA GB10": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 63.773
+  },
+  "cmk,ckn->cmn|16,1024,1024;16,1024,1024|NVIDIA GB10": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 45.534
+  },
+  "cmk,ckn->cmn|2,1500,1000;2,1000,3000|NVIDIA GB10": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 4,
+      "n_prim": 256,
+      "variant": "A"
+    },
+    "tflops": 39.609
+  },
+  "cmk,ckn->cmn|4,4096,4096;4,4096,4096|NVIDIA GB10": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "variant": "A"
+    },
+    "tflops": 65.912
+  }
+}

@@ -17,7 +17,9 @@ A05_BASELINE_TFLOPS = 38.60     # baseline: cuTile ohne L2-Swizzling (untere Gre
 # Assignment 6: acspx,bspy->abcyx, fp16
 # Quelle: assignments/06_assignment/out/task4.log
 A06_HAND_CUTILE_TFLOPS = 49.84  # handoptimierte cuTile-Variante (Referenz für M4)
-A06_TORCH_EINSUM_TFLOPS = 16.18 # torch.einsum
+A06_TORCH_EINSUM_TFLOPS = 16.18 # torch.einsum (VERALTET/nicht vergleichbar: eine frische
+                                # GB10-Messung mit aktuellem torch.einsum-fp16 macht ~60 TFLOPS,
+                                # siehe result_dgx/study.log -- schlaegt sogar den Handkernel)
 
 # geschätzte Erfolgsschwellen aus der Roadmap (projekt_b_cutile_autotuner.md)
 M3_TARGET_FRACTION = 0.95       # >=95 % von A05_HAND_L2_TFLOPS

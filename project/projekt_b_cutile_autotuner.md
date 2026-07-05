@@ -371,8 +371,41 @@ Modell-Top-7 und nimmt die schnellste, landet man in jedem der acht Regime bei *
 
 Unterm Strich bestätigt A06 die A05-Befunde und geht darüber hinaus: die enumerate+prune-Maschinerie und
 der eine zusätzliche Kernel-Typ transferieren sauber auf eine zweite Struktur-Familie, alle Configs
-rechnen korrekt (inkl. Padding-Pfad), und der Tuner ist dem Handkernel nicht nur gleichwertig, sondern
-klar überlegen — weil er eine Achse (`k_prim`) mitdurchsucht, die von Hand nicht angefasst wurde.
+rechnen korrekt (inkl. Padding-Pfad), und der Tuner schlägt den *Handkernel* klar (49.84 → ~60 TFLOPS) —
+weil er eine Achse (`k_prim`) mitdurchsucht, die von Hand nicht angefasst wurde. Der Handkernel ist aber,
+wie die torch-Referenz unten zeigt, gar nicht die richtige Messlatte.
+
+### Externe Referenz: torch.einsum (cuBLAS)
+
+Neben dem Default misst `tune.py` jetzt `torch.einsum` in fp16 pro Shape — die ehrliche „was, wenn man
+einfach die Library nimmt"-Baseline (GB10, `result_dgx/study.log`). Das Bild ist differenzierter als der
+Assignment-Wert (16.18) vermuten ließ.
+
+**GEMM (A05-Familie): cuBLAS gewinnt.** Über die acht GEMM-Shapes erreicht unser cuTile-Tuner im Schnitt
+~77 % von torch (geom. Mittel), nur auf der hand-getunten a05-Referenz zieht er knapp vorbei (1.04×). Das
+ist erwartbar und ehrlich: cuBLAS ist eine gereifte GEMM-Library; sie zu schlagen ist nicht das Ziel.
+
+**Ring (A06-Familie): stark shape-abhängig, im Mittel leicht vorn (~1.17× geom.).** torch.einsum ist hier
+*nicht* durchweg schwach — bei manchen Shapes findet es einen guten Pfad (→ bmm), bei anderen nicht. Der
+Tuner gewinnt groß, wo torchs Pfad schlecht ist, und verliert, wo er gut ist:
+
+| A06-Shape | Tuner/torch | | A06-Shape | Tuner/torch |
+|---|---|---|---|---|
+| a06_tall | **3.95×** | | a06 (Ref) | 0.99× |
+| a06_large_k | 2.65× | | a06_batch | 0.81× |
+| a06_square | 1.42× | | a06_small_k | 0.59× |
+| a06_wide | 1.30× | | a06_krumm | 0.38× |
+
+Zwei ehrliche Korrekturen: (1) `A06_TORCH_EINSUM = 16.18` aus dem Assignment ist veraltet/nicht
+vergleichbar — dieselbe Referenz-Shape macht mit aktuellem torch.einsum-fp16 **60.22 TFLOPS**, gleichauf
+mit unserem Tuner (59.83) und über dem Handkernel (49.84). (2) Der Mehrwert des Tuners ist damit präziser
+gefasst: nicht „schneller als alles", sondern *ein allgemeiner Mechanismus, der ohne Handarbeit über
+beliebige Kontraktionen brauchbare Leistung liefert und dort deutlich gewinnt, wo die Library keinen guten
+Pfad hat* (Ring-Shapes wie tall, large_k).
+
+**Config-Cache end-to-end bestätigt:** `autotune.py` hat auf der GB10 alle 16 Shapes über die v2-Top-7
+getunt und gecacht (`cache/tuned_configs.json`, Key inkl. GPU-Modell), 2. Aufruf jeweils Cache-Hit. Die
+Top-7-Picks liegen bei ~95–100 % der Vollmessung — die Offline-Analyse ist auf echter Hardware bestätigt.
 
 ### Ranking-Modell-Studie: Roofline mit Auto-Selektor
 

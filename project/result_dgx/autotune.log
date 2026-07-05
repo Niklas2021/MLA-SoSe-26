@@ -1,0 +1,18 @@
+(.venv) mla03@flambe:~/build/project/src$ python autotune.py   
+GPU: NVIDIA GB10
+a05            65.9 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 64, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+square_1b      63.3 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 64, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+tall           63.8 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 64, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+wide           61.3 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 64, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+small_k        36.0 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 64, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+large_k        45.5 TFLOPS  {'variant': 'A', 'm_prim': 64, 'n_prim': 128, 'k_prim': 128, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+krumm          39.6 TFLOPS  {'variant': 'A', 'm_prim': 64, 'n_prim': 256, 'k_prim': 64, 'm_l2': 8, 'n_l2': 4}  (2. Aufruf aus Cache: True)
+batch16        45.5 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 64, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+a06            62.3 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 32, 'm_l2': 4, 'n_l2': 2}  (2. Aufruf aus Cache: True)
+a06_square     66.9 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 32, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+a06_tall       67.4 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 32, 'm_l2': 8, 'n_l2': 4}  (2. Aufruf aus Cache: True)
+a06_wide       63.1 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 32, 'm_l2': 4, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+a06_small_k    22.9 TFLOPS  {'variant': 'A', 'm_prim': 64, 'n_prim': 256, 'k_prim': 32, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+a06_large_k    70.2 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 32, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)
+a06_krumm      21.0 TFLOPS  {'variant': 'A', 'm_prim': 64, 'n_prim': 256, 'k_prim': 64, 'm_l2': 8, 'n_l2': 4}  (2. Aufruf aus Cache: True)
+a06_batch      62.6 TFLOPS  {'variant': 'A', 'm_prim': 128, 'n_prim': 128, 'k_prim': 32, 'm_l2': 8, 'n_l2': 8}  (2. Aufruf aus Cache: True)

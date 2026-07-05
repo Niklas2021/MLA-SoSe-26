@@ -27,8 +27,12 @@ def batch_of(einsum, shapes):
     return b
 
 
+RESULTS_DIR = os.environ.get("RESULTS_DIR",
+                             os.path.join(os.path.dirname(__file__), "..", "results"))
+
+
 def load_csv(name):
-    path = os.path.join(os.path.dirname(__file__), "..", "results", f"tune_{name}.csv")
+    path = os.path.join(RESULTS_DIR, f"tune_{name}.csv")
     if not os.path.exists(path):
         return None
     meas = {}

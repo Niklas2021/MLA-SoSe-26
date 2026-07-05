@@ -1,0 +1,54 @@
+=== M3 Multi-Shape-Sweep ===
+Zeit: 2026-07-05T11:57:43
+GPU: NVIDIA GB10   do_bench warmup=50 rep=200
+Filter ['a06'] -> ['a06', 'a06_square', 'a06_tall', 'a06_wide', 'a06_small_k', 'a06_large_k', 'a06_krumm', 'a06_batch']
+
+--- a06  (tensor-ring (Referenz)) ---
+einsum acspx, bspy -> abcyx  shapes [(4, 3, 64, 64, 1536), (4, 64, 64, 1152)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 61.87 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=4 n_l2=2, Default 27.0 -> Gewinn 2.292x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 196.5 s
+
+--- a06_square  (ring, x==y) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 64, 64, 2048), (2, 64, 64, 2048)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 69.40 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=4, Default 59.4 -> Gewinn 1.168x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 130.0 s
+
+--- a06_tall  (ring, x>>y) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 64, 64, 4096), (2, 64, 64, 512)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 69.17 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=4 n_l2=4, Default 31.6 -> Gewinn 2.189x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 127.0 s
+
+--- a06_wide  (ring, y>>x) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 64, 64, 512), (2, 64, 64, 4096)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 67.22 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=4 n_l2=4, Default 30.6 -> Gewinn 2.194x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 127.8 s
+
+--- a06_small_k  (ring, klein-K (s*p=256)) ---
+einsum acspx, bspy -> abcyx  shapes [(4, 2, 8, 32, 2048), (4, 8, 32, 2048)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 22.62 TFLOPS | A: m_prim=64 n_prim=256 k_prim=32 m_l2=4 n_l2=2, Default 18.4 -> Gewinn 1.226x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 123.7 s
+
+--- a06_large_k  (ring, gross-K (s*p=16384)) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 128, 128, 1024), (2, 128, 128, 1024)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 75.08 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=4, Default 64.1 -> Gewinn 1.171x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 152.6 s
+
+--- a06_krumm  (ring, unteilbar (padding)) ---
+einsum acspx, bspy -> abcyx  shapes [(3, 2, 48, 48, 1500), (3, 48, 48, 1000)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 20.98 TFLOPS | A: m_prim=64 n_prim=256 k_prim=64 m_l2=8 n_l2=4, Default 14.3 -> Gewinn 1.469x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 175.4 s
+
+--- a06_batch  (ring, viele Batches (a8 c4 b8)) ---
+einsum acspx, bspy -> abcyx  shapes [(8, 4, 32, 64, 1024), (8, 32, 64, 1024)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 62.65 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=4, Default 57.1 -> Gewinn 1.097x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 235.2 s
+
+Gesamt-Wall-Clock aller Sweeps: 21.1 min

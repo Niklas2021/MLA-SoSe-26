@@ -3,6 +3,24 @@
 Ordner für die Mittwochs-Präsentation. Der Folienplan liegt eine Ebene höher in
 `../vortrag_aufteilung.md`.
 
+## Das Deck
+
+`cuTile_Auto-Tuner.pptx` (16:9, 19 Folien) wird von `build_pptx.py` erzeugt (python-pptx).
+Layout ist deterministisch: feste Positionen in Zoll, Bilder werden per Seitenverhältnis in
+ihre Box zentriert (nie verzerrt). Detailinfos stehen in den **Speaker-Notes**, nicht auf den
+Folien. Kurze Bullets nur als Anker.
+
+```bash
+PIP_USER=0 ../../.venv/bin/pip install python-pptx      # einmalig
+../../.venv/bin/python make_figures.py                  # Daten-Grafiken + Schemata
+../../.venv/bin/python make_code_cards.py               # Code-Snippets als Cards
+../../.venv/bin/python build_pptx.py                    # -> cuTile_Auto-Tuner.pptx
+../../.venv/bin/python render_preview.py                # optional: Layout-Vorschau nach _layout/
+```
+
+`build_pptx.py` prüft am Ende selbst, dass kein Objekt über den Folienrand ragt; `render_preview.py`
+rekonstruiert jede Folie als Bild (zur reinen Sichtkontrolle, kein PowerPoint nötig).
+
 ## Figures
 
 Alle datengetriebenen Grafiken werden von `make_figures.py` erzeugt und landen in `figures/`
@@ -32,6 +50,11 @@ Balken-Rohdaten aus `../result_dgx/tune_*.csv`, Top-k-Kurve über `autotuner.ran
 | `fig_topk_curve` | 12 | % vom Optimum über Mess-Budget k (top-7 → ~97 %) |
 | `fig_ranking_models` | 13 | bw / v2 / roofline: Spearman vs. Top-7-Ausbeute |
 | `fig_crossgpu_placeholder` | 14 | GB10 vs. RTX 3070 (3070 = TBD-Platzhalter) |
+| `code_variant_a` | 7 | Code-Card: generischer Kernel mit ct.Constant + Swizzle |
+| `code_prune` | 8 | Code-Card: die vier Prune-Filter (`prune_reason`) |
+| `code_ring_a` | 9 | Code-Card: A06-Ring-Kernel (Batch-Decode + permute) |
+
+Code-Cards kommen aus `make_code_cards.py` (dunkler Carbon-Look, Monospace-Raster).
 
 ## Noch offen / später einsetzen
 

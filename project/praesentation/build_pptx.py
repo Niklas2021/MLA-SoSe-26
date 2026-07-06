@@ -460,22 +460,49 @@ notes(s, "Drei Kostenmodelle. bw (reine Bandbreite) rankt schlecht (Spearman +0.
 # --- 17 Cross-GPU ---
 idx += 1
 s = slide()
-header(s, "Ausblick", "Cross-GPU: ist Tuning GPU-abhängig?", idx)
-image(s, "fig_crossgpu_placeholder", 0.6, 1.7, 8.6, 4.5, idx=idx)
-bullets(s, 9.4, 2.1, 3.35, 4.1, [
-    "Optimale L2-Gruppe hängt an der L2-Größe → GPU im Cache-Key.",
-    "GB10: 25 MB L2, integriert. RTX 3070: diskret, bandbreitenlimitiert.",
-    "Erwartung: roofline schaltet auf memory, andere Gewinner.",
-    ("RTX-3070-Messung folgt.", ORANGE, True),
-], size=14.5, idx=idx)
-takeaway(s, "Portabilität ist by construction (alles aus device_props), empirisch bisher nur auf der GB10 belegt.", idx)
-notes(s, "Der Tuner soll nicht auf eine GPU overfitten. Weil die optimale L2-Gruppe von der L2-Groesse "
-         "abhaengt, ist das GPU-Modell im Cache-Key. GB10 (25 MB L2, integriert, eher DRAM-limitiert) vs. "
-         "RTX 3070 (diskret, kleines L2, bandbreitenlimitiert). Erwartung: das Roofline-Modell schaltet auf "
-         "memory um, andere Gewinner-Configs. Portabilitaet ist by construction (device_props), aber bisher "
-         "nur auf der GB10 validiert — die 3070-Messung steht noch aus (Platzhalter-Balken).")
+header(s, "Ergebnisse · Cross-GPU", "Derselbe Hebel, aber andere Config pro GPU", idx)
+image(s, "fig_crossgpu_lever", 0.55, 1.72, 12.2, 4.45, idx=idx)
+takeaway(s, "Tuning hilft auf beiden Karten (Ø 1.36× GB10, 1.88× 3070) und die optimale Config ist in 16/16 Shapes verschieden — genau deshalb: GPU-spezifisch tunen + cachen.", idx)
+notes(s, "Absolute TFLOPS der GB10 und 3070 zu vergleichen ist nicht sinnvoll (andere Peak-Leistung, "
+         "Bandbreite, L2: 25 MB vs 4 MB). Vergleichbar ist der Optimierungshebel: der Speedup Tuner/Default "
+         "pro Shape. Ergebnis: der Hebel wirkt auf beiden Karten, auf der 3070 sogar staerker (Ø 1.88x vs "
+         "1.36x) — der aus dem GB10-Handtuning stammende 8x8-Default passt auf der 3070 schlechter, also "
+         "holt der Tuner dort mehr raus. Und die gemessen beste Config ist in 16/16 Shapes zwischen den "
+         "Karten verschieden (GB10 mag 128/128, die 3070 oft 64/128 oder 256/64 mit anderem k_prim/L2). "
+         "Das ist das Argument fuer GPU-spezifisches Autotuning und warum das GPU-Modell im Cache-Key steht. "
+         "Portabilitaet ist by construction (alles aus device_props) — jetzt auch auf einer zweiten, "
+         "bandbreitenlimitierten GPU bestaetigt.")
 
-# --- 18 Praxis / Cache ---
+# --- 18 Cross-GPU: Config-Wahl & Kosten ---
+idx += 1
+s = slide()
+header(s, "Ergebnisse · Cross-GPU", "Was der Tuner pro GPU wählt — und was es kostet", idx)
+image(s, "fig_config_table", 0.5, 1.72, 8.35, 4.4, idx=idx)
+bullets(s, 9.0, 2.05, 3.75, 4.15, [
+    "Optimum in 16/16 Shapes verschieden — pro GPU eine andere Config.",
+    "Autotuner (v2, top-7) trifft ⌀ 96 % (GB10) / 90 % (3070) des Optimums.",
+    "Kosten: GB10 ~3 s/Shape; 3070 (WSL-Compile) ~3 s–2 min — Compile dominiert.",
+    "Roofline schaltet sein Regime selbst um; praktisch bleibt v2 der beste Vorfilter.",
+], size=14, idx=idx)
+takeaway(s, "Pro GPU von Hand zu tunen ist nicht machbar — das nimmt der gecachte Tuner ab, ohne auf eine Karte zu overfitten.", idx)
+notes(s, "Die gemessen beste Config ist in 16/16 Shapes zwischen GB10 und 3070 verschieden: die GB10 mag "
+         "grosse 128x128-Tiles (25 MB L2 vertraegt sie), die 3070 kleineres k_prim=32 und oft asymmetrische/"
+         "64-breite Tiles. Der Autotuner (v2-Modell, nur top-7 gemessen) trifft im Schnitt ~96 % (GB10) bzw. "
+         "~90 % (3070) des Optimums — auf der 3070 etwas unzuverlaessiger (einzelne Shapes wie krumm/square_1b "
+         "fallen auf ~60-75 %). "
+         "KOSTEN: eine Shape zu tunen (top-7 kompilieren+messen) kostet auf der GB10 ~3 s. Auf der 3070 lief "
+         "alles unter WSL, wo der gcc-Compile viel langsamer ist — je nach Shape ~3 s bis ~2 min (ein voller "
+         "Sweep dauerte dort bis ~1.9 h vs. ~5 min auf der GB10). Es ist ein Einmalkosten-Posten, der gecacht "
+         "wird, und der Nutzen ist auf der 3070 groesser (Oe 1.88x) — fuer wiederverwendete Shapes lohnt es "
+         "sich, fuer Einmalrechnungen auf der 3070 grenzwertig. "
+         "BEWERTUNGSMETHODE: das Roofline-Modell schaltet sein Regime selbst per device_props um "
+         "(max(memory,compute)). Interessant: die GB10 ist die bandbreiten-limitierte Karte (273 GB/s LPDDR, "
+         "3/16 Shapes memory-bound), die 3070 bleibt compute-bound (448 GB/s GDDR6, 0/16). Der praktische "
+         "Tuner (autotune.py) nutzt aber fest v2, weil v2 auf beiden Karten der bessere top-7-Vorfilter ist "
+         "(roofline korreliert global besser: Spearman +0.57 vs v2 +0.19 auf der 3070, ist aber schlechterer "
+         "Vorfilter: 83 % vs 91 %).")
+
+# --- 19 Praxis / Cache ---
 idx += 1
 s = slide()
 header(s, "Einordnung", "Wann sich Tuning lohnt: Cache & Amortisierung", idx)
@@ -500,7 +527,7 @@ notes(s, "Tuning lohnt sich ueber Wiederverwendung. Eine Kontraktion laeuft ~8 m
          "16 Shapes getunt & gecacht, 2. Aufruf Cache-Hit, Top-7-Picks bei ~95-100 %. Nur bei stark "
          "dynamischen Shapes geht die Rechnung nicht auf -> Bucketing/Padding.")
 
-# --- 19 Fazit ---
+# --- 20 Fazit ---
 idx += 1
 s = slide(NAVY)
 rect(s, 0, 0, 0.35, SH, fill=BLUE)
@@ -514,7 +541,7 @@ bullets2 = [
     ("A06:", "sauberer Transfer, ein zusätzlicher Kernel-Typ, schlägt den Handkernel (+24 %)."),
     ("cuBLAS:", "auf GEMM nicht geschlagen — Wert ist Allgemeinheit + Gewinne ohne guten Library-Pfad."),
     ("Modell:", "v2 bester Vorfilter (97.8 % @ top-7), roofline bester Ranker — messen bleibt entscheidend."),
-    ("Praxis:", "GPU-spezifisch + gecacht; Cross-GPU by construction, auf der 3070 noch zu bestätigen."),
+    ("Praxis:", "GPU-spezifisch + gecacht — auf GB10 und 3070 bestätigt: Hebel wirkt, beste Config je GPU verschieden."),
 ]
 tb = s.shapes.add_textbox(Inches(0.9), Inches(2.4), Inches(11.6), Inches(4.4))
 tf = tb.text_frame; tf.word_wrap = True

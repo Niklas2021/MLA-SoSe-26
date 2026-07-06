@@ -1,0 +1,55 @@
+=== M3 Multi-Shape-Sweep ===
+Zeit: 2026-07-06T08:55:59
+GPU: NVIDIA GeForce RTX 3070   do_bench warmup=50 rep=200
+
+--- a05  (square, batch=4 (Referenz)) ---
+einsum cmk, ckn -> cmn  shapes [(4, 4096, 4096), (4, 4096, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+[CSV: /home/lumin/results/tune_a05.csv]
+best 41.55 TFLOPS | A: m_prim=64 n_prim=128 k_prim=64 m_l2=8 n_l2=2, Default 34.4 -> Gewinn 1.209x
+torch.einsum 41.49 TFLOPS -> Tuner 1.00x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 162.4 s
+
+--- square_1b  (square, batch=1) ---
+einsum cmk, ckn -> cmn  shapes [(1, 4096, 4096), (1, 4096, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+[CSV: /home/lumin/results/tune_square_1b.csv]
+best 10.69 TFLOPS | B: m_prim=128 n_prim=128 k_prim=32 m_l2=2 n_l2=2, Default 5.9 -> Gewinn 1.826x
+torch.einsum 42.02 TFLOPS -> Tuner 0.25x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 3112.6 s
+
+--- tall  (rechteckig (M>>N)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 8192, 4096), (1, 4096, 1024)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+[CSV: /home/lumin/results/tune_tall.csv]
+best 8.13 TFLOPS | B: m_prim=64 n_prim=128 k_prim=64 m_l2=2 n_l2=2, Default 5.6 -> Gewinn 1.458x
+torch.einsum 41.62 TFLOPS -> Tuner 0.20x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 3468.1 s
+
+--- wide  (rechteckig (N>>M)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 1024, 4096), (1, 4096, 8192)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+[CSV: /home/lumin/results/tune_wide.csv]
+best 11.30 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=2, Default 5.4 -> Gewinn 2.092x
+torch.einsum 38.27 TFLOPS -> Tuner 0.30x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 3324.2 s
+
+--- small_k  (klein-K (bandbreite)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 4096, 512), (1, 512, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+[CSV: /home/lumin/results/tune_small_k.csv]
+best 8.08 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=4 n_l2=2, Default 7.7 -> Gewinn 1.048x
+torch.einsum 36.54 TFLOPS -> Tuner 0.22x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 4738.8 s
+
+--- large_k  (gross-K (compute)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 1024, 8192), (1, 8192, 1024)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+[CSV: /home/lumin/results/tune_large_k.csv]
+best 8.50 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=8, Default 4.1 -> Gewinn 2.056x
+torch.einsum 41.83 TFLOPS -> Tuner 0.20x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 694.3 s
+
+--- krumm  (unteilbar (padding)) ---
+einsum cmk, ckn -> cmn  shapes [(2, 1500, 1000), (2, 1000, 3000)]
+enumeriert 486 -> 342 zu messen (144 verworfen)

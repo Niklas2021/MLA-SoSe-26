@@ -1,0 +1,20 @@
+=== M0 Smoke-Test der Umgebung ===
+Zeit: 2026-07-05T16:31:14
+
+--- Environment ---
+torch:            2.7.1+cu128
+CUDA (torch):     12.8
+cuTile:           1.4.0
+GPU-Modell:       NVIDIA GeForce RTX 3070
+Compute Cap.:     8.6
+SM-Count:         46
+Global Mem:       8.6 GB
+L2-Cache-Groesse: 4194304 Byte (4.19 MB)
+
+--- Kernel-Smoke (ct.kernel + ct.launch) ---
+vektor-add (1048576 elem, TILE=1024): max_err=0.00195  allclose=True
+
+--- triton.testing.do_bench ---
+do_bench: 0.0606 ms   ~103.8 GB/s (mem-bound add)
+
+OK: Toolchain laeuft (ct.kernel + ct.launch + do_bench).

@@ -1,0 +1,117 @@
+=== M3 Multi-Shape-Sweep ===
+Zeit: 2026-07-05T14:03:09
+GPU: NVIDIA GB10   do_bench warmup=50 rep=200
+
+--- a05  (square, batch=4 (Referenz)) ---
+einsum cmk, ckn -> cmn  shapes [(4, 4096, 4096), (4, 4096, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+best 65.49 TFLOPS | A: m_prim=128 n_prim=128 k_prim=64 m_l2=8 n_l2=4, Default 63.9 -> Gewinn 1.025x
+torch.einsum 63.09 TFLOPS -> Tuner 1.04x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 308.8 s
+
+--- square_1b  (square, batch=1) ---
+einsum cmk, ckn -> cmn  shapes [(1, 4096, 4096), (1, 4096, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+best 63.97 TFLOPS | A: m_prim=128 n_prim=128 k_prim=64 m_l2=8 n_l2=4, Default 61.8 -> Gewinn 1.036x
+torch.einsum 80.34 TFLOPS -> Tuner 0.80x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 101.8 s
+
+--- tall  (rechteckig (M>>N)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 8192, 4096), (1, 4096, 1024)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+best 63.32 TFLOPS | A: m_prim=64 n_prim=256 k_prim=64 m_l2=2 n_l2=4, Default 62.6 -> Gewinn 1.011x
+torch.einsum 82.80 TFLOPS -> Tuner 0.76x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 248.4 s
+
+--- wide  (rechteckig (N>>M)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 1024, 4096), (1, 4096, 8192)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+best 60.98 TFLOPS | A: m_prim=128 n_prim=128 k_prim=64 m_l2=8 n_l2=2, Default 60.0 -> Gewinn 1.017x
+torch.einsum 80.51 TFLOPS -> Tuner 0.76x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 241.6 s
+
+--- small_k  (klein-K (bandbreite)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 4096, 512), (1, 512, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+best 36.14 TFLOPS | A: m_prim=64 n_prim=256 k_prim=64 m_l2=4 n_l2=2, Default 35.8 -> Gewinn 1.009x
+torch.einsum 58.92 TFLOPS -> Tuner 0.61x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 239.8 s
+
+--- large_k  (gross-K (compute)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 1024, 8192), (1, 8192, 1024)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+best 45.83 TFLOPS | A: m_prim=64 n_prim=128 k_prim=128 m_l2=2 n_l2=8, Default 42.7 -> Gewinn 1.074x
+torch.einsum 68.89 TFLOPS -> Tuner 0.67x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 260.3 s
+
+--- krumm  (unteilbar (padding)) ---
+einsum cmk, ckn -> cmn  shapes [(2, 1500, 1000), (2, 1000, 3000)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+best 41.83 TFLOPS | B: m_prim=128 n_prim=128 k_prim=64 m_l2=2 n_l2=2, Default 26.6 -> Gewinn 1.575x
+torch.einsum 49.45 TFLOPS -> Tuner 0.85x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 227.1 s
+
+--- batch16  (batch=16) ---
+einsum cmk, ckn -> cmn  shapes [(16, 1024, 1024), (16, 1024, 1024)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+best 46.30 TFLOPS | A: m_prim=128 n_prim=128 k_prim=64 m_l2=4 n_l2=4, Default 45.6 -> Gewinn 1.016x
+torch.einsum 62.39 TFLOPS -> Tuner 0.74x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 232.8 s
+
+--- a06  (tensor-ring (Referenz)) ---
+einsum acspx, bspy -> abcyx  shapes [(4, 3, 64, 64, 1536), (4, 64, 64, 1152)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 59.83 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=4 n_l2=2, Default 26.3 -> Gewinn 2.275x
+torch.einsum 60.22 TFLOPS -> Tuner 0.99x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 134.5 s
+
+--- a06_square  (ring, x==y) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 64, 64, 2048), (2, 64, 64, 2048)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 66.65 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=2, Default 58.6 -> Gewinn 1.138x
+torch.einsum 46.82 TFLOPS -> Tuner 1.42x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 67.0 s
+
+--- a06_tall  (ring, x>>y) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 64, 64, 4096), (2, 64, 64, 512)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 68.02 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=2 n_l2=4, Default 31.0 -> Gewinn 2.197x
+torch.einsum 17.24 TFLOPS -> Tuner 3.95x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 61.9 s
+
+--- a06_wide  (ring, y>>x) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 64, 64, 512), (2, 64, 64, 4096)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 66.45 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=4 n_l2=2, Default 26.9 -> Gewinn 2.467x
+torch.einsum 51.14 TFLOPS -> Tuner 1.30x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 61.6 s
+
+--- a06_small_k  (ring, klein-K (s*p=256)) ---
+einsum acspx, bspy -> abcyx  shapes [(4, 2, 8, 32, 2048), (4, 8, 32, 2048)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 22.76 TFLOPS | A: m_prim=64 n_prim=256 k_prim=32 m_l2=8 n_l2=4, Default 18.5 -> Gewinn 1.232x
+torch.einsum 38.33 TFLOPS -> Tuner 0.59x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 61.5 s
+
+--- a06_large_k  (ring, gross-K (s*p=16384)) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 128, 128, 1024), (2, 128, 128, 1024)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 73.34 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=4, Default 62.5 -> Gewinn 1.174x
+torch.einsum 27.73 TFLOPS -> Tuner 2.65x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 66.8 s
+
+--- a06_krumm  (ring, unteilbar (padding)) ---
+einsum acspx, bspy -> abcyx  shapes [(3, 2, 48, 48, 1500), (3, 48, 48, 1000)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 20.92 TFLOPS | A: m_prim=64 n_prim=256 k_prim=64 m_l2=8 n_l2=4, Default 14.3 -> Gewinn 1.461x
+torch.einsum 54.70 TFLOPS -> Tuner 0.38x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 83.5 s
+
+--- a06_batch  (ring, viele Batches (a8 c4 b8)) ---
+einsum acspx, bspy -> abcyx  shapes [(8, 4, 32, 64, 1024), (8, 32, 64, 1024)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+best 61.58 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=8, Default 54.3 -> Gewinn 1.133x
+torch.einsum 76.07 TFLOPS -> Tuner 0.81x
+171 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 167.6 s
+
+Gesamt-Wall-Clock aller Sweeps: 42.8 min

@@ -11,7 +11,9 @@ import math
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "..", "src")
-RESULTS = os.path.join(HERE, "..", "result_dgx")
+RESULTS = os.path.join(HERE, "..", "result_dgx")           # GB10
+R3070 = os.path.join(HERE, "..", "result_3070", "src", "results")   # RTX 3070
+R3070_ALT = os.path.join(HERE, "..", "result_3070", "results")      # large_k liegt hier
 FIGDIR = os.path.join(HERE, "figures")
 sys.path.insert(0, SRC)
 os.environ.setdefault("RESULTS_DIR", os.path.abspath(RESULTS))
@@ -310,30 +312,158 @@ def fig_funnel():
     _save(fig, "fig_funnel")
 
 
-def fig_crossgpu_placeholder():
-    # Platzhalter: GB10-Balken echt, RTX-3070 als schraffierte TBD-Balken.
-    labels = [d[0].split("\n")[0] for d in A05]
-    gb10 = [d[2] for d in A05]
-    x = np.arange(len(labels))
+def _load_csv_dir(d, name):
+    path = os.path.join(d, f"tune_{name}.csv")
+    if not os.path.exists(path):
+        return None
+    import csv
+    m = {}
+    for r in csv.DictReader(open(path)):
+        if int(r["ok"]):
+            k = (r["variant"], int(r["m_prim"]), int(r["n_prim"]),
+                 int(r["k_prim"]), int(r["m_l2"]), int(r["n_l2"]))
+            m[k] = float(r["tflops"])
+    return m or None
+
+
+def _best_sig(d, name, alt=None):
+    m = _load_csv_dir(d, name) or (_load_csv_dir(alt, name) if alt else None)
+    if not m:
+        return None
+    return max(m, key=m.get)
+
+
+def _fmt_cfg(s):
+    return f"{s[1]}/{s[2]}/{s[3]}  {s[4]}×{s[5]}"
+
+
+def fig_config_table():
+    # Welche Config ist optimal je GPU? Zeigt die Divergenz konkret an Beispiel-Shapes.
+    rows = [("a05", "a05"), ("tall", "tall"), ("small_k", "small_k"), ("krumm", "krumm"),
+            ("a06", "a06"), ("a06_tall", "tall"), ("a06_large_k", "large_k"),
+            ("a06_krumm", "krumm")]
+    data = []
+    for key, label in rows:
+        fam = "A06 · Ring" if key.startswith("a06") else "A05 · GEMM"
+        gb = _best_sig(RESULTS, key)
+        r3 = _best_sig(R3070, key, R3070_ALT)
+        data.append((fam, label, _fmt_cfg(gb), _fmt_cfg(r3)))
+
+    fig, ax = plt.subplots(figsize=(11.0, 5.3))
+    ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    n = len(data)
+    x0, xg, xr = 0.02, 0.42, 0.71          # Spalten-Startpunkte
+    top, rh = 0.86, 0.86 / (n + 1)
+    # Kopfzeile
+    ax.text(x0, top, "Shape", fontsize=13, fontweight="bold", color=INK, va="center")
+    ax.add_patch(Rectangle((xg - 0.02, top - rh * 0.5), 0.28, rh, color=C_TUNER, alpha=0.14))
+    ax.add_patch(Rectangle((xr - 0.02, top - rh * 0.5), 0.30, rh, color=C_TORCH, alpha=0.14))
+    ax.text(xg + 0.12, top, "GB10  (25 MB L2)", fontsize=12.5, fontweight="bold",
+            color=C_TUNER, va="center", ha="center")
+    ax.text(xr + 0.13, top, "RTX 3070  (4 MB L2)", fontsize=12.5, fontweight="bold",
+            color=C_TORCH, va="center", ha="center")
+    prev_fam = None
+    for i, (fam, label, gc, rc) in enumerate(data):
+        y = top - (i + 1) * rh
+        if fam != prev_fam:
+            ax.text(x0, y + rh * 0.02, fam, fontsize=10, color=MUTED, va="center", style="italic")
+            prev_fam = fam
+        ax.text(x0 + 0.11, y, label, fontsize=12.5, color=INK, va="center")
+        ax.add_patch(Rectangle((xg - 0.02, y - rh * 0.5), 0.28, rh, color=C_TUNER,
+                     alpha=0.06 if i % 2 else 0.10))
+        ax.add_patch(Rectangle((xr - 0.02, y - rh * 0.5), 0.30, rh, color=C_TORCH,
+                     alpha=0.06 if i % 2 else 0.10))
+        ax.text(xg + 0.12, y, gc, fontsize=12.5, color=INK, va="center", ha="center",
+                family="DejaVu Sans Mono")
+        ax.text(xr + 0.13, y, rc, fontsize=12.5, color=INK, va="center", ha="center",
+                family="DejaVu Sans Mono")
+    ax.text(0.02, 0.985, "Optimale Config unterscheidet sich pro GPU  (m/n/k-Prim · L2-Gruppe)",
+            fontsize=15, fontweight="bold", color=INK, va="top")
+    ax.text(0.02, -0.02,
+            "Muster: GB10 → große 128×128-Tiles (großes L2 verträgt sie) · 3070 → kleineres "
+            "k_prim=32, oft asymmetrisch/64-breit", fontsize=10.5, color=INK2, va="top")
+    _save(fig, "fig_config_table")
+
+
+def _lever(meas):
+    # (speedup Tuner/Default, best-config-signatur)
+    from problems import DEFAULT_CONFIG
+    DEF = ("A", DEFAULT_CONFIG["m_prim"], DEFAULT_CONFIG["n_prim"],
+           DEFAULT_CONFIG["k_prim"], DEFAULT_CONFIG["m_l2"], DEFAULT_CONFIG["n_l2"])
+    best = max(meas, key=meas.get)
+    return meas[best] / meas[DEF], best
+
+
+def fig_crossgpu_lever():
+    # Absolute TFLOPS der GB10 und 3070 sind nicht vergleichbar (andere Peak/BW/L2).
+    # Vergleichbar ist der OPTIMIERUNGSHEBEL: Speedup Tuner/Default pro Shape.
+    from problems import PROBLEMS
+    a05 = [p["name"] for p in PROBLEMS if not p["name"].startswith("a06")]
+    a06 = [p["name"] for p in PROBLEMS if p["name"].startswith("a06")]
+    order = a05 + a06
+    short = {"a05": "a05", "square_1b": "square", "tall": "tall", "wide": "wide",
+             "small_k": "small_k", "large_k": "large_k", "krumm": "krumm", "batch16": "batch16",
+             "a06": "a06", "a06_square": "square", "a06_tall": "tall", "a06_wide": "wide",
+             "a06_small_k": "small_k", "a06_large_k": "large_k", "a06_krumm": "krumm",
+             "a06_batch": "batch"}
+    gb_sp, r_sp, labels, splitpos = [], [], [], len(a05)
+    for n in order:
+        g = _load_csv_dir(RESULTS, n)
+        r = _load_csv_dir(R3070, n) or _load_csv_dir(R3070_ALT, n)
+        gb_sp.append(_lever(g)[0] if g else float("nan"))
+        r_sp.append(_lever(r)[0] if r else float("nan"))
+        labels.append(short[n])
+    gb_avg = float(np.nanmean(gb_sp))
+    r_avg = float(np.nanmean(r_sp))
+
+    # x-Positionen mit Luecke zwischen A05- und A06-Block
+    xs = []
+    x = 0.0
+    for i in range(len(order)):
+        if i == splitpos:
+            x += 0.9
+        xs.append(x)
+        x += 1.0
+    xs = np.array(xs)
     w = 0.38
-    fig, ax = plt.subplots(figsize=(11.0, 5.2))
-    ax.bar(x - w / 2, gb10, w, label="GB10 (25 MB L2, integriert)", color=C_TUNER)
-    ax.bar(x + w / 2, [max(gb10) * 0.5] * len(labels), w,
-           label="RTX 3070  —  TBD", color="none", edgecolor=MUTED,
-           hatch="////", linewidth=1.0)
-    for xi in x:
-        ax.text(xi + w / 2, max(gb10) * 0.5 + 1, "?", ha="center", va="bottom",
-                color=MUTED, fontsize=13, fontweight="bold")
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=11)
-    ax.set_ylabel("Tuner-Best TFLOPS")
-    ax.set_ylim(0, max(gb10) * 1.12)
-    ax.set_title("Cross-GPU: sind die besten Configs GPU-abhängig?", loc="left", color=INK, pad=12)
-    ax.legend(ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.20))
+    fig, ax = plt.subplots(figsize=(13.4, 5.6))
+    xr = xs[-1] + 0.55
+    ax.axhline(1.0, color=MUTED, lw=1.2, ls=(0, (4, 3)), zorder=1)
+    ax.text(xr, 1.0, "kein\nGewinn", va="center", fontsize=9.5, color=MUTED)
+    b1 = ax.bar(xs - w / 2 - 0.02, gb_sp, w, color=C_TUNER, label="GB10  (25 MB L2)")
+    b2 = ax.bar(xs + w / 2 + 0.02, r_sp, w, color=C_TORCH, label="RTX 3070  (4 MB L2)")
+    for xi, g, r in zip(xs, gb_sp, r_sp):
+        ax.text(xi - w / 2 - 0.02, g + 0.03, f"{g:.1f}", ha="center", va="bottom",
+                fontsize=8.5, color=C_TUNER, fontweight="bold")
+        ax.text(xi + w / 2 + 0.02, r + 0.03, f"{r:.1f}", ha="center", va="bottom",
+                fontsize=8.5, color=C_TORCH, fontweight="bold")
+    # Durchschnittslinien + Labels im freien rechten Rand (bei "kein Gewinn")
+    ax.axhline(gb_avg, color=C_TUNER, lw=1.0, ls=":", alpha=0.7)
+    ax.axhline(r_avg, color=C_TORCH, lw=1.0, ls=":", alpha=0.7)
+    ax.text(xr, r_avg, f"Ø {r_avg:.2f}×", va="center", ha="left", fontsize=9.5,
+            color=C_TORCH, fontweight="bold")
+    ax.text(xr, gb_avg, f"Ø {gb_avg:.2f}×", va="center", ha="left", fontsize=9.5,
+            color=C_TUNER, fontweight="bold")
+    # Block-Labels
+    ax.text(np.mean(xs[:splitpos]), ax.get_ylim()[1] * 0.98, "A05 · GEMM", ha="center",
+            va="top", fontsize=11.5, color=INK, fontweight="bold")
+    ax.text(np.mean(xs[splitpos:]), ax.get_ylim()[1] * 0.98, "A06 · Ring", ha="center",
+            va="top", fontsize=11.5, color=INK, fontweight="bold")
+    ax.set_xticks(xs)
+    ax.set_xticklabels(labels, fontsize=10, rotation=30, ha="right")
+    ax.set_ylabel("Speedup  Tuner / Default")
+    ax.set_ylim(0.9, max(np.nanmax(gb_sp), np.nanmax(r_sp)) * 1.12)
+    ax.set_xlim(-1.0, xs[-1] + 2.1)
+    ax.set_title("Der Tuning-Hebel wirkt auf beiden GPUs — auf der 3070 stärker",
+                 loc="left", color=INK, pad=12)
+    ax.legend(ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.16))
     _clean(ax)
-    ax.text(0, -0.31, "GB10 gemessen · RTX 3070 folgt (Balken sind Platzhalter)",
+    ax.text(0, -0.30, "relativer Speedup (unitless) — absolute TFLOPS beider Karten sind nicht "
+            "vergleichbar · beste Config in 16/16 Shapes je GPU verschieden",
             transform=ax.transAxes, fontsize=9.5, color=MUTED)
-    _save(fig, "fig_crossgpu_placeholder")
+    _save(fig, "fig_crossgpu_lever")
 
 
 # ============================================================
@@ -465,7 +595,8 @@ if __name__ == "__main__":
     fig_topk_curve()
     fig_ranking_models()
     fig_funnel()
-    fig_crossgpu_placeholder()
+    fig_crossgpu_lever()
+    fig_config_table()
     fig_pipeline()
     fig_tiling()
     print("fertig.")

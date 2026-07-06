@@ -1,0 +1,85 @@
+=== M3 Multi-Shape-Sweep ===
+Zeit: 2026-07-05T16:20:03
+GPU: NVIDIA GeForce RTX 3070   do_bench warmup=50 rep=200
+
+--- a05  (square, batch=4 (Referenz)) ---
+einsum cmk, ckn -> cmn  shapes [(4, 4096, 4096), (4, 4096, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+--- a05: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmpzt5mnvga/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpzt5mnvga/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpzt5mnvga', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- square_1b  (square, batch=1) ---
+einsum cmk, ckn -> cmn  shapes [(1, 4096, 4096), (1, 4096, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+--- square_1b: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmposakcinl/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmposakcinl/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmposakcinl', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- tall  (rechteckig (M>>N)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 8192, 4096), (1, 4096, 1024)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+--- tall: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmpktcu_jue/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpktcu_jue/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpktcu_jue', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- wide  (rechteckig (N>>M)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 1024, 4096), (1, 4096, 8192)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+--- wide: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmpui8gatek/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpui8gatek/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpui8gatek', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- small_k  (klein-K (bandbreite)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 4096, 512), (1, 512, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+--- small_k: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmpqoh48rzl/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpqoh48rzl/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpqoh48rzl', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- large_k  (gross-K (compute)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 1024, 8192), (1, 8192, 1024)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+--- large_k: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmph0jmop9c/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmph0jmop9c/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmph0jmop9c', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- krumm  (unteilbar (padding)) ---
+einsum cmk, ckn -> cmn  shapes [(2, 1500, 1000), (2, 1000, 3000)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+--- krumm: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmp_hifss1n/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmp_hifss1n/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmp_hifss1n', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- batch16  (batch=16) ---
+einsum cmk, ckn -> cmn  shapes [(16, 1024, 1024), (16, 1024, 1024)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+--- batch16: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmpe_lw6ebh/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpe_lw6ebh/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpe_lw6ebh', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- a06  (tensor-ring (Referenz)) ---
+einsum acspx, bspy -> abcyx  shapes [(4, 3, 64, 64, 1536), (4, 64, 64, 1152)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+--- a06: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmpci1fzfnz/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpci1fzfnz/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpci1fzfnz', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- a06_square  (ring, x==y) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 64, 64, 2048), (2, 64, 64, 2048)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+--- a06_square: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmpj_zsfyoz/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpj_zsfyoz/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpj_zsfyoz', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- a06_tall  (ring, x>>y) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 64, 64, 4096), (2, 64, 64, 512)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+--- a06_tall: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmp6zucgs46/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmp6zucgs46/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmp6zucgs46', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- a06_wide  (ring, y>>x) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 64, 64, 512), (2, 64, 64, 4096)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+--- a06_wide: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmp0s4pn_ju/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmp0s4pn_ju/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmp0s4pn_ju', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- a06_small_k  (ring, klein-K (s*p=256)) ---
+einsum acspx, bspy -> abcyx  shapes [(4, 2, 8, 32, 2048), (4, 8, 32, 2048)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+--- a06_small_k: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmpswcdw0aq/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpswcdw0aq/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpswcdw0aq', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- a06_large_k  (ring, gross-K (s*p=16384)) ---
+einsum acspx, bspy -> abcyx  shapes [(2, 2, 128, 128, 1024), (2, 128, 128, 1024)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+--- a06_large_k: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmp7c5c_88c/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmp7c5c_88c/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmp7c5c_88c', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- a06_krumm  (ring, unteilbar (padding)) ---
+einsum acspx, bspy -> abcyx  shapes [(3, 2, 48, 48, 1500), (3, 48, 48, 1000)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+--- a06_krumm: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmpui5n683v/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpui5n683v/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpui5n683v', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+--- a06_batch  (ring, viele Batches (a8 c4 b8)) ---
+einsum acspx, bspy -> abcyx  shapes [(8, 4, 32, 64, 1024), (8, 32, 64, 1024)]
+enumeriert 243 -> 171 zu messen (72 verworfen)
+--- a06_batch: ABGEBROCHEN (CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmp_d7pgg4m/main.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmp_d7pgg4m/cuda_utils.cpython-313-x86_64-linux-gnu.so', '-lcuda', '-L/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/lib', '-L/usr/lib/wsl/lib', '-I/home/lumin/src/venv/lib/python3.13/site-packages/triton/backends/nvidia/include', '-I/tmp/tmp_d7pgg4m', '-I/usr/include/python3.13']' returned non-zero exit status 1.) ---
+
+Gesamt-Wall-Clock aller Sweeps: 0.0 min

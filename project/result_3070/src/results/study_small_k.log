@@ -1,0 +1,13 @@
+=== M3 Multi-Shape-Sweep ===
+Zeit: 2026-07-06T13:20:30
+GPU: NVIDIA GeForce RTX 3070   do_bench warmup=50 rep=200
+Filter ['small_k'] -> ['small_k']
+
+--- small_k  (klein-K (bandbreite)) ---
+einsum cmk, ckn -> cmn  shapes [(1, 4096, 512), (1, 512, 4096)]
+enumeriert 486 -> 342 zu messen (144 verworfen)
+best 8.45 TFLOPS | A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=2, Default 7.5 -> Gewinn 1.120x
+torch.einsum 32.23 TFLOPS -> Tuner 0.26x
+342 ok, 0 fehlgeschlagen/inkorrekt   Sweep-Wall-Clock 134.6 s
+
+Gesamt-Wall-Clock aller Sweeps: 2.2 min

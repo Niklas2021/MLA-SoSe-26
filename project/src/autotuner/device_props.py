@@ -65,3 +65,19 @@ GB10 = DeviceProperties(
     mem_bus_bits=256,
     core_clock_khz=2418000,
 )
+
+# RTX 3070 (GA104, WSL). L2/SM aus smoke_test.log; mem_clock so gesetzt, dass die
+# effektive GDDR6-Bandbreite ~448 GB/s rauskommt (256 bit * 14 Gbps). Zum Nachrechnen
+# der Cross-GPU-Roofline-Regime (analyze_tune mit dev=RTX3070). Peak ~81 TFLOPS.
+RTX3070 = DeviceProperties(
+    gpu_name="NVIDIA GeForce RTX 3070",
+    l2_cache=4194304,
+    smem_per_block=101376,
+    smem_per_sm=102400,
+    number_sm=46,
+    regs_per_block=65536,
+    reserved_smem_per_block=1024,
+    mem_clock_khz=14000000,
+    mem_bus_bits=256,
+    core_clock_khz=1725000,
+)

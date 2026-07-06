@@ -447,9 +447,11 @@ und Tile-Effizienz (zweite Ordnung), und da hilft der Compute-Term nicht. **v2 b
 direkt Traffic + Register-Filter, unberührt vom Regime-Fix). Die Roofline ist als dokumentierte, portablere
 und physikalisch selbstumschaltende Variante drin.
 
-Bleibt eine ehrliche Grenze: Portabilität ist *by construction* (alles über `device_props` parametrisiert),
-aber nur auf *einer* GPU validiert — der eigentliche Cross-GPU-Test (Roofline schaltet auf einer
-bandbreitenlimitierten diskreten GPU auf `memory` um) steht mangels zweiter Karte noch aus.
+Portabilität ist *by construction* (alles über `device_props` parametrisiert) und inzwischen auf einer
+zweiten Karte (RTX 3070, 4 MB L2, `result_3070/`) gemessen. Absolute TFLOPS sind zwischen den Karten nicht
+vergleichbar; der aussagekräftige Vergleich ist der Optimierungshebel (Speedup Tuner/Default): er wirkt auf
+beiden, auf der 3070 stärker (Ø 1.88× vs. 1.36×), und die gemessen beste Config ist in **16/16 Shapes je
+GPU verschieden** — das rechtfertigt GPU-spezifisches Tuning und den GPU-Modell-Key im Cache.
 
 ### Config-Cache
 
@@ -482,8 +484,9 @@ Inzwischen ebenfalls erledigt:
 - **A06-Regime-Label** → *gefixt:* die Batch-Faktoren (`a·c·b`, `s`) laufen jetzt durch die Schätzer, die
   Ring-Familie wird korrekt als `compute`-limitiert gelabelt.
 
-Echt offen bleibt:
+Cross-GPU (inzwischen erledigt):
 
-- **Hardware-Übergreifend nur by construction.** Alles liest aus `device_props`, aber validiert ist es nur
-  auf der GB10. Über GPUs hinweg (v.a. bandbreitenlimitierte diskrete GPUs, wo Roofline auf `memory`
-  umschalten sollte) ist die Portabilität nicht empirisch belegt. Bei GPU-Wechsel neu messen.
+- **Auf GB10 und RTX 3070 gemessen** (`result_3070/`). Der Tuner läuft auf beiden korrekt; der
+  Optimierungshebel (Speedup Tuner/Default) wirkt auf beiden, auf der 3070 stärker (Ø 1.88× vs. 1.36×),
+  und die beste Config ist in 16/16 Shapes je GPU verschieden. Bei jedem GPU-Wechsel neu messen — genau
+  das erledigt der Cache (Key inkl. GPU-Modell) automatisch.

@@ -16,9 +16,10 @@ kommt nur als kurzer Recap.
   das was man *ohne* Tuner nähme). „Handkernel A06" = die von Hand getunte A06-Lösung (49.84 TFLOPS aus
   dem Assignment). Nicht verwechseln — der 2.29×-„Gewinn" auf A06 ist gegen die *mismatchte* 8×8-Default,
   nicht gegen den echten Handkernel (+24 %).
-- **RTX 3070: Daten stehen noch aus.** Der Cross-GPU-Teil ist bewusst **eine** Folie (Folie 14) und nicht
-  tragend — der Vortrag steht komplett auf den GB10-Ergebnissen. Kommt die 3070 rechtzeitig, füllt sie den
-  Platzhalter; kommt sie nicht, fällt nur diese eine Folie weg.
+- **RTX 3070: Daten sind da** (`result_3070/`). Der Cross-GPU-Teil ist **eine** Folie und zeigt den
+  *relativen* Optimierungshebel (Speedup Tuner/Default), nicht absolute TFLOPS — die sind zwischen GB10
+  (25 MB L2) und 3070 (4 MB L2) nicht vergleichbar. Kernbefund: der Hebel wirkt auf beiden Karten (Ø 1.36×
+  vs. 1.88×, auf der 3070 stärker) und die beste Config ist in 16/16 Shapes je GPU verschieden.
 - **Team-Testfälle:** A05 = batched Matmul `cmk,ckn->cmn`; A06 = Tensor-Ring `acspx,bspy->abcyx`.
 
 ## Foliendesign (Best Practice — gilt für alle Folien)
@@ -53,7 +54,7 @@ kommt nur als kurzer Recap.
 | G6 | 11 | A06-Balken je Regime + Referenz-„Leiter" | `tune_a06*.csv`, study.log |
 | G7 | 12 | Top-k-Kurve: % vom Optimum über Mess-Budget | `tune_*.csv` + `rank()` |
 | G8 | 13 | Ranking-Modelle: Spearman vs Top-7-Ausbeute | analyze_tune.py |
-| G9 | 14 | Cross-GPU Balken GB10 vs RTX 3070 (Platzhalter) | study.log (+ 3070 TBD) |
+| G9 | 14 | Cross-GPU Hebel (Speedup Tuner/Default) GB10 vs 3070 | result_dgx + result_3070 CSVs |
 | C1 | 5 | Code-Snippet: `matmul_variant_a` (ct.Constant + Swizzle) | `kernels.py` |
 | C2 | 7 | Code-Snippet: `matmul_ring_a` (Batch-Decode + permute) | `kernels.py` |
 | C3 | 6 | Code-Snippet: `prune_reason` (4 Filter) | `search.py` |
@@ -219,7 +220,7 @@ Block-ID-Decode (`a_idx/b_idx/c_idx`, Z. 139–146), die äußere `for s_it`-Sch
   alle korrekt, 0 Fehlschläge** — inkl. der unteilbaren `krumm`-Shapes (Padding-Pfad auf echter HW bestätigt).
 - Acht Shape-Regime pro Familie: `square / tall / wide / small_k / large_k / krumm / batch` (+ Referenz).
 - GPU: **NVIDIA GB10 (DGX Spark)** — 48 SMs, **25 MB L2**, integrierter LPDDR (teilt sich Speicher mit
-  CPU), CC 12.1, cuTile 1.4.0. (RTX 3070: folgt, Folie 14.)
+  CPU), CC 12.1, cuTile 1.4.0. (Cross-GPU-Vergleich mit der RTX 3070 auf Folie 14.)
 
 **Zu sehen:** die Hardware-Faktenbox (48 SMs / 25 MB L2 / integriert) + die Regime-Tabelle mit Shapes +
 die „alle korrekt, 0 Fehlschläge"-Zahl prominent.
@@ -329,25 +330,26 @@ der besten Korrelation ist *nicht* der beste Top-k-Vorfilter.
 (bw / v2 / roofline). Zeigt visuell: roofline rechts (beste Korrelation) aber unter v2 (beste Ausbeute);
 v2 oben. Alternativ ein 2er-Balkenpaar je Modell. Zahlen aus `analyze_tune.py`.
 
-## Folie 14: Cross-GPU — ist Tuning GPU-abhängig? (Platzhalter RTX 3070)
+## Folie 14: Cross-GPU — derselbe Hebel, andere Config pro GPU
 
-**Kernaussage:** Der Tuner soll nicht auf eine GPU overfitten. Weil die optimale L2-Gruppe von der
-L2-Größe abhängt, ist die GPU im Cache-Key — und wir erwarten *andere* Gewinner-Configs auf anderer HW.
+**Kernaussage:** Absolute TFLOPS der zwei Karten sind nicht vergleichbar (andere Peak/BW/L2). Vergleichbar
+ist der **Optimierungshebel** — und der wirkt auf beiden Karten, auf der 3070 sogar stärker.
 
 **Inhalt:**
-- Motivation: GB10 = 25 MB L2, integriert, eher DRAM-bandbreitenlimitiert; RTX 3070 = diskret, kleines
-  L2, klassisch bandbreitenlimitiert. Erwartung: das Roofline-Modell schaltet auf `memory` um, und die
-  besten `m_l2/n_l2`/Prim-Wahlen verschieben sich → Argument für **GPU-spezifisches** Autotuning.
-- Portabilität ist *by construction* (alles liest aus `device_props`), aber bisher nur auf der GB10
-  validiert. Der eigentliche Cross-GPU-Test steht mit der 3070 aus.
-- **[RTX-3070-Ergebnisse hier einsetzen, sobald da:]** gewinnende Config je Shape, unterscheidet sie sich
-  von der GB10? Findet der Tuner auch dort korrekte Configs? Wie weit ist Top-7 vom Optimum?
+- Nicht die absoluten TFLOPS vergleichen (GB10 25 MB L2 vs. 3070 4 MB L2, ganz andere Peak-Leistung),
+  sondern den **Speedup Tuner/Default pro Shape** — unitless, damit über GPUs vergleichbar.
+- Befund 1: der Hebel wirkt auf beiden Karten, auf der **3070 stärker** (Ø **1.88×** vs. **1.36×**). Der
+  aus dem GB10-Handtuning stammende 8×8-Default passt auf der 3070 schlechter → der Tuner holt mehr raus.
+- Befund 2: die gemessen **beste Config ist in 16/16 Shapes verschieden** zwischen den Karten (GB10 mag
+  128/128, die 3070 oft 64/128 oder 256/64 mit anderem `k_prim`/L2). → GPU-spezifisches Autotuning ist
+  nicht optional; genau deshalb steht das GPU-Modell im Cache-Key.
+- Portabilität ist *by construction* (alles aus `device_props`) — jetzt auf einer zweiten,
+  bandbreitenlimitierten GPU empirisch bestätigt.
 
-**Zu sehen:** GB10 vs RTX 3070 nebeneinander, gewinnende Config + TFLOPS je Shape.
+**Zu sehen:** gruppierte Balken je Shape, GB10 (blau) vs. 3070 (orange), Speedup gegen Default, 1.0-Linie.
 
-**Grafik G9:** gruppiertes Balkendiagramm GB10 vs RTX 3070 je Shape (Tuner-Best) — **RTX-3070-Balken als
-gestrichelter Platzhalter „TBD"** anlegen, damit die Folie ohne Daten steht und beim Nachliefern nur die
-Werte rein müssen. Datenquelle GB10: study.log; RTX 3070: folgt.
+**Grafik G9 (`fig_crossgpu_lever`):** Speedup Tuner/Default je Shape, GB10 vs. 3070, A05- und A06-Block
+getrennt, Ø-Linien je Karte, Referenzlinie bei 1.0×. Daten aus den `tune_*.csv` beider Karten.
 
 ## Folie 15: Praktische Einordnung — Cache & Amortisierung
 
@@ -384,8 +386,8 @@ Ranking taugt auf dieser Hardware nur grob als Vorauswahl — **die Entscheidung
   Handarbeit* und klare Gewinne, wo die Library keinen guten Pfad hat (Ring `tall`/`large_k`).
 - **Modell:** analytisches Ranking allein reicht nicht; v2 ist der beste Vorfilter (97.8 % @ top-7),
   roofline der bessere globale Ranker — messen bleibt entscheidend.
-- **GPU-spezifisch + gecacht** ist der eigentliche Praxiswert (Cross-GPU by construction, auf 3070 noch
-  zu bestätigen).
+- **GPU-spezifisch + gecacht** ist der eigentliche Praxiswert — auf GB10 und RTX 3070 bestätigt: der
+  Hebel wirkt auf beiden, die beste Config ist je GPU verschieden (16/16).
 
 **Zu sehen:** die drei, vier Kernaussagen als Badges; kein neuer Plot (ggf. G4/G6 im Kleinformat).
 
@@ -395,5 +397,5 @@ Ranking taugt auf dieser Hardware nur grob als Vorauswahl — **die Entscheidung
 
 - **15 min:** Person 1 Folien 1–7 (~7 min), Person 2 Folien 8–16 (~8 min). Folie 2 und 12 knapp halten.
 - **20 min:** Person 1 ~9 min, Person 2 ~11 min; Folie 12/13 (Top-k + Ranking) ausführlicher.
-- Puffer: Folie 14 (Cross-GPU) fällt weg, falls RTX 3070 nicht rechtzeitig da ist — dann Folie 10
-  (cuBLAS) und 13 (Ranking) etwas ausbauen.
+- Puffer: falls es knapp wird, Folie 2 (Tiling-Recap) kürzen; Folie 10 (cuBLAS) und 14 (Cross-GPU)
+  tragen die stärksten Aussagen und sollten stehen bleiben.

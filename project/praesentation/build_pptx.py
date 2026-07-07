@@ -350,6 +350,117 @@ notes(s, "Detail zur Pruning-Folie. PRUNING rechnet vier Dinge vor dem Compile: 
          "Peak = SMs · Takt · FMAs · 2 ≈ 119 TFLOPS. Alle Hardware-Werte kommen aus device_props — "
          "deshalb ist das Modell portabel (auf der 3070 andere Zahlen, gleiche Formeln).")
 
+# --- 9b Ranking-Mathematik: v2 vs roofline (progressiver Reveal, Teil 1) ---
+# python-pptx kann keine Animationen -> "spaeteres Erscheinen" via Overlay-Folien:
+# vier Folien, jede zeigt eine Stufe mehr. Durchklicken = eine Folie, die aufbaut.
+# Alle vier teilen sich EINE Seitenzahl (RANK_PAGE), damit die Nummerierung stimmt.
+RANK_PAGE = [0]
+
+
+def _mono(s, L, T, W, H, lines, size=11.5, color=INK, idx=None):
+    tb = s.shapes.add_textbox(Inches(L), Inches(T), Inches(W), Inches(H))
+    tf = tb.text_frame
+    tf.word_wrap = True
+    for i, ln in enumerate(lines):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.line_spacing = 1.06
+        r = p.add_run()
+        r.text = ln
+        _set(r, size, color, False, False, "Consolas")
+    if idx is not None:
+        _reg(idx, "mono", L, T, W, H)
+    return tb
+
+
+def _panel(s, L, T, W, H, accent, title, idx=None):
+    rect(s, L, T, W, H, fill=LIGHT, line=RGBColor(0xdd, 0xe4, 0xec), line_w=1.25,
+         shape=MSO_SHAPE.ROUNDED_RECTANGLE)
+    textbox(s, L + 0.28, T + 0.16, W - 0.5, 0.4, [[(title, 15.5, accent, True, False)]], idx=idx)
+    rect(s, L + 0.3, T + 0.58, 0.85, 0.045, fill=accent)
+
+
+def _badge(s, L, T, W, text, accent):
+    rect(s, L, T, W, 0.5, fill=WHITE, line=accent, line_w=1.4,
+         shape=MSO_SHAPE.ROUNDED_RECTANGLE)
+    textbox(s, L + 0.15, T + 0.02, W - 0.3, 0.46, [[(text, 12.5, accent, True, False)]],
+            anchor=MSO_ANCHOR.MIDDLE)
+
+
+def ranking_math(level):
+    global idx
+    idx += 1
+    s = slide()
+    if level > 1:
+        PAGE[0] = RANK_PAGE[0] - 1
+    header(s, "Modell · Mathematik", "Zwei Kostenmodelle, zwei Physiken", idx)
+    if level == 1:
+        RANK_PAGE[0] = PAGE[0]
+
+    textbox(s, 0.72, 1.62, 11.9, 0.4,
+            [[("Input: der geprunte Pool (A05: 342 Configs). Pro Kandidat: Prim-Tiles "
+               "m/n/k_prim + L2-Gruppe m_l2·n_l2.", 13, INK2, False, False)]])
+
+    LX, RX, PT, PW, PH = 0.72, 6.83, 2.14, 5.78, 4.0
+    _panel(s, LX, PT, PW, PH, BLUE, "v2 — Bandbreite  +  Register-Filter")
+    _panel(s, RX, PT, PW, PH, ORANGE, "roofline — max(Memory, Compute)")
+
+    if level >= 2:   # linkes Panel fuellen
+        textbox(s, LX + 0.28, PT + 0.66, PW - 0.5, 0.3,
+                [[("① Register-Filter (der billige Ausschluss)", 12.5, INK, True, False)]])
+        _mono(s, LX + 0.28, PT + 0.98, PW - 0.5, 0.3,
+              ["m_prim·n_prim ≤ 0.4·Regs  →  256-breite raus"], size=11)
+        textbox(s, LX + 0.28, PT + 1.34, PW - 0.5, 0.3,
+                [[("② Rank nach DRAM-Traffic / Bandbreite", 12.5, INK, True, False)]])
+        _mono(s, LX + 0.28, PT + 1.66, PW - 0.5, 0.95, [
+            "Traffic = M·K · ceil(N / n_l2·n_prim)",
+            "        + K·N · ceil(M / m_l2·m_prim) + M·N",
+            "t = Traffic·2B / Bandbreite     (kein L2!)",
+        ], size=10.5, color=INK)
+        textbox(s, LX + 0.28, PT + 2.66, PW - 0.5, 0.6,
+                [[("= die Physik einer bandbreiten-limitierten GPU: kleines L2, "
+                   "z. B. RTX 3070 (4 MB).", 11.5, INK2, False, True)]])
+        _badge(s, LX + 0.28, PT + 3.35, PW - 0.56,
+               "Spearman +0.38  ·  97.8 % Top-7  →  im Tuner", BLUE)
+
+    if level >= 3:   # rechtes Panel fuellen
+        _mono(s, RX + 0.28, PT + 0.66, PW - 0.5, 0.3,
+              ["t = max( t_mem , t_compute )"], size=12, color=INK)
+        textbox(s, RX + 0.28, PT + 1.02, PW - 0.5, 0.3,
+                [[("t_mem: passt die L2-Gruppe ins L2?", 12, INK, True, False)]])
+        _mono(s, RX + 0.28, PT + 1.34, PW - 0.5, 0.95, [
+            "  ja   → nur Kaltladen (M·K+K·N+M·N)·2B",
+            "  nein → Worst-Case wie v2",
+            "t_compute = 2·M·N·K / (Peak · util)",
+        ], size=10.5, color=INK)
+        textbox(s, RX + 0.28, PT + 2.34, PW - 0.5, 0.9,
+                [[("schaltet das Regime SELBST um (L2 aus device_props): kleines L2 → "
+                   "memory,  GB10 25 MB → compute.", 11.5, INK2, False, True)]])
+        _badge(s, RX + 0.28, PT + 3.35, PW - 0.56,
+               "Spearman +0.50 (beste!)  ·  nur 85.5 % Top-7", ORANGE)
+
+    if level >= 4:
+        takeaway(s, "Compute-Regime: t_compute hängt nicht von m_l2/n_l2 ab → viele Gleichstände; "
+                 "das feine L2-Reuse-Signal, das die Top-7 entscheidet, sieht roofline nicht. "
+                 "Beste Korrelation ≠ bester Vorfilter.", idx)
+
+    notes(s, "Beide Modelle bekommen DENSELBEN geprunten Pool. v2 wirft zuerst die Register-Fresser raus "
+             "(m_prim·n_prim > 0.4·Regs, die 256-breiten Tiles) und rankt den Rest nach worst-case-DRAM-"
+             "Traffic/Bandbreite -- das nimmt KEIN L2 an, groessere L2-Gruppe = weniger Nachladen. Das ist "
+             "exakt die Physik einer bandbreiten-limitierten GPU mit kleinem L2 (RTX 3070, 4 MB) -> auf der "
+             "GB10 (25 MB) ist es 'falsche Physik', trotzdem ist es als VORFILTER top (Spearman +0.38, 97.8 % "
+             "Top-7). roofline rechnet stattdessen max(t_mem_L2, t_compute): t_mem_L2 ist L2-bewusst (passt die "
+             "Gruppe ins L2, nur Kaltladen, sonst worst-case), t_compute = 2MNK/(Peak·util). Es schaltet das "
+             "Regime selbst per L2-Groesse um (portabel) und korreliert global am besten (+0.50) -- aber im "
+             "Compute-Regime der GB10 haengt t_compute gar nicht von m_l2/n_l2 ab, viele Gleichstaende, und das "
+             "L2-Reuse-Signal 2. Ordnung, das die Top-7 entscheidet, sieht der Compute-Term nicht -> nur 85.5 % "
+             "Top-7. Merksatz: bessere Korrelation != besserer Vorfilter. (bw ganz ohne Register-Filter: +0.03.)")
+
+
+ranking_math(1)
+ranking_math(2)
+ranking_math(3)
+ranking_math(4)
+
 # --- 10 A06-Erweiterung (code_ring_a) ---
 idx += 1
 s = slide()
@@ -485,22 +596,23 @@ notes(s, "Ground Truth = Voll-Sweep. Frage: zieht das Modell die real beste Conf
          "Die exakt Beste erwischt top-7 meist nicht (sie sitzt im Modell tief, das Spitzenfeld liegt "
          "innerhalb ~3 % im Messrauschen). Kostet aber praktisch nichts an Performance.")
 
-# --- 16 Ranking-Modell ---
+# --- 16 Ranking-Modell (Payoff-Scatter) ---
 idx += 1
 s = slide()
 header(s, "Modell", "Besserer Ranker ≠ besserer Vorfilter", idx)
 image(s, "fig_ranking_models", 0.6, 1.7, 8.4, 4.55, idx=idx)
 bullets(s, 9.2, 2.1, 3.55, 4.1, [
-    ("bw (Bandbreite): falsche Physik — 25 MB L2.", INK2, False),
-    ("v2 (bw + Reg-Filter): 97.8 % top-7 → Default.", INK2, False),
-    ("roofline: beste Korrelation, schaltet Regime selbst um.", INK2, False),
-], size=14.5, idx=idx)
+    ("bw pur: +0.03 hier — aber die richtige Physik für kleine-L2-GPUs (3070).", INK2, False),
+    ("v2 (bw + Reg-Filter): +0.38 · 97.8 % top-7 → im Tuner verbaut.", INK2, False),
+    ("roofline (L2-bewusst): +0.50 beste Korrelation, nur 85.5 % top-7.", INK2, False),
+], size=14, idx=idx)
 takeaway(s, "Höchste Korrelation ≠ beste Top-k-Ausbeute — für die Praxis zählt der Vorfilter, also v2.", idx)
-notes(s, "Drei Kostenmodelle. bw (reine Bandbreite) rankt schlecht (Spearman +0.03) — falsche Physik, die GB10 "
-         "hat 25 MB L2, fast alles resident, Knappheit ist Compute/Occupancy. v2 (bw + Register-Filter) +0.38 "
-         "und 97.8 % top-7 -> bleibt Default. roofline (max(memory,compute), L2-bewusst, selbst-umschaltend) "
-         "korreliert am besten (+0.50), ist aber schlechterer Vorfilter (85.5 %), gerade weil er das Compute-"
-         "Regime richtig trifft. Take-away: Korrelation != Vorfilter-Guete.")
+notes(s, "Payoff der Mathe-Folie in einem Bild: x = Korrelation (Spearman), y = Top-7-Ausbeute. bw pur rankt "
+         "schlecht (Spearman +0.03) — falsche Physik auf der GB10 (25 MB L2, fast alles resident), aber genau "
+         "das Modell, das man auf einer bandbreitenlimitierten Karte mit kleinem L2 (3070, 4 MB) nehmen wuerde. "
+         "v2 (bw + Register-Filter) +0.38 und 97.8 % top-7 -> im Tuner verbaut. roofline (max(memory,compute), "
+         "L2-bewusst) korreliert am besten (+0.50), ist aber schlechterer Vorfilter (85.5 %). Ueberleitung: "
+         "genau dieser L2-Umschalter wird auf der 3070 gleich real (naechste/vorige Cross-GPU-Folie).")
 
 # --- 17 Cross-GPU ---
 idx += 1
@@ -571,6 +683,62 @@ notes(s, "Tuning lohnt sich ueber Wiederverwendung. Eine Kontraktion laeuft ~8 m
          "Layer-Dims). Config-Cache (cache.py + autotune.py), Key inkl. GPU-Modell. End-to-end bestaetigt: "
          "16 Shapes getunt & gecacht, 2. Aufruf Cache-Hit, Top-7-Picks bei ~95-100 %. Nur bei stark "
          "dynamischen Shapes geht die Rechnung nicht auf -> Bucketing/Padding.")
+
+# --- 19b Live-Demo (2 Stufen: grau + "?" -> beim naechsten Klick das Bild) ---
+DEMO_PAGE = [0]
+GREY_FILL = RGBColor(0xe9, 0xec, 0xef)
+GREY_LINE = RGBColor(0xcf, 0xd6, 0xde)
+
+
+def demo_slide(reveal):
+    global idx
+    idx += 1
+    s = slide()
+    if reveal:
+        PAGE[0] = DEMO_PAGE[0] - 1
+    header(s, "Live-Demo", "Der Tuner malt ein Bild — live auf dem DGX", idx)
+    if not reveal:
+        DEMO_PAGE[0] = PAGE[0]
+
+    if reveal:
+        image(s, "fig_demo_preview", 0.55, 1.72, 7.55, 4.35, idx=idx)
+    else:
+        rect(s, 0.55, 1.772, 7.55, 4.246, fill=GREY_FILL, line=GREY_LINE, line_w=1.5,
+             shape=MSO_SHAPE.ROUNDED_RECTANGLE)
+        textbox(s, 0.55, 1.772, 7.55, 4.246, [[("?", 150, MUTED, True, False)]],
+                align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, idx=idx)
+        textbox(s, 0.55, 5.35, 7.55, 0.5,
+                [[("Tuner vs. Default — welches Bild kommt raus?", 15, MUTED, False, True)]],
+                align=PP_ALIGN.CENTER)
+
+    bullets(s, 8.3, 2.0, 4.55, 4.2, [
+        "Full-HD-Plasma (2 MPixel) = ein großes GEMM: Y · X.",
+        "8×8-Default vs. Tuner-Config — gleiche Mathe.",
+        "Gleiches Bild, beide gegen torch geprüft.",
+        "Krumme Shape → Default padded schlecht → Tuner gewinnt.",
+    ], size=14, idx=idx)
+    rect(s, 8.35, 5.55, 4.4, 0.6, fill=NAVY, shape=MSO_SHAPE.ROUNDED_RECTANGLE)
+    textbox(s, 8.5, 5.62, 4.1, 0.46, [[("▶  python demo_paint.py", 15, WHITE, True, False)]],
+            anchor=MSO_ANCHOR.MIDDLE)
+    takeaway(s, "enumerate 486 → prune → Top-7 messen → schnellere Config, live. "
+             "Gleiches Bild, aber der Tuner ist schneller da.", idx)
+    notes(s, "Live-Demo (src/demo_paint.py auf dem DGX). Diese Folie baut in zwei Klicks auf: erst ein graues "
+             "Feld mit '?' (Frage ans Publikum: was rechnet der Tuner da?), dann beim naechsten Klick das Bild. "
+             "Idee: ein 1920x1080-Plasma-Bild ist die Summe von ~500 2D-Wellen, und diese Summe IST ein "
+             "Matrixprodukt Y@X -> ein grosses, ganz normales GEMM (cmk,ckn->cmn), das der Tuner tunen kann. Wir "
+             "rechnen es zweimal: mit der naiven 8x8-Default und mit der Config, die der Tuner waehlt (autotune, "
+             "v2-Top-7). Beide gegen torch.einsum geprueft -> gleiches, korrektes Bild. Die Shape ist absichtlich "
+             "krumm (1080/1920/1000 nicht tile-teilbar), damit die 8x8-Default schlecht padded und der Tuner "
+             "sichtbar gewinnt (Padding 2048x2048 vs. ~1536x2048, typisch ~1.3-1.8x -- die echte Zahl zeigt der "
+             "Live-Lauf). Das Skript zeigt live den Funnel (enumerate 486 -> prune -> Top-7), die zwei Zeiten als "
+             "Balken, den Gewinner und speichert das Bild. Fallback ohne GPU: 'python demo_paint.py --preview' "
+             "rechnet das Bild auf der CPU (das ist die Vorschau hier). Ehrlich: derselbe GEMM-Gewinn wie in der "
+             "Eval, nur zum Anfassen. Wenn du LIVE ausfuehrst, das echte Bild/den echten Speedup statt der "
+             "Vorschau zeigen.")
+
+
+demo_slide(False)
+demo_slide(True)
 
 # --- 20 Fazit ---
 idx += 1

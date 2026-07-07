@@ -399,3 +399,23 @@ Ranking taugt auf dieser Hardware nur grob als Vorauswahl — **die Entscheidung
 - **20 min:** Person 1 ~9 min, Person 2 ~11 min; Folie 12/13 (Top-k + Ranking) ausführlicher.
 - Puffer: falls es knapp wird, Folie 2 (Tiling-Recap) kürzen; Folie 10 (cuBLAS) und 14 (Cross-GPU)
   tragen die stärksten Aussagen und sollten stehen bleiben.
+
+## Nachträglich ergänzt (im echten Deck, `build_pptx.py`)
+
+- **Ranking-Mathe-Reveal — in Teil 1, direkt nach Folie 9 (Kostenmodell konkret rechnen), Person 1.**
+  Eine Folie, die sich in 4 Klicks aufbaut (`ranking_math()` — Overlay-Folien, teilen sich eine
+  Seitenzahl, überleben PDF-Export). Stellt **v2** und **roofline** nebeneinander mit der Mathematik:
+  v2 = Register-Filter + Worst-Case-Traffic/Bandbreite (**kein L2** angenommen → die Physik einer
+  bandbreiten-limitierten GPU mit kleinem L2, z. B. der 3070); roofline = `max(t_mem_L2, t_compute)`,
+  schaltet das Regime per L2-Größe selbst um. Pointe: roofline korreliert besser (+0.50), ist aber der
+  schlechtere Top-7-Vorfilter (85.5 % vs. v2 97.8 %). Das ist die „ein Modell ist eher für andere
+  Hardware gedacht"-Aussage.
+- **Ranking-Scatter (Payoff, „Besserer Ranker ≠ besserer Vorfilter") bleibt in Teil 2, Person 2** —
+  visualisiert dieselben Spearman/Top-7-Zahlen als Callback und schlägt die Brücke zur Cross-GPU/3070-
+  Folie. (Person 1 erklärt die Modelle, Person 2 zeigt, wie sie abschneiden.)
+- **Live-Demo-Folie + `src/demo_paint.py` (Teil 2, Person 2):** der Tuner malt live ein Full-HD-Plasma
+  (ein GEMM), 8×8-Default vs. Tuner-Config, gleiches Bild, Tuner gewinnt (krumme Shape paddet schlecht).
+  Baut in 2 Klicks auf: erst graues Feld mit „?" (Frage ans Publikum), dann das echte Bild.
+- **Split-Effekt:** der Ranking-Mathe-Reveal wandert dadurch von Person 2 zu Person 1 (macht Teil 1
+  etwas voller, entlastet Teil 2). Bei Zeitnot in Teil 1 sind Folie 2 (Tiling) und der Reveal-4.-Klick
+  die Kürzungskandidaten.

@@ -5,7 +5,9 @@ Ordner für die Mittwochs-Präsentation. Der Folienplan liegt eine Ebene höher 
 
 ## Das Deck
 
-`cuTile_Auto-Tuner.pptx` (16:9, 19 Folien) wird von `build_pptx.py` erzeugt (python-pptx).
+`cuTile_Auto-Tuner.pptx` (16:9, 28 Folien — davon 4 Reveal-Stufen der Ranking-Mathe-Folie (Teil 1,
+nach der Kostenmodell-Folie) und 2 Stufen der Live-Demo-Folie, die sich je eine Seitenzahl teilen)
+wird von `build_pptx.py` erzeugt (python-pptx).
 Layout ist deterministisch: feste Positionen in Zoll, Bilder werden per Seitenverhältnis in
 ihre Box zentriert (nie verzerrt). Detailinfos stehen in den **Speaker-Notes**, nicht auf den
 Folien. Kurze Bullets nur als Anker.
@@ -51,7 +53,9 @@ Balken-Rohdaten aus `../result_dgx/tune_*.csv`, Top-k-Kurve über `autotuner.ran
 | `fig_a06_bars` | 16 | A06 je Regime, 4 Bars: Default / Tuner-top7 / Bench Best / torch |
 | `fig_a06_ladder` | 16 | A06-Referenz-Leiter: Default 26 → Hand 50 → Tuner 60 ≈ torch 60 |
 | `fig_topk_curve` | 17 | % vom Optimum über Mess-Budget k (top-7 → ~97 %) |
+| (pptx-nativ) | — | Ranking-Mathe v2 vs. roofline, 4 Reveal-Stufen (`ranking_math()` in build_pptx) |
 | `fig_ranking_models` | 18 | bw / v2 / roofline: Spearman vs. Top-7-Ausbeute |
+| `fig_demo_preview` | Live-Demo | Vorschau des Plasma-Bilds (`demo_paint.py --preview`, CPU) |
 | `fig_crossgpu_lever` | 19 | Tuning-Hebel (Speedup Tuner/Default) GB10 vs. RTX 3070 |
 | `fig_config_table` | 20 | Optimale Config je GPU (GB10 128×128 vs. 3070 kleineres k_prim) |
 | `code_variant_a` | 7 | Code-Card: generischer Kernel mit ct.Constant + Swizzle |
@@ -63,6 +67,19 @@ Balken-Rohdaten aus `../result_dgx/tune_*.csv`, Top-k-Kurve über `autotuner.ran
 zeigt `BenchBest/torch` (0.38×–3.95×). Folie 9 = Mathe-Detail (Formeln), Folie 11 = Config-Reihenfolge.
 
 Code-Cards kommen aus `make_code_cards.py` (dunkler Carbon-Look, Monospace-Raster).
+
+## Live-Demo
+
+`../src/demo_paint.py` malt auf dem DGX ein Full-HD-Plasma-Bild als ein grosses GEMM
+(`cmk,ckn->cmn`, absichtlich krumme 1080·1920·1000) und rechnet es zweimal: 8×8-Default vs.
+Tuner-Config (`autotune`, v2-Top-7). Gleiche Mathematik, gleiches Bild, beide gegen `torch`
+geprueft — der Tuner ist schneller, weil die krumme Shape schlechter paddet. Zeigt live den
+Funnel, die zwei Zeiten und den Gewinner, speichert `results/demo_paint.png`.
+
+```bash
+../../.venv/bin/python demo_paint.py            # DGX: tuned vs default, echte Zeiten
+../../.venv/bin/python demo_paint.py --preview  # ohne GPU: nur das Bild (-> fig_demo_preview.png)
+```
 
 ## Noch offen / später einsetzen
 

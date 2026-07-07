@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="691.2pt" height="321.014484pt" viewBox="0 0 691.2 321.014484" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-07-07T12:09:34.868994</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.8, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 321.014484 
+L 691.2 321.014484 
+L 691.2 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 213.676049 85.644 
+Q 231.766317 85.644 247.844125 85.644 
+" clip-path="url(#pb5a7953a14)" style="fill: none; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 241.844125 82.644 
+L 247.844125 85.644 
+L 241.844125 88.644 
+z
+" clip-path="url(#pb5a7953a14)" style="fill: #898781; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 434.644049 85.644 
+Q 452.734317 85.644 468.812125 85.644 
+" clip-path="url(#pb5a7953a14)" style="fill: none; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 462.812125 82.644 
+L 468.812125 85.644 
+L 462.812125 88.644 
+z
+" clip-path="url(#pb5a7953a14)" style="fill: #898781; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="text_1">
+    <text style="font-weight: 700; font-size: 13.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #0b0b0b" x="24.192" y="21.492" transform="rotate(-0 24.192 21.492)">1 · Reihenfolge in der Config  (verify):</text>
+   </g>
+   <g id="patch_4">
+    <path d="M 39.45888 117.82692 
+L 203.10912 117.82692 
+Q 211.81392 117.82692 211.81392 110.87712 
+L 211.81392 60.41088 
+Q 211.81392 53.46108 203.10912 53.46108 
+L 39.45888 53.46108 
+Q 30.75408 53.46108 30.75408 60.41088 
+L 30.75408 110.87712 
+Q 30.75408 117.82692 39.45888 117.82692 
+z
+" clip-path="url(#pb5a7953a14)" style="fill: #e7f0fb; stroke: #2a78d6; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 260.42688 117.82692 
+L 424.07712 117.82692 
+Q 432.78192 117.82692 432.78192 110.87712 
+L 432.78192 60.41088 
+Q 432.78192 53.46108 424.07712 53.46108 
+L 260.42688 53.46108 
+Q 251.72208 53.46108 251.72208 60.41088 
+L 251.72208 110.87712 
+Q 251.72208 117.82692 260.42688 117.82692 
+z
+" clip-path="url(#pb5a7953a14)" style="fill: #eeedea; stroke: #5f5e59; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 481.39488 117.82692 
+L 645.04512 117.82692 
+Q 653.74992 117.82692 653.74992 110.87712 
+L 653.74992 60.41088 
+Q 653.74992 53.46108 645.04512 53.46108 
+L 481.39488 53.46108 
+Q 472.69008 53.46108 472.69008 60.41088 
+L 472.69008 110.87712 
+Q 472.69008 117.82692 481.39488 117.82692 
+z
+" clip-path="url(#pb5a7953a14)" style="fill: #fdece3; stroke: #eb6834; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="30.888" y="141.777" transform="rotate(-0 30.888 141.777)">K nie PAR   ·   PRIM ganz rechts = je ≥ 1 × M, N und K (die mma-Kachel)</text>
+   </g>
+   <g id="text_3">
+    <text style="font-weight: 700; font-size: 13.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #0b0b0b" x="24.192" y="173.853" transform="rotate(-0 24.192 173.853)">2 · Split je Dimension  (der Tuner variiert nur die Größen):</text>
+   </g>
+   <g id="text_4">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="37.584" y="217.535188" transform="rotate(-0 37.584 217.535188)">M  →</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #898781" x="91.152" y="217.256594" transform="rotate(-0 91.152 217.256594)">m_l2_outer</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="198.288" y="217.397219" transform="rotate(-0 198.288 217.397219)">·</text>
+   </g>
+   <g id="text_7">
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #2a78d6" x="218.376" y="217.223391" transform="rotate(-0 218.376 217.223391)">m_l2</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="285.336" y="217.397219" transform="rotate(-0 285.336 217.397219)">·</text>
+   </g>
+   <g id="text_9">
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #eb6834" x="305.424" y="217.555422" transform="rotate(-0 305.424 217.555422)">m_prim</text>
+   </g>
+   <g id="text_10">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="37.584" y="249.611188" transform="rotate(-0 37.584 249.611188)">N  →</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #898781" x="91.152" y="249.332594" transform="rotate(-0 91.152 249.332594)">n_l2_outer</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="198.288" y="249.473219" transform="rotate(-0 198.288 249.473219)">·</text>
+   </g>
+   <g id="text_13">
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #2a78d6" x="218.376" y="249.299391" transform="rotate(-0 218.376 249.299391)">n_l2</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="285.336" y="249.473219" transform="rotate(-0 285.336 249.473219)">·</text>
+   </g>
+   <g id="text_15">
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #eb6834" x="305.424" y="249.631422" transform="rotate(-0 305.424 249.631422)">n_prim</text>
+   </g>
+   <g id="text_16">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="37.584" y="281.687188" transform="rotate(-0 37.584 281.687188)">K  →</text>
+   </g>
+   <g id="text_17">
+    <text style="font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #898781" x="91.152" y="281.375391" transform="rotate(-0 91.152 281.375391)">k_outer</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="198.288" y="281.549219" transform="rotate(-0 198.288 281.549219)">·</text>
+   </g>
+   <g id="text_19">
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #2a78d6" x="218.376" y="281.549219" transform="rotate(-0 218.376 281.549219)">—</text>
+   </g>
+   <g id="text_20">
+    <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="285.336" y="281.549219" transform="rotate(-0 285.336 281.549219)">·</text>
+   </g>
+   <g id="text_21">
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #eb6834" x="305.424" y="281.707422" transform="rotate(-0 305.424 281.707422)">k_prim</text>
+   </g>
+   <g id="text_22">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #898781" x="412.56" y="216.830344" transform="rotate(-0 412.56 216.830344)">grau = Grid (l2_outer)</text>
+   </g>
+   <g id="text_23">
+    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #2a78d6" x="412.56" y="246.233344" transform="rotate(-0 412.56 246.233344)">blau = L2-Gruppe (m_l2 / n_l2)</text>
+   </g>
+   <g id="text_24">
+    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #eb6834" x="412.56" y="275.746344" transform="rotate(-0 412.56 275.746344)">orange = PRIM (mma-Kachel)</text>
+   </g>
+   <g id="text_25">
+    <text style="font-weight: 700; font-size: 11.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #0b0b0b" x="30.888" y="307.503" transform="rotate(-0 30.888 307.503)">Variante A: m_l2/n_l2 = PAR (Swizzle)        Variante B: m_l2/n_l2 = SEQ-Loop</text>
+   </g>
+   <g id="text_26">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #2a78d6" x="121.284" y="76.952663" transform="rotate(-0 121.284 76.952663)">PAR</text>
+   </g>
+   <g id="text_27">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="121.284" y="100.025513" transform="rotate(-0 121.284 100.025513)">Batch · l2_outer · m_l2 · n_l2</text>
+   </g>
+   <g id="text_28">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #5f5e59" x="342.252" y="76.952663" transform="rotate(-0 342.252 76.952663)">SEQ</text>
+   </g>
+   <g id="text_29">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="342.252" y="100.025513" transform="rotate(-0 342.252 100.025513)">k_outer  (· s bei A06)</text>
+   </g>
+   <g id="text_30">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #eb6834" x="563.22" y="76.952663" transform="rotate(-0 563.22 76.952663)">PRIM</text>
+   </g>
+   <g id="text_31">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="563.22" y="100.025513" transform="rotate(-0 563.22 100.025513)">m_prim · n_prim · k_prim</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pb5a7953a14">
+   <rect x="10.8" y="10.8" width="669.6" height="299.376"/>
+  </clipPath>
+ </defs>
+</svg>

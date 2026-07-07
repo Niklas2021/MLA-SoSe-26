@@ -93,7 +93,8 @@ for i, slide in enumerate(prs.slides):
 
 # Kontaktbogen (alle Folien auf einem Blatt)
 imgs = sorted(os.path.join(OUT, f) for f in os.listdir(OUT) if f.startswith("slide_"))
-cols, rows = 4, 5
+cols = 4
+rows = (len(imgs) + cols - 1) // cols
 fig, axes = plt.subplots(rows, cols, figsize=(cols * 3.4, rows * 2.0))
 for ax in axes.flat:
     ax.axis("off")

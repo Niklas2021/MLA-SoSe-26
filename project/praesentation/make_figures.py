@@ -73,53 +73,58 @@ def _save(fig, name):
 # ============================================================
 #  DATEN aus study.log (Default = naive 8x8, Tuner = best, torch = torch.einsum fp16)
 # ============================================================
-# (label, default, tuner_best, torch)
+# (label, default, tuner_top7, bench_best, torch)
+# Default = naive 8x8 · Tuner = bester der Modell-Top-7 (was der Tuner praktisch liefert)
+# Bench Best = bestes von 342/171 gemessenen Configs (Voll-Sweep-Optimum) · torch = cuBLAS
+C_TOP7  = "#3987e5"   # Tuner-Pick (top-7) -> mittleres Blau
+C_BENCH = "#12386b"   # Bench Best (voller Sweep) -> dunkles Blau (Decke)
 A05 = [
-    ("a05\n(square,b4)", 63.9, 65.49, 63.09),
-    ("square\nb1",       61.8, 63.97, 80.34),
-    ("tall\nM≫N",        62.6, 63.32, 82.80),
-    ("wide\nN≫M",        60.0, 60.98, 80.51),
-    ("small_k",          35.8, 36.14, 58.92),
-    ("large_k",          42.7, 45.83, 68.89),
-    ("krumm\n(padding)", 26.6, 41.83, 49.45),
-    ("batch16",          45.6, 46.30, 62.39),
+    ("a05\n(square,b4)", 63.9, 63.9, 65.49, 63.09),
+    ("square\nb1",       61.8, 61.8, 63.97, 80.34),
+    ("tall\nM≫N",        62.6, 62.6, 63.32, 82.80),
+    ("wide\nN≫M",        60.0, 60.0, 60.98, 80.51),
+    ("small_k",          35.8, 35.8, 36.14, 58.92),
+    ("large_k",          42.7, 45.0, 45.83, 68.89),
+    ("krumm\n(padding)", 26.6, 35.6, 41.83, 49.45),
+    ("batch16",          45.6, 45.6, 46.30, 62.39),
 ]
 A06 = [
-    ("a06\n(Referenz)",  26.3, 59.83, 60.22),
-    ("square\nx=y",      58.6, 66.65, 46.82),
-    ("tall\nx≫y",        31.0, 68.02, 17.24),
-    ("wide\ny≫x",        26.9, 66.45, 51.14),
-    ("small_k",          18.5, 22.76, 38.33),
-    ("large_k",          62.5, 73.34, 27.73),
-    ("krumm\n(padding)", 14.3, 20.92, 54.70),
-    ("batch\n(a8c4b8)",  54.3, 61.58, 76.07),
+    ("a06\n(Referenz)",  26.3, 59.8, 59.83, 60.22),
+    ("square\nx=y",      58.6, 64.3, 66.65, 46.82),
+    ("tall\nx≫y",        31.0, 67.4, 68.02, 17.24),
+    ("wide\ny≫x",        26.9, 59.6, 66.45, 51.14),
+    ("small_k",          18.5, 22.8, 22.76, 38.33),
+    ("large_k",          62.5, 68.7, 73.34, 27.73),
+    ("krumm\n(padding)", 14.3, 20.9, 20.92, 54.70),
+    ("batch\n(a8c4b8)",  54.3, 61.6, 61.58, 76.07),
 ]
 
 
 def grouped_bars(data, title, fname, note):
-    labels = [d[0] for d in data]
+    labels  = [d[0] for d in data]
     default = [d[1] for d in data]
-    tuner   = [d[2] for d in data]
-    torch   = [d[3] for d in data]
+    top7    = [d[2] for d in data]
+    bench   = [d[3] for d in data]
+    torch   = [d[4] for d in data]
     x = np.arange(len(labels))
-    w = 0.27
-    fig, ax = plt.subplots(figsize=(11.5, 5.4))
-    b1 = ax.bar(x - w, default, w, label="Default (8×8)", color=C_DEFAULT)
-    b2 = ax.bar(x,     tuner,   w, label="Tuner (best)",   color=C_TUNER)
-    b3 = ax.bar(x + w, torch,   w, label="torch.einsum",   color=C_TORCH)
-    # Tuner/Default-Faktor ueber die Tuner-Balken (Groesse betont grosse Gewinne,
-    # Farbe bleibt Tuner-Blau -> kein Rot/Gruen noetig)
-    for xi, (d, t) in enumerate(zip(default, tuner)):
-        fac = t / d
-        ax.annotate(f"{fac:.2f}×", (xi, t), textcoords="offset points", xytext=(0, 4),
-                    ha="center", va="bottom", fontweight="bold",
-                    fontsize=12 if fac >= 1.4 else 10.5, color=C_TUNER)
+    w = 0.2
+    series = [(-1.5, default, "Default (8×8)", C_DEFAULT),
+              (-0.5, top7, "Tuner (top-7)", C_TOP7),
+              (0.5, bench, "Bench Best (voller Sweep)", C_BENCH),
+              (1.5, torch, "torch.einsum (cuBLAS)", C_TORCH)]
+    fig, ax = plt.subplots(figsize=(12.8, 5.6))
+    for off, vals, lab, col in series:
+        xs = x + off * w
+        ax.bar(xs, vals, w, label=lab, color=col)
+        for xi, v in zip(xs, vals):   # konkrete Werte vertikal ueber den Balken
+            ax.annotate(f"{v:.0f}", (xi, v), textcoords="offset points", xytext=(0, 2),
+                        ha="center", va="bottom", rotation=90, fontsize=7.8, color=INK2)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=11)
     ax.set_ylabel("TFLOPS")
-    ax.set_ylim(0, max(torch + tuner + default) * 1.12)
+    ax.set_ylim(0, max(default + top7 + bench + torch) * 1.20)
     ax.set_title(title, loc="left", color=INK, pad=12)
-    ax.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.24))
+    ax.legend(ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.24), fontsize=11)
     _clean(ax)
     ax.text(0, -0.35, note, transform=ax.transAxes, fontsize=9.5, color=MUTED)
     _save(fig, fname)
@@ -151,9 +156,10 @@ def fig_a06_ladder():
 
 
 def fig_tuner_vs_torch():
-    # diverging: log2(Tuner/torch). Blau = Tuner gewinnt, Rot = torch gewinnt.
-    rows = ([("A05 · " + d[0].split("\n")[0], d[2] / d[3]) for d in A05] +
-            [("A06 · " + d[0].split("\n")[0], d[2] / d[3]) for d in A06])
+    # diverging: log2(BenchBest/torch). Blau = wir gewinnen, Rot = torch gewinnt.
+    # d = (label, default, top7, bench, torch) -> bench(d[3]) / torch(d[4])
+    rows = ([("A05 · " + d[0].split("\n")[0], d[3] / d[4]) for d in A05] +
+            [("A06 · " + d[0].split("\n")[0], d[3] / d[4]) for d in A06])
     labels = [r[0] for r in rows]
     ratios = [r[1] for r in rows]
     y = np.arange(len(rows))[::-1]   # oben=erste
@@ -396,6 +402,44 @@ def _lever(meas):
     return meas[best] / meas[DEF], best
 
 
+def fig_regimes():
+    # Die acht Shape-Regime (A05) mit den exakten Dimensionen. einsum cmk,ckn->cmn.
+    rows = [
+        ("square · b4",  "4",  "4096", "4096", "4096", "Referenz (Heimvorteil)"),
+        ("square · b1",  "1",  "4096", "4096", "4096", "ohne Batch"),
+        ("tall  M≫N",    "1",  "8192", "1024", "4096", "rechteckig, viele Zeilen"),
+        ("wide  N≫M",    "1",  "1024", "8192", "4096", "rechteckig, viele Spalten"),
+        ("small_k",      "1",  "4096", "4096", "512",  "kleines K → bandbreiten-nah"),
+        ("large_k",      "1",  "1024", "1024", "8192", "großes K → compute-nah"),
+        ("krumm",        "2",  "1500", "3000", "1000", "unteilbar → Padding-Pfad"),
+        ("batch16",      "16", "1024", "1024", "1024", "viele kleine Batches"),
+    ]
+    headers = ["Regime", "C", "M", "N", "K", "testet"]
+    cols_x = [0.015, 0.235, 0.315, 0.405, 0.495, 0.60]
+    fig, ax = plt.subplots(figsize=(10.8, 5.0))
+    ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    n = len(rows)
+    top, rh = 0.85, 0.85 / (n + 1)
+    for hx, h in zip(cols_x, headers):
+        ax.text(hx, top, h, fontsize=12.5, fontweight="bold", color=C_TUNER, va="center")
+    for i, r in enumerate(rows):
+        y = top - (i + 1) * rh
+        if i % 2 == 0:
+            ax.add_patch(Rectangle((0, y - rh * 0.5), 1, rh, color=C_TUNER, alpha=0.05))
+        for j, (hx, val) in enumerate(zip(cols_x, r)):
+            mono = 1 <= j <= 4
+            ax.text(hx, y, str(val), fontsize=12, color=INK, va="center",
+                    fontweight="bold" if j == 0 else "normal",
+                    family="DejaVu Sans Mono" if mono else "DejaVu Sans")
+    ax.text(0.015, 0.985, "Acht Shape-Regime  ·  einsum  cmk, ckn → cmn",
+            fontsize=15, fontweight="bold", color=INK, va="top")
+    ax.text(0.015, -0.02, "A06 nutzt dieselben acht Regime in Ring-Form (acspx, bspy → abcyx)",
+            fontsize=10.5, color=INK2, va="top")
+    _save(fig, "fig_regimes")
+
+
 def fig_crossgpu_lever():
     # Absolute TFLOPS der GB10 und 3070 sind nicht vergleichbar (andere Peak/BW/L2).
     # Vergleichbar ist der OPTIMIERUNGSHEBEL: Speedup Tuner/Default pro Shape.
@@ -470,6 +514,114 @@ def fig_crossgpu_lever():
 #  Schematische Skizzen (keine Messdaten): Pipeline + Tiling
 # ============================================================
 
+def fig_math():
+    # Was Pruning und Ranking konkret rechnen (Formeln + Zahlen).
+    fig, ax = plt.subplots(figsize=(12.4, 5.7))
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 57)
+    ax.axis("off")
+    MONO = "DejaVu Sans Mono"
+    ax.plot([49.5, 49.5], [2, 52], color=GRID, lw=1.2)
+
+    # ---------- links: Pruning ----------
+    ax.text(2, 54.5, "Pruning — 4 statische Filter (ohne Compile)", fontsize=13.5,
+            fontweight="bold", color=C_TUNER)
+    items = [
+        ("1  MMA-Teilbarkeit", "m_prim, n_prim, k_prim  mod 16 = 0",
+         "fp16-Tensor-Cores brauchen 16er-Vielfache"),
+        ("2  SMEM-Budget  (harter Filter)", "(m·k + k·n) · 2 Byte · 2 Stages  ≤  100 KB",
+         "fp16-Operanden, double-buffered · 101376 − 1024 → 126 raus"),
+        ("3  Akku-Register", "m_prim · n_prim  ≤  ½ · 65536   (1 Reg/Elem.)",
+         "fp32-Akku liegt in Registern → 18 raus"),
+        ("4  Padding-Verschwendung", "V_padded / V_orig  ≤  8",
+         "gepadded gegen Original-Volumen"),
+    ]
+    y = 48
+    for head, formula, sub in items:
+        ax.text(3, y, head, fontsize=11.5, fontweight="bold", color=INK)
+        ax.text(5, y - 3.1, formula, fontsize=11, color=INK, family=MONO)
+        ax.text(5, y - 5.9, sub, fontsize=9.3, color=MUTED)
+        y -= 11.3
+
+    # ---------- rechts: Ranking / Bandbreite ----------
+    ax.text(52, 54.5, "Ranking — DRAM-Traffic / Bandbreite", fontsize=13.5,
+            fontweight="bold", color=C_TORCH)
+    ax.text(52.5, 49, "geschätzter DRAM-Traffic (worst case, × 2 Byte):",
+            fontsize=11, color=INK, fontweight="bold")
+    ax.text(55, 44.5, "A:  M·K · ceil( N / (n_l2 · n_prim) )", fontsize=11, color=INK, family=MONO)
+    ax.text(55, 40.7, "B:  K·N · ceil( M / (m_l2 · m_prim) )", fontsize=11, color=INK, family=MONO)
+    ax.text(55, 36.9, "C:  M·N", fontsize=11, color=INK, family=MONO)
+    ax.text(52.5, 32.5, "größere L2-Gruppe m_l2·n_l2  →  A/B seltener nachladen  →",
+            fontsize=9.6, color=MUTED)
+    ax.text(52.5, 29.6, "weniger Traffic  (das ist der L2-Reuse im Modell)",
+            fontsize=9.6, color=MUTED)
+    ax.text(52.5, 25, "t_mem = Traffic / BW", fontsize=12, color=INK, family=MONO, fontweight="bold")
+    ax.text(55, 20.6, "BW = mem_clk · (Bus / 8)  ≈  273 GB/s (GB10)", fontsize=10.3,
+            color=MUTED, family=MONO)
+    ax.text(52.5, 14.5, "Roofline:  t = max( t_mem , t_compute )", fontsize=12, color=INK,
+            family=MONO, fontweight="bold")
+    ax.text(55, 10.3, "t_compute = 2·M·N·K / (Peak · util)", fontsize=10.6, color=INK, family=MONO)
+    ax.text(55, 6.3, "Peak = SMs · Takt · FMAs · 2  ≈  119 TFLOPS (GB10)", fontsize=9.6,
+            color=MUTED, family=MONO)
+    ax.text(52.5, 2, "→ max() schaltet das Regime selbst um (device_props)",
+            fontsize=9.8, color=C_TORCH, fontweight="bold")
+    _save(fig, "fig_math")
+
+
+def fig_exec_order():
+    # Wie wir die Reihenfolge/Exec-Typen definiert haben: PAR | SEQ | PRIM + Splits.
+    fig, ax = plt.subplots(figsize=(12.0, 5.4))
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 56)
+    ax.axis("off")
+    MONO = "DejaVu Sans Mono"
+    # --- 1) Reihenfolge ---
+    ax.text(2, 54, "1 · Reihenfolge in der Config  (verify):", fontsize=13.5,
+            fontweight="bold", color=INK)
+    blocks = [
+        ("PAR", "Batch · l2_outer · m_l2 · n_l2", C_TUNER, "#e7f0fb"),
+        ("SEQ", "k_outer  (· s bei A06)", "#5f5e59", "#eeedea"),
+        ("PRIM", "m_prim · n_prim · k_prim", C_TORCH, "#fdece3"),
+    ]
+    bw, gap, by, bh, x0 = 27, 6, 36, 12, 3
+    for i, (name, dims, edge, fill) in enumerate(blocks):
+        x = x0 + i * (bw + gap)
+        ax.add_patch(FancyBboxPatch((x, by), bw, bh,
+                     boxstyle="round,pad=0.02,rounding_size=1.3", linewidth=2.2,
+                     edgecolor=edge, facecolor=fill, zorder=3))
+        ax.text(x + bw / 2, by + bh - 3.6, name, fontsize=15, fontweight="bold",
+                color=edge, ha="center", va="center", zorder=4)
+        ax.text(x + bw / 2, by + 3.8, dims, fontsize=10, color=INK,
+                ha="center", va="center", zorder=4)
+        if i < 2:
+            ax.add_patch(FancyArrowPatch((x + bw, by + bh / 2), (x + bw + gap, by + bh / 2),
+                         arrowstyle="-|>", mutation_scale=15, lw=1.8, color=MUTED, zorder=2))
+    ax.text(3, 31.5, "K nie PAR   ·   PRIM ganz rechts = je ≥ 1 × M, N und K (die mma-Kachel)",
+            fontsize=11, color=INK2)
+    # --- 2) Splits (Tuner variiert nur die Groessen) ---
+    ax.text(2, 25.5, "2 · Split je Dimension  (der Tuner variiert nur die Größen):",
+            fontsize=13.5, fontweight="bold", color=INK)
+    rows = [("M", "m_l2_outer", "m_l2", "m_prim"),
+            ("N", "n_l2_outer", "n_l2", "n_prim"),
+            ("K", "k_outer", "—", "k_prim")]
+    for (d, outer, l2, prim), y in zip(rows, [18, 12, 6]):
+        ax.text(4, y, f"{d}  →", fontsize=13, color=INK, fontweight="bold", va="center", family=MONO)
+        ax.text(12, y, outer, fontsize=12.5, color=MUTED, va="center", family=MONO)
+        ax.text(28, y, "·", fontsize=12.5, color=INK2, va="center")
+        ax.text(31, y, l2, fontsize=12.5, color=C_TUNER, fontweight="bold", va="center", family=MONO)
+        ax.text(41, y, "·", fontsize=12.5, color=INK2, va="center")
+        ax.text(44, y, prim, fontsize=12.5, color=C_TORCH, fontweight="bold", va="center", family=MONO)
+    # Farb-Legende + Variante
+    ax.text(60, 18, "grau = Grid (l2_outer)", fontsize=11, color=MUTED, va="center")
+    ax.text(60, 12.5, "blau = L2-Gruppe (m_l2 / n_l2)", fontsize=11, color=C_TUNER,
+            fontweight="bold", va="center")
+    ax.text(60, 7, "orange = PRIM (mma-Kachel)", fontsize=11, color=C_TORCH,
+            fontweight="bold", va="center")
+    ax.text(3, 0.5, "Variante A: m_l2/n_l2 = PAR (Swizzle)        Variante B: m_l2/n_l2 = SEQ-Loop",
+            fontsize=11.5, color=INK, fontweight="bold")
+    _save(fig, "fig_exec_order")
+
+
 def _pbox(ax, cx, cy, w, h, title, sub, edge, fill="white"):
     ax.add_patch(FancyBboxPatch((cx - w / 2 + 0.35, cy - h / 2 - 0.5), w, h,
                  boxstyle="round,pad=0.02,rounding_size=1.4", linewidth=0,
@@ -477,8 +629,9 @@ def _pbox(ax, cx, cy, w, h, title, sub, edge, fill="white"):
     ax.add_patch(FancyBboxPatch((cx - w / 2, cy - h / 2), w, h,
                  boxstyle="round,pad=0.02,rounding_size=1.4", linewidth=1.8,
                  edgecolor=edge, facecolor=fill, zorder=3))
+    ts = 12.5 if len(title) <= 11 else 10.5   # lange Titel (generate_config) kleiner
     ax.text(cx, cy + h * 0.15, title, ha="center", va="center",
-            fontsize=12.5, fontweight="bold", color=INK, zorder=4)
+            fontsize=ts, fontweight="bold", color=INK, zorder=4)
     if sub:
         ax.text(cx, cy - h * 0.23, sub, ha="center", va="center",
                 fontsize=9.5, color=INK2, zorder=4)
@@ -586,17 +739,20 @@ def fig_tiling():
 
 if __name__ == "__main__":
     print("erzeuge Figures ->", FIGDIR)
-    grouped_bars(A05, "A05: Tuner bestätigt die Handarbeit, gewinnt bei krummen Shapes",
-                 "fig_a05_bars", "GB10 · study.log · Faktor = Tuner/Default · torch = cuBLAS-Referenz")
-    grouped_bars(A06, "A06: Tuner schlägt die naive Default durchweg deutlich",
-                 "fig_a06_bars", "GB10 · study.log · Faktor = Tuner/Default · Default = aus A05 übernommene 8×8")
+    grouped_bars(A05, "A05: Tuner-Pick ≈ Default — selbst die Bench-Best bleibt unter cuBLAS",
+                 "fig_a05_bars", "GB10 · Bench Best = bestes von 342 gemessenen Configs · torch = cuBLAS")
+    grouped_bars(A06, "A06: Tuner ≫ Default — Bench-Best schlägt torch, wo dessen Pfad schlecht ist",
+                 "fig_a06_bars", "GB10 · Bench Best = bestes von 171 gemessenen Configs · torch = cuBLAS")
     fig_a06_ladder()
     fig_tuner_vs_torch()
     fig_topk_curve()
     fig_ranking_models()
     fig_funnel()
+    fig_regimes()
     fig_crossgpu_lever()
     fig_config_table()
+    fig_math()
+    fig_exec_order()
     fig_pipeline()
     fig_tiling()
     print("fertig.")

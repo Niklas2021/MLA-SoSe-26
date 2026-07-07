@@ -315,8 +315,15 @@ notes(s, "Kern-Entscheidung: keine Kernel-Strings per exec(), sondern EIN generi
 idx += 1
 s = slide()
 header(s, "Schritt 3 · Pruning", "Statisch eingrenzen — und wie weit wirklich", idx)
-image(s, "fig_funnel", 0.5, 1.75, 6.3, 3.5, idx=idx)
-image(s, "code_prune", 6.95, 1.95, 5.9, 3.15, idx=idx)
+image(s, "fig_funnel", 0.5, 1.75, 6.15, 3.4, idx=idx)
+image(s, "code_prune", 6.95, 1.78, 5.9, 3.0, idx=idx)
+rect(s, 6.95, 5.0, 5.9, 1.24, fill=LIGHT, line=RGBColor(0xdd, 0xe4, 0xec),
+     shape=MSO_SHAPE.ROUNDED_RECTANGLE)
+textbox(s, 7.15, 5.08, 5.55, 1.08, [
+    [("Was Filter 2 & 3 rechnen  (Formeln → nächste Folie)", 12, INK, True, False)],
+    [("SMEM  (m·k + k·n)·2 B·2 Stages ≤ 100 KB   → 126 raus", 10.5, INK2, False, False)],
+    [("Akku  m_prim·n_prim ≤ ½·65536 (fp32-Reg)   → 18 raus", 10.5, INK2, False, False)],
+], anchor=MSO_ANCHOR.MIDDLE)
 takeaway(s, "Nur 486→342: SMEM hängt nur an Prim-Größen — m_l2/n_l2 & Variante muss man messen (25 MB L2 killt die L2-Regel).", idx)
 notes(s, "Vier Filter vor dem Kompilieren: (1) MMA-Teilbarkeit, (2) SMEM-Budget (hart), (3) Akku-Register, "
          "(4) Padding-Verschwendung. Ehrlich: A05 nur 486->342 (126 SMEM + 18 Register). Grund: SMEM haengt "
@@ -324,7 +331,26 @@ notes(s, "Vier Filter vor dem Kompilieren: (1) MMA-Teilbarkeit, (2) SMEM-Budget 
          "nicht anfassen. Und die L2-Reuse-Regel aus der Vorlesung greift auf der GB10 nicht (Working-Set "
          "~256 KB gegen 25 MB L2). Also verschiebt sich die Entscheidung auf die Messung.")
 
-# --- 9 A06-Erweiterung (code_ring_a) ---
+# --- 9 Mathematik (Pruning + Kostenmodell) ---
+idx += 1
+s = slide()
+header(s, "Schritt 3 · Details", "Was Pruning und Kostenmodell konkret rechnen", idx)
+image(s, "fig_math", 0.4, 1.72, 12.5, 4.5, idx=idx)
+takeaway(s, "Alles aus device_props ausgelesen (SMEM / Register / Bandbreite / Peak) — nur Tile-Form, k_prim und L2-Gruppe variiert der Tuner.", idx)
+notes(s, "Detail zur Pruning-Folie. PRUNING rechnet vier Dinge vor dem Compile: (1) alle Prim-Groessen "
+         "Vielfache von 16 (fp16-Tensor-Cores); (2) Shared Memory pro Block = (m_prim·k_prim + "
+         "k_prim·n_prim) · 2 Byte (fp16) · 2 (Double-Buffering) muss ins nutzbare SMEM (101376 − 1024 ≈ "
+         "100 KB) passen → 126 Configs raus; (3) der fp32-Akku braucht m_prim·n_prim Register (1 pro "
+         "Element), unter der halben Registerdatei (½·65536 = 32768) → 18 raus; (4) gepaddetes Volumen ≤ "
+         "8× Original. RANKING schaetzt den DRAM-Traffic: A wird pro Gruppen-Spalte geladen, B pro "
+         "Gruppen-Zeile, C einmal → Traffic ≈ [ M·K·ceil(N/(n_l2·n_prim)) + K·N·ceil(M/(m_l2·m_prim)) + "
+         "M·N ] · 2 Byte. Groessere L2-Gruppe = kleinere ceil-Terme = weniger Traffic (das ist der "
+         "L2-Reuse im Modell). Zeit = Traffic / Bandbreite, BW = mem_clock · (Bus/8) ≈ 273 GB/s (GB10, "
+         "LPDDR). Die Roofline nimmt max(t_mem, t_compute) mit t_compute = 2·M·N·K / (Peak · util), "
+         "Peak = SMs · Takt · FMAs · 2 ≈ 119 TFLOPS. Alle Hardware-Werte kommen aus device_props — "
+         "deshalb ist das Modell portabel (auf der 3070 andere Zahlen, gleiche Formeln).")
+
+# --- 10 A06-Erweiterung (code_ring_a) ---
 idx += 1
 s = slide()
 header(s, "Erweiterung", "A06: eine zweite Struktur-Familie", idx)
@@ -342,7 +368,24 @@ notes(s, "A06-Ring acspx,bspy->abcyx: zwei Reduktionen (s,p), mehrere Output-Dim
          "Deshalb ein zweiter Kernel-Typ (Ring-Kernel) mit Per-Tile-permute und aeusserer SEQ-Schleife ueber s. "
          "Enumerator 243 -> Pruning 171 (nur Variante A). Der Single-M/N/K-Pfad (A05) bleibt bitgleich.")
 
-# --- 10 Divider Teil 2 ---
+# --- 10 Die zwei Templates (Scope) ---
+idx += 1
+s = slide()
+header(s, "Umsetzung · Config-Aufbau", "Wie wir die Reihenfolge der Dimensionen definiert haben", idx)
+image(s, "fig_exec_order", 0.6, 1.66, 12.1, 4.55, idx=idx)
+takeaway(s, "Jede Config ist by construction gültig: die Reihenfolge PAR │ SEQ │ PRIM steht fest (verify), der Tuner variiert nur die Split-Größen und A/B.", idx)
+notes(s, "So haben wir die Reihenfolge definiert (verify + make_executable): die Dimensionen stehen immer "
+         "in der Ordnung PAR links, dann SEQ, dann PRIM rechts. Regeln aus verify(): (1) keine K-Dim darf "
+         "PAR sein (Reduktion nicht parallel), (2) alle SEQ links von allen PRIM, (3) alle PAR links von "
+         "allen SEQ, (4) die rechtesten Dims sind PRIM und muessen je >=1 M-, N- und K-Dim enthalten (das "
+         "ist die mma-Kachel). Der Tuner splittet jede M/N-Dim in l2_outer x l2 x prim und K in outer x "
+         "prim, markiert die letzte M/N/K-Dim als PRIM und legt den Rest ab: m_l2/n_l2 werden in Variante A "
+         "als PAR (Swizzle ueber die Block-ID) gesetzt, in Variante B als SEQ-Loops im CTA. A06 legt "
+         "zusaetzlich die unabhaengigen Batches (a,c,b) als PAR und die zweite Reduktion s als SEQ ab. "
+         "Kurz: der Tuner sucht nur die Groessen und A/B — die Struktur/Reihenfolge ist fix, verify() "
+         "garantiert die Gueltigkeit. Den konkreten Kernel-Code dazu haben wir auf Folie 7 (A05) und 9 (A06).")
+
+# --- 11 Divider Teil 2 ---
 idx += 1
 s = slide(NAVY)
 rect(s, 0, 0, 0.35, SH, fill=BLUE)
@@ -356,22 +399,15 @@ notes(s, "Teil 2 (Person 2): wie gut das Ganze misst.")
 # --- 11 Benchmark-Setup ---
 idx += 1
 s = slide()
-header(s, "Evaluation", "Benchmark-Setup & Baselines", idx)
-bullets(s, 0.72, 1.95, 7.3, 3.9, [
-    "Pro Shape: Tuner vs. Default (8×8) vs. torch.einsum (cuBLAS); A06 auch vs. Handkernel.",
-    "fp16 rein, fp32 akkumuliert; Korrektheit via allclose gegen torch.einsum.",
-    "8 Shape-Regime je Familie: square / tall / wide / small_k / large_k / krumm / batch.",
-    "GPU: NVIDIA GB10 (DGX Spark) — 48 SMs, 25 MB L2, integrierter LPDDR.",
-], size=16.5, idx=idx)
-stat(s, 8.5, 2.15, 4.1, "0", "Fehlschläge bei 8×342 (A05) + 8×171 (A06)", color=RGBColor(0x0c,0x83,0x0c))
-rect(s, 8.5, 3.95, 4.1, 1.7, fill=LIGHT, line=RGBColor(0xdd,0xe4,0xec),
-     shape=MSO_SHAPE.ROUNDED_RECTANGLE)
-textbox(s, 8.72, 4.12, 3.7, 1.4, [
-    [("Padding-Pfad bestätigt", 13.5, INK, True, False)],
-    [("auch die unteilbaren krumm-Shapes rechnen korrekt auf echter Hardware.",
-      12.5, INK2, False, False)],
-], anchor=MSO_ANCHOR.MIDDLE)
-takeaway(s, "Fair gegen drei Referenzen, jede Config auf Korrektheit geprüft — alles rechnet, inklusive Padding.", idx)
+header(s, "Evaluation", "Benchmark-Setup: acht Shape-Regime je Familie", idx)
+image(s, "fig_regimes", 0.5, 1.78, 7.9, 4.3, idx=idx)
+bullets(s, 8.55, 2.05, 4.2, 4.0, [
+    "Pro Shape: Tuner vs. Default (8×8) vs. torch.einsum; A06 auch vs. Handkernel.",
+    "fp16 rein, fp32 Akku; jede Config gegen torch.einsum geprüft (allclose).",
+    "8×342 (A05) + 8×171 (A06): 0 Fehlschläge, inkl. Padding-Pfad (krumm).",
+    "GPU: NVIDIA GB10 — 48 SMs, 25 MB L2, integrierter LPDDR.",
+], size=14.5, idx=idx)
+takeaway(s, "Acht Regime decken square / rechteckig / K-Extreme / unteilbar / Batch ab — fair gegen drei Referenzen, alles korrekt.", idx)
 notes(s, "Gemessen wird pro Shape: getunter Kernel, Default (naive 8x8), torch.einsum (cuBLAS), bei A06 "
          "zusaetzlich der Handkernel (49.84). fp16 rein, fp32 Akku. Jede Config wird gegen torch.einsum "
          "geprueft (allclose rtol=1e-2/atol=1e-1). Ergebnis: 8x342 (A05) + 8x171 (A06), alle korrekt, "
@@ -381,17 +417,22 @@ notes(s, "Gemessen wird pro Shape: getunter Kernel, Default (naive 8x8), torch.e
 idx += 1
 s = slide()
 header(s, "Ergebnisse · A05", "Der Tuner bestätigt die Handarbeit", idx)
-image(s, "fig_a05_bars", 0.55, 1.7, 9.0, 4.5, idx=idx)
-bullets(s, 9.7, 2.05, 3.05, 4.2, [
-    ("Regulär: 1.00–1.02× — bestätigt Hand.", INK2, False),
-    ("large_k +7 %, krumm +58 %.", INK2, False),
-    ("Ø 1.03×, nie schlechter, 97.6 % des Optimums.", INK2, False),
-], size=14.5, idx=idx)
-takeaway(s, "Auf regulären GEMMs holt er nichts heraus — er gewinnt genau dort, wo die feste 8×8-Gruppe schlecht passt.", idx)
-notes(s, "Auf regulaeren GEMMs ist der Tuner ~1.00x = er bestaetigt das Handtuning. Wo die feste 8x8-Gruppe "
-         "schlecht passt, gewinnt er: large_k +7 %, krumm +58 % (41.8 vs 26.6). Im Schnitt 1.03x, nie "
-         "schlechter, 97.6 % des absoluten Optimums. Robuste Quasi-Universal-Config 128/128/64 (7 von 8), "
-         "nur large_k will k_prim=128. 256-breite Tiles sind Gift (Registerbudget).")
+image(s, "fig_a05_bars", 0.5, 1.7, 9.2, 4.5, idx=idx)
+bullets(s, 9.85, 2.1, 2.9, 4.15, [
+    ("Tuner-Pick (top-7) ≈ Default → bestätigt die Hand.", INK2, False),
+    ("Bench-Best (von 342) nur knapp drüber; krumm +58 %.", INK2, False),
+    ("Aber: selbst die Bench-Best bleibt auf GEMM unter cuBLAS.", INK2, False),
+], size=13.5, idx=idx)
+takeaway(s, "Warum verliert selbst unsere Bench-Best gegen torch? cuBLAS ist eine gereifte GEMM-Library (hand-optimiertes SASS, Split-K, Pipelining) — das schlägt ein einfaches Template.", idx)
+notes(s, "Vier Balken: Default (naive 8x8), Tuner-Pick (bester der Modell-Top-7 = was der Tuner praktisch "
+         "liefert), Bench Best (bestes von 342 gemessenen Configs = Voll-Sweep-Optimum), torch (cuBLAS). "
+         "Auf regulaeren GEMMs ist der Tuner-Pick ~= Default (bestaetigt das Handtuning); die Bench-Best "
+         "liegt nur ~1-3 % drueber, nur bei krumm deutlich (26.6 -> 41.8, +58 %). ENTSCHEIDEND fuer die "
+         "Frage 'schlaegt torch unsere Bench-Best?': ja, auf 7/8 GEMM-Shapes liegt torch ueber unserer "
+         "absoluten Bench-Best (nur die hand-getunte a05-Referenz zieht knapp vorbei). Der Grund ist nicht "
+         "die Config-Suche, sondern die Kernel-Reife: cuBLAS nutzt hand-optimiertes SASS-Assembly, Split-K, "
+         "ausgefeiltes Pipelining/Scheduling — Reife, die unser generisches ct.Constant-Template nicht "
+         "erreicht. Das ist ehrlich und erwartbar; cuBLAS auf GEMM zu schlagen war nie das Ziel.")
 
 # --- 13 cuBLAS / torch ehrlich ---
 idx += 1
@@ -415,13 +456,17 @@ notes(s, "Auf reinem GEMM gewinnt cuBLAS (Tuner ~77 % von torch, geom. Mittel) �
 idx += 1
 s = slide()
 header(s, "Ergebnisse · A06", "Transfer gelingt — Tuner schlägt den Handkernel", idx)
-image(s, "fig_a06_bars", 0.5, 1.72, 7.4, 4.5, idx=idx)
-image(s, "fig_a06_ladder", 8.0, 1.72, 4.8, 4.5, idx=idx)
-takeaway(s, "Der Gewinn kommt aus k_prim=32 (Hand nahm p=64 als einen mma-Tile) — Default 26 → Hand 50 → Tuner 60 ≈ torch 60.", idx)
+image(s, "fig_a06_bars", 0.4, 1.72, 8.0, 4.5, idx=idx)
+image(s, "fig_a06_ladder", 8.45, 1.72, 4.4, 4.5, idx=idx)
+takeaway(s, "Anders als GEMM: unsere Bench-Best schlägt torch, wo dessen Ring-Pfad schlecht ist (tall, large_k); der Tuner schlägt zudem den Handkernel (+24 %, aus k_prim=32).", idx)
 notes(s, "Referenz-Shape: Tuner ~60 gegen Handkernel 49.84 (+24 %), gegen die mismatchte 8x8-Default 26.3 "
          "(2.29x — aber das ist die falsche Messlatte), gleichauf mit frischem torch 60.2. Der Gewinn kommt "
          "aus k_prim=32: der Handkernel nahm p=64 als einen mma-Tile, der Tuner teilt in zwei 32er-Kacheln. "
-         "Ueber alle 8 Ring-Shapes 1.10-2.47x ueber Default, alle 171 Configs je Shape korrekt inkl. Padding.")
+         "Ueber alle 8 Ring-Shapes 1.10-2.47x ueber Default, alle 171 Configs je Shape korrekt inkl. Padding. "
+         "Vierter Balken (Bench Best = bestes von 171): schlaegt torch dort, wo dessen Ring-Pfad schlecht "
+         "ist (square, tall, wide, large_k), verliert wo torch einen guten Pfad findet (small_k, krumm, "
+         "batch). Anders als bei A05 (wo cuBLAS immer gewinnt) ist die Ring-Familie also der Fall, in dem "
+         "sich der eigene Kernel lohnt.")
 
 # --- 15 Top-k Stufen ---
 idx += 1

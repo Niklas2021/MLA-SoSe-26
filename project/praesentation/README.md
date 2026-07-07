@@ -40,20 +40,27 @@ Balken-Rohdaten aus `../result_dgx/tune_*.csv`, Top-k-Kurve über `autotuner.ran
 
 | Figure | Folie | Was sie zeigt |
 |---|---|---|
-| `fig_tiling` | 2 | Tiling/L2-Reuse-Schema (A links, B oben, C mittig, 2×2-Gruppe) |
-| `fig_pipeline` | 3 | Pipeline-Fluss Einsum → generate → enumerate → prune → rank → tune → Cache |
-| `fig_funnel` | 6 | Suchraum-Trichter 486 → 342 → 7 + Prune-Gründe |
-| `fig_a05_bars` | 9 | A05 je Regime: Default / Tuner / torch, Tuner/Default-Faktor |
-| `fig_tuner_vs_torch` | 10 | Tuner/torch-Verhältnis (diverging um 1.0×), A05 unten, A06 gestreut |
-| `fig_a06_bars` | 11 | A06 je Regime: Default / Tuner / torch |
-| `fig_a06_ladder` | 11 | A06-Referenz-Leiter: Default 26 → Hand 50 → Tuner 60 ≈ torch 60 |
-| `fig_topk_curve` | 12 | % vom Optimum über Mess-Budget k (top-7 → ~97 %) |
-| `fig_ranking_models` | 13 | bw / v2 / roofline: Spearman vs. Top-7-Ausbeute |
-| `fig_crossgpu_lever` | 17 | Tuning-Hebel (Speedup Tuner/Default) GB10 vs. RTX 3070 |
-| `fig_config_table` | 18 | Optimale Config je GPU (GB10 128×128 vs. 3070 kleineres k_prim) |
+| `fig_tiling` | 4 | Tiling/L2-Reuse-Schema (A links, B oben, C mittig, 2×2-Gruppe) |
+| `fig_pipeline` | 5 | Pipeline-Fluss Einsum → generate → enumerate → prune → rank → tune → Cache |
+| `fig_funnel` | 8 | Suchraum-Trichter 486 → 342 → 7 + Prune-Gründe |
+| `fig_math` | 9 | Mathematik: 4 Prune-Filter (SMEM/Register-Formeln) + Ranking (DRAM-Traffic/Bandbreite, Roofline) |
+| `fig_exec_order` | 11 | Config-Reihenfolge PAR│SEQ│PRIM + Splits (M/N/K → l2/prim) + A/B |
+| `fig_regimes` | 13 | Die acht Shape-Regime (A05) mit exakten C/M/N/K + was jedes testet |
+| `fig_a05_bars` | 14 | A05 je Regime, 4 Bars: Default / Tuner-top7 / Bench Best / torch |
+| `fig_tuner_vs_torch` | 15 | Tuner/torch-Verhältnis (diverging um 1.0×), A05 unten, A06 gestreut |
+| `fig_a06_bars` | 16 | A06 je Regime, 4 Bars: Default / Tuner-top7 / Bench Best / torch |
+| `fig_a06_ladder` | 16 | A06-Referenz-Leiter: Default 26 → Hand 50 → Tuner 60 ≈ torch 60 |
+| `fig_topk_curve` | 17 | % vom Optimum über Mess-Budget k (top-7 → ~97 %) |
+| `fig_ranking_models` | 18 | bw / v2 / roofline: Spearman vs. Top-7-Ausbeute |
+| `fig_crossgpu_lever` | 19 | Tuning-Hebel (Speedup Tuner/Default) GB10 vs. RTX 3070 |
+| `fig_config_table` | 20 | Optimale Config je GPU (GB10 128×128 vs. 3070 kleineres k_prim) |
 | `code_variant_a` | 7 | Code-Card: generischer Kernel mit ct.Constant + Swizzle |
 | `code_prune` | 8 | Code-Card: die vier Prune-Filter (`prune_reason`) |
-| `code_ring_a` | 9 | Code-Card: A06-Ring-Kernel (Batch-Decode + permute) |
+| `code_ring_a` | 10 | Code-Card: A06-Ring-Kernel (Batch-Decode + permute) |
+
+`Bench Best` = bestes von 342 (A05) / 171 (A06) gemessenen Configs (Voll-Sweep-Optimum);
+`Tuner-top7` = bester der Modell-Top-7 (was der Tuner praktisch liefert). `fig_tuner_vs_torch`
+zeigt `BenchBest/torch` (0.38×–3.95×). Folie 9 = Mathe-Detail (Formeln), Folie 11 = Config-Reihenfolge.
 
 Code-Cards kommen aus `make_code_cards.py` (dunkler Carbon-Look, Monospace-Raster).
 

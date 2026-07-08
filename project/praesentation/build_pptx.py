@@ -520,7 +520,7 @@ bullets(s, 8.55, 2.05, 4.2, 4.0, [
 ], size=14.5, idx=idx)
 takeaway(s, "Acht Regime decken square / rechteckig / K-Extreme / unteilbar / Batch ab — fair gegen drei Referenzen, alles korrekt.", idx)
 notes(s, "Gemessen wird pro Shape: getunter Kernel, Default (naive 8x8), torch.einsum (cuBLAS), bei A06 "
-         "zusaetzlich der Handkernel (49.84). fp16 rein, fp32 Akku. Jede Config wird gegen torch.einsum "
+         "zusaetzlich der Handkernel (46.5). fp16 rein, fp32 Akku. Jede Config wird gegen torch.einsum "
          "geprueft (allclose rtol=1e-2/atol=1e-1). Ergebnis: 8x342 (A05) + 8x171 (A06), alle korrekt, "
          "0 Fehlschlaege, inkl. der unteilbaren krumm-Shapes. GB10: 48 SMs, 25 MB L2, integriert.")
 
@@ -569,11 +569,13 @@ s = slide()
 header(s, "Ergebnisse · A06", "Transfer gelingt — Tuner schlägt den Handkernel", idx)
 image(s, "fig_a06_bars", 0.4, 1.72, 8.0, 4.5, idx=idx)
 image(s, "fig_a06_ladder", 8.45, 1.72, 4.4, 4.5, idx=idx)
-takeaway(s, "Anders als GEMM: unsere Bench-Best schlägt torch, wo dessen Ring-Pfad schlecht ist (tall, large_k); der Tuner schlägt zudem den Handkernel (+24 %, aus k_prim=32).", idx)
-notes(s, "Referenz-Shape: Tuner ~60 gegen Handkernel 49.84 (+24 %), gegen die mismatchte 8x8-Default 26.3 "
+takeaway(s, "Anders als GEMM: unsere Bench-Best schlägt torch, wo dessen Ring-Pfad schlecht ist (tall, large_k); der Tuner schlägt zudem den Handkernel (+29 %, aus k_prim=32).", idx)
+notes(s, "Referenz-Shape: Tuner ~60 gegen Handkernel 46.5 (+29 %), gegen die mismatchte 8x8-Default 26.3 "
          "(2.29x — aber das ist die falsche Messlatte), gleichauf mit frischem torch 60.2. Der Gewinn kommt "
          "aus k_prim=32: der Handkernel nahm p=64 als einen mma-Tile, der Tuner teilt in zwei 32er-Kacheln. "
-         "Ueber alle 8 Ring-Shapes 1.10-2.47x ueber Default, alle 171 Configs je Shape korrekt inkl. Padding. "
+         "Der Handkernel-Balken ist das feste Referenz-Tiling (2x3) auf jede Shape gelegt -- es passt nur "
+         "auf der Referenz gut, liegt bei 5/8 Shapes sogar unter dem 8x8-Default, waehrend der Tuner in allen "
+         "8 Regimen davor liegt. Ueber alle 8 Ring-Shapes 1.10-2.47x ueber Default, alle 171 Configs je Shape korrekt inkl. Padding. "
          "Vierter Balken (Bench Best = bestes von 171): schlaegt torch dort, wo dessen Ring-Pfad schlecht "
          "ist (square, tall, wide, large_k), verliert wo torch einen guten Pfad findet (small_k, krumm, "
          "batch). Anders als bei A05 (wo cuBLAS immer gewinnt) ist die Ring-Familie also der Fall, in dem "
@@ -751,7 +753,7 @@ rect(s, 0.9, 2.05, 2.0, 0.06, fill=ORANGE)
 lite = RGBColor(0xd7, 0xe3, 0xf2)
 bullets2 = [
     ("A05:", "Tuner reproduziert Hand (Ø 1.03×), gewinnt bei krummen Shapes (+58 %)."),
-    ("A06:", "sauberer Transfer, ein zusätzlicher Kernel-Typ, schlägt den Handkernel (+24 %)."),
+    ("A06:", "sauberer Transfer, ein zusätzlicher Kernel-Typ, schlägt den Handkernel (+29 %)."),
     ("cuBLAS:", "auf GEMM nicht geschlagen — Wert ist Allgemeinheit + Gewinne ohne guten Library-Pfad."),
     ("Modell:", "v2 bester Vorfilter (97.8 % @ top-7), roofline bester Ranker — messen bleibt entscheidend."),
     ("Praxis:", "GPU-spezifisch + gecacht — auf GB10 und 3070 bestätigt: Hebel wirkt, beste Config je GPU verschieden."),

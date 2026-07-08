@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-07-07T12:09:34.130697</dc:date>
+    <dc:date>2026-07-08T09:32:40.739137</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -124,15 +124,15 @@ L 118.960499 339.6105
 L 118.960499 234.3053 
 L 61.619062 234.3053 
 z
-" clip-path="url(#p695d958f8c)" style="fill: #898781"/>
+" clip-path="url(#p7e232f8f9b)" style="fill: #898781"/>
    </g>
    <g id="patch_4">
     <path d="M 154.10525 339.6105 
 L 211.446687 339.6105 
-L 211.446687 140.05114 
-L 154.10525 140.05114 
+L 211.446687 153.4245 
+L 154.10525 153.4245 
 z
-" clip-path="url(#p695d958f8c)" style="fill: #4f4e4a"/>
+" clip-path="url(#p7e232f8f9b)" style="fill: #4f4e4a"/>
    </g>
    <g id="patch_5">
     <path d="M 246.591438 339.6105 
@@ -140,7 +140,7 @@ L 303.932875 339.6105
 L 303.932875 100.05118 
 L 246.591438 100.05118 
 z
-" clip-path="url(#p695d958f8c)" style="fill: #2a78d6"/>
+" clip-path="url(#p7e232f8f9b)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_6">
     <path d="M 339.077626 339.6105 
@@ -148,7 +148,7 @@ L 396.419062 339.6105
 L 396.419062 98.48962 
 L 339.077626 98.48962 
 z
-" clip-path="url(#p695d958f8c)" style="fill: #eb6834"/>
+" clip-path="url(#p7e232f8f9b)" style="fill: #eb6834"/>
    </g>
    <g id="patch_7">
     <path d="M 44.879063 339.6105 
@@ -164,7 +164,7 @@ L 413.159063 339.6105
     <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="90.289781" y="227.601706" transform="rotate(-0 90.289781 227.601706)">26.3</text>
    </g>
    <g id="text_15">
-    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="182.775969" y="133.347546" transform="rotate(-0 182.775969 133.347546)">49.8</text>
+    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="182.775969" y="146.720906" transform="rotate(-0 182.775969 146.720906)">46.5</text>
    </g>
    <g id="text_16">
     <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="275.262156" y="93.347586" transform="rotate(-0 275.262156 93.347586)">59.8</text>
@@ -173,16 +173,16 @@ L 413.159063 339.6105
     <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="367.748344" y="91.786026" transform="rotate(-0 367.748344 91.786026)">60.2</text>
    </g>
    <g id="patch_9">
-    <path d="M 184.613386 139.256463 
-Q 229.020716 120.050445 271.991406 101.465768 
+    <path d="M 184.506133 152.426031 
+Q 229.018628 126.738091 272.175429 101.832515 
 " style="fill: none; stroke: #52514e; stroke-width: 1.4; stroke-linecap: round"/>
-    <path d="M 266.186563 101.143592 
-L 271.991406 101.465768 
-L 268.250759 105.916337 
+    <path d="M 266.37203 102.179738 
+L 272.175429 101.832515 
+L 268.971168 106.683568 
 " style="fill: none; stroke: #52514e; stroke-width: 1.4; stroke-linecap: round"/>
    </g>
    <g id="text_18">
-    <text style="font-weight: 700; font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="229.019062" y="115.3865" transform="rotate(-0 229.019062 115.3865)">+24 %</text>
+    <text style="font-weight: 700; font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="229.019062" y="119.3905" transform="rotate(-0 229.019062 119.3905)">+29 %</text>
    </g>
    <g id="text_19">
     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #898781" x="44.879063" y="385.73658" transform="rotate(-0 44.879063 385.73658)">GB10 · study.log · fp16 · acspx,bspy→abcyx  (4,3,64,64,1536)×(4,64,64,1152)</text>
@@ -194,7 +194,7 @@ L 268.250759 105.916337
   </g>
  </g>
  <defs>
-  <clipPath id="p695d958f8c">
+  <clipPath id="p7e232f8f9b">
    <rect x="44.879063" y="51.3225" width="368.28" height="288.288"/>
   </clipPath>
  </defs>

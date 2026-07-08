@@ -98,33 +98,55 @@ A06 = [
     ("krumm\n(padding)", 14.3, 20.9, 20.92, 54.70),
     ("batch\n(a8c4b8)",  54.3, 61.6, 61.58, 76.07),
 ]
+# Handkernel (A06): von Hand getunt wurde nur die Referenz-Shape. Hier das feste
+# Referenz-Tiling (run_ring_a, 128/128/64, m_l2=2 n_l2=3) auf JEDER Shape gemessen
+# (result_dgx/hand_a06.csv, kind=fixed, gleiche do_bench-Methodik wie study.log). Auf a06
+# ergibt das 46.5 (das Assignment berichtete aus einem aelteren Lauf 49.84). Der Tuner
+# schlaegt dieses feste Tiling in allen 8 Regimen -- es passt nur auf die Referenz gut.
+A06_HAND = [46.5, 44.6, 42.0, 44.7, 16.2, 57.0, 12.0, 42.7]
 
 
-def grouped_bars(data, title, fname, note):
+def grouped_bars(data, title, fname, note, hand=None):
     labels  = [d[0] for d in data]
     default = [d[1] for d in data]
     top7    = [d[2] for d in data]
     bench   = [d[3] for d in data]
     torch   = [d[4] for d in data]
     x = np.arange(len(labels))
-    w = 0.2
-    series = [(-1.5, default, "Default (8×8)", C_DEFAULT),
-              (-0.5, top7, "Tuner (top-7)", C_TOP7),
-              (0.5, bench, "Bench Best (voller Sweep)", C_BENCH),
-              (1.5, torch, "torch.einsum (cuBLAS)", C_TORCH)]
+    if hand:
+        # 5 Balken: Handkernel als eigener Balken, aber NUR wo gemessen (A06-Referenz).
+        # Sonst NaN -> matplotlib zeichnet nichts (kein erfundener Wert, ehrliche Luecke).
+        handv = np.array([h if h is not None else np.nan for h in hand], float)
+        w = 0.16
+        series = [(-2, default, "Default (8×8)", C_DEFAULT),
+                  (-1, handv, "Handkernel (Ref.-Tiling)", C_HAND),
+                  (0, top7, "Tuner (top-7)", C_TOP7),
+                  (1, bench, "Bench Best (voller Sweep)", C_BENCH),
+                  (2, torch, "torch.einsum (cuBLAS)", C_TORCH)]
+    else:
+        w = 0.2
+        series = [(-1.5, default, "Default (8×8)", C_DEFAULT),
+                  (-0.5, top7, "Tuner (top-7)", C_TOP7),
+                  (0.5, bench, "Bench Best (voller Sweep)", C_BENCH),
+                  (1.5, torch, "torch.einsum (cuBLAS)", C_TORCH)]
     fig, ax = plt.subplots(figsize=(12.8, 5.6))
+    allvals = []
     for off, vals, lab, col in series:
         xs = x + off * w
         ax.bar(xs, vals, w, label=lab, color=col)
         for xi, v in zip(xs, vals):   # konkrete Werte vertikal ueber den Balken
+            if v != v:                # NaN (Handkernel nicht gemessen) -> ueberspringen
+                continue
             ax.annotate(f"{v:.0f}", (xi, v), textcoords="offset points", xytext=(0, 2),
                         ha="center", va="bottom", rotation=90, fontsize=7.8, color=INK2)
+            allvals.append(v)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=11)
     ax.set_ylabel("TFLOPS")
-    ax.set_ylim(0, max(default + top7 + bench + torch) * 1.20)
+    ax.set_ylim(0, max(allvals) * 1.20)
     ax.set_title(title, loc="left", color=INK, pad=12)
-    ax.legend(ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.24), fontsize=11)
+    ax.legend(ncol=len(series), loc="upper center", bbox_to_anchor=(0.5, -0.24),
+              fontsize=10.5 if hand else 11)
     _clean(ax)
     ax.text(0, -0.35, note, transform=ax.transAxes, fontsize=9.5, color=MUTED)
     _save(fig, fname)
@@ -133,7 +155,7 @@ def grouped_bars(data, title, fname, note):
 def fig_a06_ladder():
     # Referenz-Shape a06: die ehrliche Leiter Default -> Hand -> Tuner ~ torch
     names  = ["Default\n(8×8)", "Handkernel\n(A06)", "Tuner", "torch.einsum"]
-    vals   = [26.3, 49.84, 59.83, 60.22]
+    vals   = [26.3, 46.5, 59.83, 60.22]
     cols   = [C_DEFAULT, C_HAND, C_TUNER, C_TORCH]
     fig, ax = plt.subplots(figsize=(6.6, 5.2))
     bars = ax.bar(names, vals, color=cols, width=0.62)
@@ -141,10 +163,10 @@ def fig_a06_ladder():
         ax.annotate(f"{v:.1f}", (b.get_x() + b.get_width() / 2, v),
                     textcoords="offset points", xytext=(0, 4), ha="center",
                     va="bottom", fontsize=13, fontweight="bold", color=INK)
-    # +24% Klammer zwischen Hand und Tuner
-    ax.annotate("", xy=(2, 59.83), xytext=(1, 49.84),
+    # +29% Klammer zwischen Hand und Tuner (59.83 / 46.5)
+    ax.annotate("", xy=(2, 59.83), xytext=(1, 46.5),
                 arrowprops=dict(arrowstyle="->", color=INK2, lw=1.4))
-    ax.text(1.5, 56, "+24 %", ha="center", color=INK, fontsize=12, fontweight="bold")
+    ax.text(1.5, 55, "+29 %", ha="center", color=INK, fontsize=12, fontweight="bold")
     ax.set_ylabel("TFLOPS")
     ax.set_ylim(0, 72)
     ax.set_title("A06-Referenz: der Tuner schlägt den Handkernel\nund liegt gleichauf mit torch",
@@ -601,21 +623,28 @@ def fig_exec_order():
     # --- 2) Splits (Tuner variiert nur die Groessen) ---
     ax.text(2, 25.5, "2 · Split je Dimension  (der Tuner variiert nur die Größen):",
             fontsize=13.5, fontweight="bold", color=INK)
-    rows = [("M", "m_l2_outer", "m_l2", "m_prim"),
-            ("N", "n_l2_outer", "n_l2", "n_prim"),
-            ("K", "k_outer", "—", "k_prim")]
-    for (d, outer, l2, prim), y in zip(rows, [18, 12, 6]):
+    # Farbe = Exec-Typ, EINHEITLICH wie die Boxen oben: PAR blau, SEQ grau, PRIM orange.
+    # Deshalb ist m/n_l2_outer blau (PAR-Grid) und nur k_outer grau (SEQ-Loop) -- nicht
+    # mehr beides grau (das war der Widerspruch: l2_outer oben blau, unten grau).
+    C_SEQ = "#5f5e59"   # gleiches Grau wie der SEQ-Block oben
+    # (dim, outer, outer_farbe, l2, l2_farbe, prim)
+    rows = [("M", "m_l2_outer", C_TUNER, "m_l2", C_TUNER, "m_prim"),
+            ("N", "n_l2_outer", C_TUNER, "n_l2", C_TUNER, "n_prim"),
+            ("K", "k_outer",    C_SEQ,   "—",    INK2,    "k_prim")]
+    for (d, outer, oc, l2, lc, prim), y in zip(rows, [18, 12, 6]):
         ax.text(4, y, f"{d}  →", fontsize=13, color=INK, fontweight="bold", va="center", family=MONO)
-        ax.text(12, y, outer, fontsize=12.5, color=MUTED, va="center", family=MONO)
+        ax.text(12, y, outer, fontsize=12.5, color=oc, fontweight="bold", va="center", family=MONO)
         ax.text(28, y, "·", fontsize=12.5, color=INK2, va="center")
-        ax.text(31, y, l2, fontsize=12.5, color=C_TUNER, fontweight="bold", va="center", family=MONO)
+        ax.text(31, y, l2, fontsize=12.5, color=lc, fontweight="bold", va="center", family=MONO)
         ax.text(41, y, "·", fontsize=12.5, color=INK2, va="center")
         ax.text(44, y, prim, fontsize=12.5, color=C_TORCH, fontweight="bold", va="center", family=MONO)
-    # Farb-Legende + Variante
-    ax.text(60, 18, "grau = Grid (l2_outer)", fontsize=11, color=MUTED, va="center")
-    ax.text(60, 12.5, "blau = L2-Gruppe (m_l2 / n_l2)", fontsize=11, color=C_TUNER,
+    # Farb-Legende: EINE Bedeutung im ganzen Bild -> Exec-Typ (wie die Boxen oben)
+    ax.text(60, 20, "Farbe = Exec-Typ (wie oben):", fontsize=10.5, color=INK2, va="center")
+    ax.text(60, 15, "blau = PAR (l2_outer · m_l2 · n_l2)", fontsize=11, color=C_TUNER,
             fontweight="bold", va="center")
-    ax.text(60, 7, "orange = PRIM (mma-Kachel)", fontsize=11, color=C_TORCH,
+    ax.text(60, 10.5, "grau = SEQ (k_outer)", fontsize=11, color=C_SEQ,
+            fontweight="bold", va="center")
+    ax.text(60, 6, "orange = PRIM (m/n/k_prim)", fontsize=11, color=C_TORCH,
             fontweight="bold", va="center")
     ax.text(3, 0.5, "Variante A: m_l2/n_l2 = PAR (Swizzle)        Variante B: m_l2/n_l2 = SEQ-Loop",
             fontsize=11.5, color=INK, fontweight="bold")
@@ -739,10 +768,13 @@ def fig_tiling():
 
 if __name__ == "__main__":
     print("erzeuge Figures ->", FIGDIR)
-    grouped_bars(A05, "A05: Tuner-Pick ≈ Default — selbst die Bench-Best bleibt unter cuBLAS",
-                 "fig_a05_bars", "GB10 · Bench Best = bestes von 342 gemessenen Configs · torch = cuBLAS")
-    grouped_bars(A06, "A06: Tuner ≫ Default — Bench-Best schlägt torch, wo dessen Pfad schlecht ist",
-                 "fig_a06_bars", "GB10 · Bench Best = bestes von 171 gemessenen Configs · torch = cuBLAS")
+    grouped_bars(A05, "A05: Tuner ≈ Default (= die A05-Handarbeit) — Bench-Best bleibt unter cuBLAS",
+                 "fig_a05_bars",
+                 "GB10 · Default (8×8) = die von Hand getunte A05-Config · Bench Best = bestes von 342 · torch = cuBLAS")
+    grouped_bars(A06, "A06: Tuner ≫ Default (8×8) — und schlägt den Handkernel (Referenz +29 %)",
+                 "fig_a06_bars",
+                 "GB10 · Handkernel = festes A06-Referenz-Tiling (2×3) auf jede Shape · Bench Best = bestes von 171 · torch = cuBLAS",
+                 hand=A06_HAND)
     fig_a06_ladder()
     fig_tuner_vs_torch()
     fig_topk_curve()

@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-07-07T12:09:34.868994</dc:date>
+    <dc:date>2026-07-08T09:32:41.485386</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -32,22 +32,22 @@ z
    <g id="patch_2">
     <path d="M 213.676049 85.644 
 Q 231.766317 85.644 247.844125 85.644 
-" clip-path="url(#pb5a7953a14)" style="fill: none; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#pd73775efe5)" style="fill: none; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
     <path d="M 241.844125 82.644 
 L 247.844125 85.644 
 L 241.844125 88.644 
 z
-" clip-path="url(#pb5a7953a14)" style="fill: #898781; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#pd73775efe5)" style="fill: #898781; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
    </g>
    <g id="patch_3">
     <path d="M 434.644049 85.644 
 Q 452.734317 85.644 468.812125 85.644 
-" clip-path="url(#pb5a7953a14)" style="fill: none; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#pd73775efe5)" style="fill: none; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
     <path d="M 462.812125 82.644 
 L 468.812125 85.644 
 L 462.812125 88.644 
 z
-" clip-path="url(#pb5a7953a14)" style="fill: #898781; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#pd73775efe5)" style="fill: #898781; stroke: #898781; stroke-width: 1.8; stroke-linecap: round"/>
    </g>
    <g id="text_1">
     <text style="font-weight: 700; font-size: 13.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #0b0b0b" x="24.192" y="21.492" transform="rotate(-0 24.192 21.492)">1 · Reihenfolge in der Config  (verify):</text>
@@ -63,7 +63,7 @@ Q 30.75408 53.46108 30.75408 60.41088
 L 30.75408 110.87712 
 Q 30.75408 117.82692 39.45888 117.82692 
 z
-" clip-path="url(#pb5a7953a14)" style="fill: #e7f0fb; stroke: #2a78d6; stroke-width: 2.2; stroke-linejoin: miter"/>
+" clip-path="url(#pd73775efe5)" style="fill: #e7f0fb; stroke: #2a78d6; stroke-width: 2.2; stroke-linejoin: miter"/>
    </g>
    <g id="patch_5">
     <path d="M 260.42688 117.82692 
@@ -76,7 +76,7 @@ Q 251.72208 53.46108 251.72208 60.41088
 L 251.72208 110.87712 
 Q 251.72208 117.82692 260.42688 117.82692 
 z
-" clip-path="url(#pb5a7953a14)" style="fill: #eeedea; stroke: #5f5e59; stroke-width: 2.2; stroke-linejoin: miter"/>
+" clip-path="url(#pd73775efe5)" style="fill: #eeedea; stroke: #5f5e59; stroke-width: 2.2; stroke-linejoin: miter"/>
    </g>
    <g id="patch_6">
     <path d="M 481.39488 117.82692 
@@ -89,7 +89,7 @@ Q 472.69008 53.46108 472.69008 60.41088
 L 472.69008 110.87712 
 Q 472.69008 117.82692 481.39488 117.82692 
 z
-" clip-path="url(#pb5a7953a14)" style="fill: #fdece3; stroke: #eb6834; stroke-width: 2.2; stroke-linejoin: miter"/>
+" clip-path="url(#pd73775efe5)" style="fill: #fdece3; stroke: #eb6834; stroke-width: 2.2; stroke-linejoin: miter"/>
    </g>
    <g id="text_2">
     <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="30.888" y="141.777" transform="rotate(-0 30.888 141.777)">K nie PAR   ·   PRIM ganz rechts = je ≥ 1 × M, N und K (die mma-Kachel)</text>
@@ -101,7 +101,7 @@ z
     <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="37.584" y="217.535188" transform="rotate(-0 37.584 217.535188)">M  →</text>
    </g>
    <g id="text_5">
-    <text style="font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #898781" x="91.152" y="217.256594" transform="rotate(-0 91.152 217.256594)">m_l2_outer</text>
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #2a78d6" x="91.152" y="217.223391" transform="rotate(-0 91.152 217.223391)">m_l2_outer</text>
    </g>
    <g id="text_6">
     <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="198.288" y="217.397219" transform="rotate(-0 198.288 217.397219)">·</text>
@@ -119,7 +119,7 @@ z
     <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="37.584" y="249.611188" transform="rotate(-0 37.584 249.611188)">N  →</text>
    </g>
    <g id="text_11">
-    <text style="font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #898781" x="91.152" y="249.332594" transform="rotate(-0 91.152 249.332594)">n_l2_outer</text>
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #2a78d6" x="91.152" y="249.299391" transform="rotate(-0 91.152 249.299391)">n_l2_outer</text>
    </g>
    <g id="text_12">
     <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="198.288" y="249.473219" transform="rotate(-0 198.288 249.473219)">·</text>
@@ -137,13 +137,13 @@ z
     <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="37.584" y="281.687188" transform="rotate(-0 37.584 281.687188)">K  →</text>
    </g>
    <g id="text_17">
-    <text style="font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #898781" x="91.152" y="281.375391" transform="rotate(-0 91.152 281.375391)">k_outer</text>
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #5f5e59" x="91.152" y="281.375391" transform="rotate(-0 91.152 281.375391)">k_outer</text>
    </g>
    <g id="text_18">
     <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="198.288" y="281.549219" transform="rotate(-0 198.288 281.549219)">·</text>
    </g>
    <g id="text_19">
-    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #2a78d6" x="218.376" y="281.549219" transform="rotate(-0 218.376 281.549219)">—</text>
+    <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #52514e" x="218.376" y="281.549219" transform="rotate(-0 218.376 281.549219)">—</text>
    </g>
    <g id="text_20">
     <text style="font-size: 12.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="285.336" y="281.549219" transform="rotate(-0 285.336 281.549219)">·</text>
@@ -152,39 +152,42 @@ z
     <text style="font-weight: 700; font-size: 12.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #eb6834" x="305.424" y="281.707422" transform="rotate(-0 305.424 281.707422)">k_prim</text>
    </g>
    <g id="text_22">
-    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #898781" x="412.56" y="216.830344" transform="rotate(-0 412.56 216.830344)">grau = Grid (l2_outer)</text>
+    <text style="font-size: 10.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #52514e" x="412.56" y="206.153344" transform="rotate(-0 412.56 206.153344)">Farbe = Exec-Typ (wie oben):</text>
    </g>
    <g id="text_23">
-    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #2a78d6" x="412.56" y="246.233344" transform="rotate(-0 412.56 246.233344)">blau = L2-Gruppe (m_l2 / n_l2)</text>
+    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #2a78d6" x="412.56" y="232.868344" transform="rotate(-0 412.56 232.868344)">blau = PAR (l2_outer · m_l2 · n_l2)</text>
    </g>
    <g id="text_24">
-    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #eb6834" x="412.56" y="275.746344" transform="rotate(-0 412.56 275.746344)">orange = PRIM (mma-Kachel)</text>
+    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #5f5e59" x="412.56" y="256.925344" transform="rotate(-0 412.56 256.925344)">grau = SEQ (k_outer)</text>
    </g>
    <g id="text_25">
-    <text style="font-weight: 700; font-size: 11.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #0b0b0b" x="30.888" y="307.503" transform="rotate(-0 30.888 307.503)">Variante A: m_l2/n_l2 = PAR (Swizzle)        Variante B: m_l2/n_l2 = SEQ-Loop</text>
+    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #eb6834" x="412.56" y="280.982344" transform="rotate(-0 412.56 280.982344)">orange = PRIM (m/n/k_prim)</text>
    </g>
    <g id="text_26">
-    <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #2a78d6" x="121.284" y="76.952663" transform="rotate(-0 121.284 76.952663)">PAR</text>
+    <text style="font-weight: 700; font-size: 11.5px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: start; fill: #0b0b0b" x="30.888" y="307.503" transform="rotate(-0 30.888 307.503)">Variante A: m_l2/n_l2 = PAR (Swizzle)        Variante B: m_l2/n_l2 = SEQ-Loop</text>
    </g>
    <g id="text_27">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="121.284" y="100.025513" transform="rotate(-0 121.284 100.025513)">Batch · l2_outer · m_l2 · n_l2</text>
+    <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #2a78d6" x="121.284" y="76.952663" transform="rotate(-0 121.284 76.952663)">PAR</text>
    </g>
    <g id="text_28">
-    <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #5f5e59" x="342.252" y="76.952663" transform="rotate(-0 342.252 76.952663)">SEQ</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="121.284" y="100.025513" transform="rotate(-0 121.284 100.025513)">Batch · l2_outer · m_l2 · n_l2</text>
    </g>
    <g id="text_29">
-    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="342.252" y="100.025513" transform="rotate(-0 342.252 100.025513)">k_outer  (· s bei A06)</text>
+    <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #5f5e59" x="342.252" y="76.952663" transform="rotate(-0 342.252 76.952663)">SEQ</text>
    </g>
    <g id="text_30">
-    <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #eb6834" x="563.22" y="76.952663" transform="rotate(-0 563.22 76.952663)">PRIM</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="342.252" y="100.025513" transform="rotate(-0 342.252 100.025513)">k_outer  (· s bei A06)</text>
    </g>
    <g id="text_31">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #eb6834" x="563.22" y="76.952663" transform="rotate(-0 563.22 76.952663)">PRIM</text>
+   </g>
+   <g id="text_32">
     <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Helvetica', sans-serif; text-anchor: middle; fill: #0b0b0b" x="563.22" y="100.025513" transform="rotate(-0 563.22 100.025513)">m_prim · n_prim · k_prim</text>
    </g>
   </g>
  </g>
  <defs>
-  <clipPath id="pb5a7953a14">
+  <clipPath id="pd73775efe5">
    <rect x="10.8" y="10.8" width="669.6" height="299.376"/>
   </clipPath>
  </defs>

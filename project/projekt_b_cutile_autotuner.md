@@ -26,11 +26,16 @@ damit wir das in M0/M1 prüfen statt blind zu übernehmen.
 | M2 | Kernel-Instanziierung | Eine aus einer Config erzeugte cuTile-Variante läuft korrekt |
 | M3 | Benchmark & Ranking | do_bench + Korrektheit + Top-k, Vergleich gegen Hand-L2 |
 | M4 | Transfer auf A06 | Tensor-Ring als zweiter Test, optional Config-Cache |
+| M5 | Feedback-Runde | Hybrid-Suche (Messung statt nur Modell), Loop-Ordnung, Einsum-Abdeckung |
 
 Minimal wollen wir mit M0–M3 die A05-Lösung reproduzieren (mindestens 95 % der Hand-L2-Performance).
 M4 ist die Erweiterung und prüft, ob das Ganze auch auf die schwierigere A06-Kontraktion übergeht.
 
 ## Stand (05.07.2026)
+
+> **Hinweis zum Lesen:** Alle „Tuner-Gewinn"-Faktoren in M3 und M4 sind gegen `DEFAULT_CONFIG`
+> (die A05-Hand-Config) gemessen. M5.5 zeigt, dass das keine faire Baseline ist — die Faktoren dort
+> sind korrekt gemessen, aber zu großzügig gedeutet. Die belastbaren Zahlen stehen in M5.5.
 
 M0 bis M4 sind durch. M0–M3: Multi-Shape-Studie über acht GEMM-Regime (`problems.py`) — der Tuner ist dem
 Handkernel gleichwertig, wo Handtuning passt, und bis zu 21 % besser, wo nicht (krumme Shape), in ~3 s pro
@@ -363,6 +368,11 @@ Der Tuner-Gewinn ist hier durchweg größer als bei A05 (1.10–2.29× statt ~1.
 übernommene Default-Config (8×8-Gruppe, `k_prim=64`) auf die A06-Shapes schlecht passt — die feste
 8×8-Gruppe paddet x/y stark und trifft das p-Tiling nicht. Genau das automatisiert der Tuner weg.
 
+> **Nachtrag (M5.5):** Diese Faktoren sind gemessen, aber ihre Deutung war zu großzügig. Sie
+> vergleichen gegen eine Config, die für *eine andere Shape* hergeleitet wurde, und messen damit
+> überwiegend deren Padding-Verschnitt (bei a06 Faktor 2.37). Gegen eine kompetent gewählte feste
+> Config derselben GPU schrumpft der Gewinn auf ~1.12×. Siehe M5.5.
+
 **Das Modell taugt hier sogar als Ranker, nicht nur als Vorfilter.** Anders als bei A05 korreliert das
 register-gefilterte Modell (`v2`) auf den Ring-Shapes positiv (Spearman im Schnitt **+0.38**, vs. ~0 bei
 A05); das reine Bandbreitenmodell bleibt bei ~0. Als Vorauswahl reicht es ohnehin: misst man nur die
@@ -450,8 +460,9 @@ und physikalisch selbstumschaltende Variante drin.
 Portabilität ist *by construction* (alles über `device_props` parametrisiert) und inzwischen auf einer
 zweiten Karte (RTX 3070, 4 MB L2, `result_3070/`) gemessen. Absolute TFLOPS sind zwischen den Karten nicht
 vergleichbar; der aussagekräftige Vergleich ist der Optimierungshebel (Speedup Tuner/Default): er wirkt auf
-beiden, auf der 3070 stärker (Ø 1.88× vs. 1.36×), und die gemessen beste Config ist in **16/16 Shapes je
-GPU verschieden** — das rechtfertigt GPU-spezifisches Tuning und den GPU-Modell-Key im Cache.
+beiden, auf der 3070 stärker (Ø 1.88× vs. 1.36×) — **aber Vorsicht, dieser Hebel misst überwiegend, wie
+schlecht die übernommene Config auf der fremden Karte passt, nicht was Per-Shape-Tuning bringt; siehe
+M5.5** —, und die gemessen beste Config ist in **16/16 Shapes je GPU verschieden** — das rechtfertigt GPU-spezifisches Tuning und den GPU-Modell-Key im Cache.
 
 ### Config-Cache
 
@@ -461,6 +472,338 @@ L2-Größe abhängt) und den praktischen Tuner `autotune.py`: `autotune(einsum, 
 nach und misst sonst die v2-Modell-Top-7, cacht die schnellste und gibt sie zurück. `candidate_from_config`
 baut aus den gecachten Knöpfen wieder einen `Candidate` für `run_candidate`. So kostet die erste getunte Shape
 ~3 s, jede weitere Nutzung 0 s.
+
+## M5 — Feedback-Runde
+
+Aus dem Feedback kamen drei Punkte: Loop-Reihenfolgen freigeben, zwischendurch echt messen statt nur
+zu modellieren, und mehr Einsum-Strings abdecken.
+
+| Feedback-Punkt | Stand |
+|---|---|
+| zwischendurch echt messen | M5.1 Hybrid-Suche — **umgesetzt, auf GB10 bestätigt** (99.1 % Auswahlgüte bei 22 Messungen) |
+| mehr Einsum-Strings | M5.3 Layout-Guard + Kanonisierung + flex-Kernel — **umgesetzt, auf GB10 bestätigt** (2 → 10 Familien) |
+| Loop-Reihenfolgen freigeben | M5.2 — **umgesetzt** (`order`-Knopf), Messung offen |
+
+Dazu kam M5.4 (Suchraum), der sich aus der Analyse zu Punkt 3 ergeben hat: umgesetzt und gemessen,
+Ergebnis differenziert (siehe unten).
+
+M5.2 stand bewusst hinten an, weil der Ordnungs-Knopf eine Kernel-Änderung braucht und die zentrale
+Annahme des flex-Kernels (Verzweigung über `ct.Constant`) zunächst unbestätigt war — ein zweiter
+ungeprüfter Kernel-Pfad hätte die Fehlersuche verschränkt. Nachdem die Annahme auf der GB10 bestätigt
+war, ließ sich der Knopf nach demselben Muster bauen.
+
+### M5.1 — Hybrid-Suche: Modell als Startpunkt, Messung als Entscheider (umgesetzt)
+
+Bisher war die Suche einstufig: Modell ranken, Top-7 messen, fertig. Das Modell entscheidet damit
+allein, welcher Teil des Raums überhaupt angefasst wird — und wir wissen aus M4, dass es als Ranker
+nichts taugt (Spearman ⌀ ~0). Neu ist ein zweiter, messgesteuerter Schritt: von der gemessen besten
+Top-7-Config aus achsenweise weitersuchen (Koordinatenabstieg über `m_prim`/`n_prim`, `k_prim`,
+`m_l2`, `n_l2`, Variante), bis sich in einem vollen Durchlauf nichts mehr ändert.
+
+Der Code liegt in `autotuner/strategies.py` und misst nicht selbst, sondern bekommt eine
+`measure`-Callback. Dadurch läuft dieselbe Implementierung gegen die GPU (`autotune.py`) und
+gegen die CSVs (`simulate_search.py`) — die Simulation ist also kein zweiter Nachbau, der
+auseinanderlaufen kann.
+
+Ausgewertet über die 16 vorhandenen Vollmessungen (GB10), jede „Messung" ein CSV-Lookup:
+
+| Strategie | Messungen | ⌀ Optimum-Ausbeute |
+|---|---|---|
+| Default-Config (kein Tuning) | 0 | 80.4 % |
+| Modell-Top-7 (bisher) | 7 | 96.9 % |
+| **Hybrid (Top-7 + Abstieg)** | **21** | **99.0 %** |
+| Vollmessung | 256 | 100 % |
+
+14 von 16 Shapes landen exakt auf dem Optimum. Damit ersetzt der Hybrid die in M3 beschriebene
+Mittelstufe (~top-90 messen, ~45 s für ≥ 99 %) bei rund einem Viertel der Kosten — die Leiter ist
+jetzt 7 / ~3 s / 97 %, 21 / ~10 s / 99 %, Vollmessung / ~3 min / 100 %.
+
+Die inhaltliche Aussage dahinter ist, dass Modell und Messung komplementär sind und keins allein
+reicht. Zwei Kontrollen zeigen das:
+
+- **Reiner Koordinatenabstieg ohne Modell** (Start bei der Default-Config) kommt auf 95.0 % bei 14
+  Messungen und ist damit *schlechter* als das bisherige Top-7. Er hängt am Startpunkt, und die
+  A05-Default-Config ist auf den Ring-Shapes miserabel (a06: 26 statt 60 TFLOPS) — von dort läuft
+  er in ein lokales Optimum (81.7 %).
+- **Abstieg ab Modell-#1** statt ab dem besten aus Top-7 liefert nur 93.4 %. Es braucht wirklich die
+  breitere Startbasis; das Modell trifft die #1 zu selten.
+
+Ehrlich dazugehört: **Multistart bringt nichts** (zwei Seeds statt einem: 99.0 % bei 32 statt 21
+Messungen — reiner Mehraufwand), und **`krumm` bleibt bei 86.3 %** hängen, egal welche Strategie.
+Dort liegt der Gewinner in einer Region, die achsenweise von keinem Top-7-Seed erreichbar ist. Die
+Achsen sind eben nicht unabhängig — `m_prim` und `m_l2` bestimmen gemeinsam das Padding. Deshalb
+werden `m_prim`/`n_prim` auch als *eine* Achse behandelt (einzeln läuft der Abstieg in 256×256 rein
+und bleibt dort stecken).
+
+Der Cache trägt jetzt mit, *wie* getunt wurde (`strategy`, `n_measured`). Ein mit `topk` erzeugter
+Eintrag bedient keine `hybrid`-Anfrage mehr — sonst liefert der Cache still das schlechtere Ergebnis.
+
+> **➡ Auf dem Server auszuführen:** `python autotune.py hybrid`. Schreibt `results/autotune_hybrid.csv`
+> + `.log` (mit `--wide` unter `autotune_hybrid_wide.*`, damit sich die Läufe nicht überschreiben).
+> Wie bei `tune.py` ist `results/` der Ordner, der nach dem Lauf zurückkopiert wird.
+
+**Auf der GB10 bestätigt: 99.1 % Auswahlgüte bei 22 Messungen** (Simulation hatte 99.0 % bei 21
+vorhergesagt), 4.5–11.7 s pro Shape statt ~2 min Vollmessung. Gemessen wurde in derselben Session wie
+der Referenz-Sweep (`results_dgx_v2/`).
+
+Wichtig ist dabei, *wie* man das vergleicht — hier steckt eine Falle, in die wir zuerst getappt sind.
+Vergleicht man die TFLOPS des Hybrid-Laufs direkt mit denen der Vollmessung, kommt man auf 99.5 % und
+der Hybrid liegt bei 9 von 16 Shapes scheinbar *über* der Vollmessung, teils um 4.6 %. Das ist
+strukturell unmöglich, weil die Vollmessung eine Obermenge misst.
+
+Die Ursache zeigt der direkte Test: nimmt man die vom Hybrid gewählte Config und schlägt nach, was
+*dieselbe Config* im Sweep erreicht hat, liegen die beiden Messungen im Mittel **1.4 % auseinander,
+im Extremfall 4.6 %** — gleiche GPU, gleicher Tag, gleiche Config. Der Grund ist die Lastdauer: der
+Hybrid misst 22 Configs in ~7 s, der Sweep 342 Configs in 100–250 s (35 min insgesamt). Die GB10
+teilt sich als integrierter LPDDR-Chip Power und Kühlung mit der CPU, unter Dauerlast fallen die
+Takte. Genau die Shapes mit dem größten Scheinvorsprung (a05 +4.6 %, a06_square +4.6 %) zeigen auch
+die größte Drift zwischen den beiden Vollmessungen (Median 0.947× bzw. 0.993×) — die sind am
+taktempfindlichsten. Über alle 4104 gemeinsamen Config-Paare stimmen die zwei Sweeps dagegen auf
+**100.0 %** überein: die Sweep-Methodik ist reproduzierbar, verzerrt ist nur der Vergleich *kurzer
+Lauf gegen langen Lauf*.
+
+**Konsequenz für alle TFLOPS-Vergleiche in diesem Projekt:** Zahlen aus Läufen unterschiedlicher
+Dauer sind auf dieser Hardware nicht direkt vergleichbar. Die belastbare Metrik ist die
+*Auswahlgüte* — die gewählte Config im Messrahmen des Sweeps gegen den Sweep-Besten, also ein
+Vergleich innerhalb einer Messreihe. Die ist mit 99.1 % praktisch identisch zur Simulation und damit
+das Ergebnis, das wir berichten.
+
+### M5.2 — Loop-Reihenfolgen als Suchachse (umgesetzt, Messung offen)
+
+`Optimizer.permute_dims` und `fuse_dims` stammen aus A05 und modellieren beliebige Dim-Reihenfolgen,
+aber der Tuner nutzt davon exakt zwei fest verdrahtete Ordnungen (Variante A/B); `fuse_dims` ist
+toter Code. Die Kernel lesen die Config gar nicht, sondern dekodieren `pid` hart.
+
+Dass Reihenfolge auf dieser Hardware zählt, lässt sich aus den vorhandenen Daten zeigen: bei
+quadratischen Shapes mit `m_prim == n_prim` ist `(m_l2=a, n_l2=b)` gegen `(m_l2=b, n_l2=a)` rein eine
+Frage der Swizzle-Richtung. Wäre sie egal, müsste das Verhältnis 1.00 sein — gemessen ist der Median
+**1.48× (a05)** bzw. 1.44× (square_1b), im Maximum 2.35×.
+
+Einen Teil davon greifen wir allerdings schon ab, weil `m_l2` und `n_l2` unabhängig gesucht werden;
+bei perfekt quadratischen Problemen wäre ein reiner Richtungs-Knopf sogar redundant. Wirklich neu
+sind drei Freiheitsgrade, die heute von keinem Knopf erreichbar sind:
+
+1. die äußere Gruppen-Traversierung (`n_l2_outer` läuft immer zuerst) — bestimmt den L2-Reuse
+   *zwischen* Swizzle-Gruppen,
+2. die Swizzle-Richtung bei rechteckigen Tiles (`m_prim ≠ n_prim`), wo Gruppenform und
+   Traversierungsrichtung unabhängig sind,
+3. die `s`/`k`-Verschachtelung im Ring-Kernel (fest `for s: for k:`).
+
+Umgesetzt als siebter Knopf `order`, zwei Bits im pid-Decode von `matmul_flex_a` und `matmul_ring_a`:
+Bit 0 = welche Achse die schnellste bid-Komponente ist (`n_l2` wie bisher, oder `m_l2`), Bit 1 = welche
+Gruppen-Achse außen zuerst läuft. `order=0` ist exakt das alte Verhalten, und der kanonische
+Standardfall bleibt auf dem erprobten `matmul_variant_a` — nur `order ≠ 0` (oder ein gedrehtes Layout)
+geht über den flex-Kernel. Für Variante B gibt es den Knopf nicht: dort sind `m_l2/n_l2` SEQ-Loops,
+also gar kein Swizzling über die bid.
+
+Der Suchraum wächst dadurch von 486 auf 1215 (Variante A ×4, B unverändert), nach Pruning 342 → 855.
+Aufrufbar über `python autotune.py hybrid --ordered`, kombinierbar mit `--wide` (dann 2880). Nicht
+Default, aus demselben Grund wie bei M5.4.
+
+Punkt (3), die `s`/`k`-Verschachtelung im Ring-Kernel, ist bewusst nicht dabei — das ist eine
+Schleifenordnung im Kernel, kein Block-Mapping, und gehört sauber getrennt untersucht.
+
+**Auf der GB10 gemessen: der Mechanismus ist groß, der Nutzen für den Tuner klein.**
+
+Der Beleg für den Mechanismus ist `a05`. Der `--ordered`-Lauf wählt dort `128/128/64, m_l2=2, n_l2=8`
+mit `order=2` und misst 67.9 TFLOPS. *Dieselben* Tiles stehen im Sweep bei `order=0` auf **44.7** —
+und zwar systematisch: alle `m_l2=2`-Zeilen liegen bei ~44.5, die `m_l2=8`-Zeilen bei ~63. Der Knopf
+macht aus einer der schlechtesten Gruppenformen die beste, **+52 % auf identischen Tiles**. Das passt
+mechanistisch: bei `m_l2=2` ist die Swizzle-Gruppe nur zwei Zeilen hoch, und die alte Außenreihenfolge
+läuft erst alle N-Gruppen durch, bevor M weiterrückt — schlechter A-Reuse. `order=2` dreht genau das um.
+
+Am Endergebnis des Tuners kommt davon aber wenig an: **+1.7 % im geometrischen Mittel** (Spanne
+97.1–105.1 %), `order ≠ 0` wird in 10 von 16 Shapes gewählt. Und diese Zahl ist *nicht belastbar* — die
+beiden Läufe liegen 90 Minuten auseinander, und dieselbe Config schwankt je nach Messrahmen um bis zu
+4.6 %. Ein 2-%-Effekt verschwindet darin.
+
+Das deckt sich mit der Vorhersage aus der Spiegel-Analyse: ein Teil des Ordnungseffekts war über
+`m_l2`/`n_l2` schon abgreifbar. Der Knopf öffnet vor allem *neue Wege zum selben Gipfel*, nicht einen
+höheren.
+
+**Die Kosten sind dagegen klar messbar:** 0.62 s statt 0.325 s pro Messung — der flex-Kernel
+kompiliert knapp doppelt so langsam wie `matmul_variant_a`. Mit 1.2× mehr Messungen ergibt das 2.3×
+Tuning-Zeit. Deshalb bleibt `--ordered` optional.
+
+> **➡ Offen, auf dem Server auszuführen:** `python measure_order.py` misst den Knopf isoliert —
+> dieselben Tiles, alle vier Ordnungen im Round-Robin direkt hintereinander, Median je Ordnung. Damit
+> hebt sich die Drift weg und man sieht den Effekt ohne den Konfundierer. ~1 min. Und auf der 3070,
+> wo `variant` mit 7.49× die wichtigste Achse überhaupt war, steht der eigentliche Test noch aus.
+
+### M5.3 — Einsum-Abdeckung: Layout-Guard und Kanonisierung (umgesetzt)
+
+Ausgangslage war eine stille Lücke: `parse_einsum` prüft, dass prim-K in beiden Inputs innerste
+K-Dim ist, aber nichts prüft M und N. Ein String wie `cmk,cnk->cmn` (B als NT) parste damit sauber,
+der Kernel las anschließend das falsche Layout, und das fiel erst beim `allclose` als „incorrect"
+auf — ununterscheidbar von einem echten Rechenfehler. Andere Strings crashten am Shape-Unpack.
+
+Neu ist `autotuner/layout.py` (reines Python, ohne cuTile): `plan_layout` entscheidet pro Einsum, ob
+sich die Shape gratis auf das biegen lässt, was die Kernel indizieren — und lehnt sonst mit
+Begründung ab. Der Plan hängt am `Candidate`, `run_candidate` wendet ihn an und macht ihn auf dem
+Ergebnis rückgängig.
+
+Die Unterscheidung, auf die es ankommt: **Umsortieren der Batch-Achsen ist gratis, Transponieren
+nicht.** Kein Vertauschen von Indizes ändert, was physisch stride-1 liegt. Also:
+
+| Einsum | vorher | jetzt |
+|---|---|---|
+| `cmk,ckn->cmn` (A05) | läuft | läuft (unverändert, 486 → 342) |
+| `acspx,bspy->abcyx` (A06) | läuft | läuft (unverändert, 243 → 171) |
+| `mk,kn->mn` | Crash (3D-Unpack auf 2D) | **läuft** — Dummy-Batch-Achse |
+| `bcmk,bckn->bcmn` | Crash (4D) | **läuft** — `b,c` fusioniert |
+| `bhqk,bhkd->bhqd` (Attention-Out) | Crash | **läuft** — `b,h` fusioniert |
+| `cmk,cnk->cmn` (NT) | rechnet falsch | **läuft** — flex-Kernel, `trans_b` |
+| `ckm,ckn->cmn` (TN) | rechnet falsch | **läuft** — flex-Kernel, `trans_a` |
+| `cmk,ckn->cnm` (Out transponiert) | rechnet falsch | **läuft** — flex-Kernel, `trans_c` |
+| `bhqd,bhkd->bhqk` (Attention-Scores) | rechnet falsch | **läuft** — flex-Kernel, `trans_b` |
+| `ckm,cnk->cnm` (alles gedreht) | rechnet falsch | **läuft** — flex-Kernel, `trans_abc` |
+| `mck,ckn->mcn` (Batch innen) | rechnet falsch | abgelehnt mit Begründung |
+
+Von zwei auf zehn laufende Familien. Das zerfällt in zwei verschiedene Mechanismen:
+
+**Batch-Achsen umsortieren ist gratis** (Fusion, Dummy-Achse) — reine `view()`-Operationen. Bewusst
+`view()` und nicht `reshape()`, weil `reshape` bei nicht-zusammenhängenden Tensoren still kopieren
+würde, und eine unsichtbare Kopie mitten im Benchmark wäre schlimmer als ein Fehler.
+
+**M/N/K umsortieren ist keine Umsortierung, sondern eine Transposition** und kostet deshalb einen
+Tile-Transpose im Kernel (`ct.permute` nach dem Laden, genau wie `matmul_ring_a`). Kein Vertauschen
+von Indizes ändert, was physisch stride-1 liegt. Das macht `matmul_flex_a` — ein *eigener* Kernel,
+nicht Flags in `matmul_variant_a`: der ist auf GB10 und 3070 erprobt, und ein Fehler im neuen Pfad
+soll ihn nicht mitreißen. Für gedrehte Layouts gibt es entsprechend nur Variante A (243 → 171
+Kandidaten statt 486 → 342), wie schon bei A06.
+
+Was weiterhin abgelehnt wird: Batch-Dims, die nicht außen stehen oder in den drei Tensoren
+unterschiedlich sortiert sind. Da hilft weder Reshape noch Tile-Transpose.
+
+Ein Detail, das sonst erst auf der GPU aufgefallen wäre: die Kernel geben `C_pad[:, :m, :n]` zurück,
+also einen nicht-zusammenhängenden Slice. Dass `view()` darauf noch geht (Batch-Achse aufspalten
+bzw. Dummy-Achse fallen lassen), ist im Selbsttest von `layout.py` mit echten Tensoren abgesichert.
+
+Die Abdeckungsliste steht als `COVERAGE` in `problems.py`, geprüft wird sie mit `check_coverage.py`:
+lokal nur die Layout-Entscheidung (`results/coverage.*`), mit `--run` auf der GPU zusätzlich tunen und
+gegen `torch.einsum` verifizieren, inklusive Output-Shape (`results/coverage_run.*`).
+
+**Auf der GB10 bestätigt** (`python check_coverage.py --run`): alle zehn unterstützten Fälle rechnen
+korrekt (Werte *und* Output-Shape gegen `torch.einsum`), der elfte wird sauber abgelehnt — 11 von 11
+wie erwartet. Die gedrehten Layouts liegen bei 33–40 TFLOPS, also in derselben Größenordnung wie der
+kanonische Pfad (37.8 auf derselben Shape); der Tile-Transpose kostet also nicht spürbar.
+
+Damit ist auch die einzige offene Kernel-Annahme geklärt: `matmul_flex_a` verzweigt über
+`if TRANS_A:` auf einer `ct.Constant`, wofür es in unseren 13 Kerneln keinen Präzedenzfall gab
+(`ct.permute` war belegt, die Verzweigung nicht). **cuTile löst sie beim Spezialisieren auf**, wie
+bei Triton mit `tl.constexpr`. Der vorbereitete Fallback (getrennte Kernel pro Flag-Kombination)
+wird nicht gebraucht.
+
+### M5.4 — Suchraum ist GB10-zentriert (umgesetzt, Messung offen)
+
+Prüft man, wo der Gewinner im Gitter sitzt, kleben auf der GB10 46 % aller Gewinner-Koordinaten auf
+einem Rand — auf der 3070 sind es **65 %**, und fast durchweg am *unteren*: `k_prim=32` (Minimum)
+gewinnt dort 8 von 16 Mal, `m_prim=64` 7 von 16, bei `krumm` sitzen alle fünf Achsen auf dem Rand.
+Das ist das klassische Zeichen für einen abgeschnittenen Raum, und die Erklärung ist methodisch: der
+Suchraum wurde auf der GB10 entworfen und passt zu ihr.
+
+Umgesetzt als `SearchSpace.wide()`: `M/N_PRIM ∈ {32, 64, 128, 256}` und `K_PRIM ∈ {16, 32, 64, 128}`
+(32 bleibt mit MMA-Alignment 16 sauber). Der Raum wächst von 486 auf 1152 Kandidaten, nach Pruning
+von 342 auf 954. Genau deshalb kam M5.1 zuerst: bei ~21 Messungen statt 342 ist ein größerer Raum
+billig — mit Vollmessung wäre er es nicht.
+
+Bewusst **nicht** der Default. Die bisherigen Messungen und die ganze Hybrid-Auswertung beziehen sich
+auf den engen Raum; ein stiller Wechsel würde die Vergleichbarkeit zerstören. Aufrufbar über
+`python autotune.py hybrid --wide`. Der Cache unterscheidet beide: ein im engen Raum getunter Eintrag
+hat die kleinen Tiles nie gesehen und bedient deshalb keine `--wide`-Anfrage (dieselbe Logik wie bei
+`topk` vs. `hybrid`).
+
+**Auf der GB10 gemessen: gezielt nützlich, pauschal nicht.** `--wide` bringt über die 16 Shapes im
+Mittel nichts (Spanne 97.1–146.4 %), kostet aber knapp doppelt so viele Messungen. In 7 von 16 Shapes
+wählt der weite Raum exakt dieselbe Config wie der enge; die Abweichungen nach unten liegen mit
+97–99 % innerhalb des oben beschriebenen Messrahmen-Effekts (der `--wide`-Lauf dauert länger und misst
+dadurch systematisch etwas niedriger).
+
+Der eine große Gewinn ist dafür sauber erklärbar. **`a06_krumm`: 20.4 → 29.9 TFLOPS (+46 %)**, und der
+weite Raum wählt dort `k_prim=16` statt 64. Die Shape hat `p = 48`: mit `k_prim ∈ {32,64,128}` musste
+auf 64 gepaddet werden, also 33 % Verschnitt auf der Reduktionsachse, während 48 = 3·16 exakt aufgeht.
+Derselbe Effekt in klein bei `a06_small_k` (ebenfalls `k_prim=16`, +2.5 %). Der Gewinn kommt also nicht
+daher, dass kleine Tiles „besser" wären, sondern daher, dass sie die Shape *teilen* — und das ist eine
+Bedingung, die man der Shape ansieht, ohne zu messen.
+
+Deshalb ist der nächste sinnvolle Schritt, den Raum **adaptiv** zu wählen (kleine `k_prim` dazunehmen,
+wenn `K % 32 ≠ 0`), statt ihn global zu verdoppeln. Auf der 3070, wo 65 % der Optima am unteren Rand
+klebten, steht die Messung noch aus.
+
+**Pfadabhängigkeit — gefunden und behoben.** Im ersten `--wide`-Lauf brach `a06` von 61.7 auf 49.2
+TFLOPS ein (−20 %). Das war kein Rauschen: ein größerer Raum ändert nicht nur die Auswahl, sondern
+auch die Modell-Top-7 und damit den Abstiegspfad, und der Greedy-Abstieg landete in einem anderen
+lokalen Optimum. **Ein größerer Suchraum kann den Hybrid also verschlechtern** — dieselbe
+Pfadabhängigkeit, die in M5.1 schon bei `krumm` sichtbar war, nur mit umgekehrtem Vorzeichen.
+
+Behoben über `extra_seeds`: ein Cache-Treffer, der für die aktuelle Anfrage zu schwach ist (enger
+Raum oder nur `topk`), taugt nicht als Antwort, aber sehr wohl als zusätzlicher Startpunkt. Damit kann
+ein Upgrade — `topk`→`hybrid` wie eng→weit — per Konstruktion nicht schlechter ausgehen als der Lauf
+davor. Kostet eine Messung. Im Lauf danach steht `a06` bei −0.3 % statt −20 %, und die Gesamtspanne
+schrumpfte von 79.7–150 % auf 97.1–146.4 %. Der Selbsttest in `strategies.py` baut den Fall nach
+(ohne Seed 70, mit Seed 100).
+
+### M5.5 — Welche Baseline ist fair? (Korrektur einer Kernaussage)
+
+Bis hierher war die Vergleichsbasis für den „Tuner-Gewinn" immer `DEFAULT_CONFIG`, also die aus A05
+übernommene Hand-Config `128/128/64, 8×8`. Beim Nachrechnen fällt auf, dass das die Ergebnisse
+systematisch zugunsten des Tuners verzerrt — am stärksten beim Cross-GPU-Vergleich, wo wir den
+Optimierungshebel als „auf der 3070 stärker (Ø 1.88×)" berichtet hatten.
+
+Reproduzierbar mit `baselines_study.py` (läuft lokal aus den Sweep-CSVs):
+
+| Baseline | Anteil am Per-Shape-Optimum | Tuner-Gewinn |
+|---|---|---|
+| A05-Default, übernommen (GB10) | 78.7 % | 1.271× |
+| feste Config für die GPU, oracle | 90.9 % | 1.100× |
+| feste Config, leave-one-out | **89.5 %** | **1.117×** |
+| A05-Default, übernommen (3070) | 39.1 % | 2.560× |
+| feste Config für die 3070 | 83.4 % | 1.199× |
+
+Leave-one-out (feste Config auf 15 Shapes wählen, auf der 16. bewerten) liegt bei 89.5 % gegen 90.9 %
+oracle — die Wahl ist also robust und kein Nachwissen-Artefakt.
+
+**Warum die A05-Config als Baseline nicht taugt.** Sie ist nicht „die GB10-Config", sondern die Config
+für *eine Shape*: auf ihrer Heimat-Shape a05 holt sie 97.2 % des Optimums, auf a06 nur 44 %. Der Grund
+ist die **Gruppen-Ausdehnung**, nicht die Tile-Größe: `m_l2·m_prim = 8·128 = 1024`, also werden M und N
+auf Vielfache von 1024 hochgepaddet. Bei a06 (x=1536, y=1152) ist das gepaddete Volumen dadurch das
+2.37-fache des echten.
+
+Die Gegenprobe rechnet auf: teilt man die Padding-Überhänge beider Baselines, sagt das den gemessenen
+Abstand fast exakt vorher — a06 vorhergesagt 1.78×, gemessen 1.77×; a06_tall 2.00× gegen 1.92×;
+krumm 1.33× gegen 1.25×. Auf glatt teilbaren Shapes (Padding beidseitig 1.00×) liegt die feste Config
+dagegen bei 0.95–1.00×, also leicht *schlechter* — genau wie es das Arithmetic-Intensity-Argument
+verlangt. Beide Richtungen stimmen.
+
+**Warum `128/128/64, 8×8` trotzdem eine vernünftige Wahl war.** Die Herleitung ist sauber, sie
+optimiert nur die falsche Größe: quadratische Tiles minimieren den Operanden-Traffic `(M+N)·K` bei
+gegebenem Akkumulator `M·N`; `128×128` fp32 sind 16384 Register (64 KB von 256 KB pro SM), lassen also
+vier Blöcke pro SM zu; das Operanden-SMEM liegt mit `(128·64 + 64·128)·2·2` bei 64 KB und passt ins
+100-KB-Opt-in; und `8×8` maximiert den L2-Reuse nach dem Triton-Grouping-Argument. Alles richtig — nur
+betrachtet diese Kette den *eingeschwungenen Zustand* und ignoriert die **Quantisierung** an den
+Rändern. Genau die entscheidet, sobald die Shape kein Vielfaches der Gruppenausdehnung ist.
+
+**Die neue Baseline** steht als `BASELINE_CONFIGS` in `problems.py`, eine feste Config pro GPU
+(GB10: `64/256/64, 8×2`; 3070: `64/256/32, 4×2`). Sie ist auch ohne Messung begründbar: der
+Akkumulator ist mit `64·256 = 16384` genau so groß wie bei `128×128`, kostet also dieselben Register —
+aber die Gruppenausdehnung halbiert sich auf 512×512. Man tauscht ~25 % Arithmetic Intensity gegen
+deutlich weniger Padding-Quantisierung, und über einen Shape-Mix zahlt sich das aus. `tune.py` berichtet
+ab jetzt gegen diese Baseline und führt die A05-Wahl nur noch als Nebenwert mit.
+
+**Was das für die Aussagen des Projekts heißt.** Der ehrliche Tuner-Gewinn auf der GB10 ist **1.12×**,
+nicht 1.27×. Der Cross-GPU-Hebel von 1.88× auf der 3070 misst zu rund zwei Dritteln, wie schlecht eine
+fremde Config passt — das ist eine legitime und sogar wichtige Aussage, aber es ist *eine andere* als
+„Per-Shape-Tuning bringt 1.88×". Sauber getrennt lauten die beiden:
+
+1. *Was kostet es, beim GPU-Wechsel nicht neu zu tunen?* → 2.56× auf der 3070. Das rechtfertigt den
+   GPU-Modell-Key im Cache.
+2. *Was bringt Per-Shape-Tuning gegen eine kompetent gewählte feste Config derselben Karte?* → 1.12×
+   (GB10) bzw. 1.20× (3070, nur zwei Shapes, daher schwach).
+
+Ein Argument bleibt dabei auf der Seite des Tuners: an die „kompetent gewählte feste Config" kommt man
+nur über einen vollen Multi-Shape-Sweep auf der Zielkarte — also genau die 35 Minuten, die der Tuner
+mit 22 Messungen pro Shape ersetzt. Als Mensch hat man sie realistisch nicht. Der wahre Wert liegt
+damit zwischen 1.12× und 1.27×.
 
 ## Offene Fragen (Auflösung)
 
@@ -487,6 +830,7 @@ Inzwischen ebenfalls erledigt:
 Cross-GPU (inzwischen erledigt):
 
 - **Auf GB10 und RTX 3070 gemessen** (`result_3070/`). Der Tuner läuft auf beiden korrekt; der
-  Optimierungshebel (Speedup Tuner/Default) wirkt auf beiden, auf der 3070 stärker (Ø 1.88× vs. 1.36×),
+  Optimierungshebel (Speedup Tuner/Default) wirkt auf beiden, auf der 3070 stärker (Ø 1.88× vs. 1.36×;
+  zur Einordnung dieser Zahl siehe M5.5),
   und die beste Config ist in 16/16 Shapes je GPU verschieden. Bei jedem GPU-Wechsel neu messen — genau
   das erledigt der Cache (Key inkl. GPU-Modell) automatisch.

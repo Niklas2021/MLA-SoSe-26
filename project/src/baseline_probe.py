@@ -31,11 +31,9 @@ from autotuner.search import (M_PRIM_CHOICES, N_PRIM_CHOICES, K_PRIM_CHOICES,
                               M_L2_CHOICES, N_L2_CHOICES)
 from problems import PROBLEMS, DEFAULT_CONFIG
 
-try:
-    from autotuner.device_props import get_device_properties
-    DEV = get_device_properties()
-except Exception:
-    from autotuner.device_props import GB10 as DEV
+from autotuner.device_props import resolve_device_properties
+
+DEV = resolve_device_properties()
 
 WARMUP, REP = 25, 100
 AXIS_VALUES = {"m_prim": M_PRIM_CHOICES, "n_prim": N_PRIM_CHOICES,

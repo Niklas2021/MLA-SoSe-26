@@ -15,11 +15,9 @@ from autotuner.einsum_parser import parse_einsum
 from autotuner.kernels import run_candidate
 from problems import PROBLEMS, DEFAULT_CONFIG, baseline_for
 
-try:
-    from autotuner.device_props import get_device_properties
-    DEV = get_device_properties()
-except Exception:
-    from autotuner.device_props import GB10 as DEV
+from autotuner.device_props import resolve_device_properties
+
+DEV = resolve_device_properties()
 
 WARMUP = 50    # ms-Budget fuer do_bench
 REP = 200

@@ -28,11 +28,8 @@ def main(run=False):
         from autotuner import strategies
         from autotuner.kernels import run_candidate
         from autotune import model_ranked, _batch_and_flops
-        try:
-            from autotuner.device_props import get_device_properties
-            dev = get_device_properties()
-        except Exception:
-            from autotuner.device_props import GB10 as dev
+        from autotuner.device_props import resolve_device_properties
+        dev = resolve_device_properties()
         if not torch.cuda.is_available():
             print("keine CUDA-GPU -- laeuft nur ohne --run")
             return

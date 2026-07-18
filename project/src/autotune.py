@@ -133,11 +133,8 @@ if __name__ == "__main__":
     import torch
     from autotuner import search as search_mod
     from problems import PROBLEMS
-    try:
-        from autotuner.device_props import get_device_properties
-        dev = get_device_properties()
-    except Exception:
-        from autotuner.device_props import GB10 as dev
+    from autotuner.device_props import resolve_device_properties
+    dev = resolve_device_properties()
     if not torch.cuda.is_available():
         print("keine CUDA-GPU")
         raise SystemExit(1)

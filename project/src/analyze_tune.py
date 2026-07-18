@@ -12,11 +12,12 @@ from problems import PROBLEMS, DEFAULT_CONFIG
 
 REG_FRACTION_V2 = 0.4
 DEFAULT_SIG = tuple(DEFAULT_CONFIG[k] for k in
-                    ("variant", "m_prim", "n_prim", "k_prim", "m_l2", "n_l2"))
+                    ("variant", "m_prim", "n_prim", "k_prim", "m_l2", "n_l2", "order"))
 
 
 def sig(c):
-    return (c.variant, c.m_prim, c.n_prim, c.k_prim, c.m_l2, c.n_l2)
+    return (c.variant, c.m_prim, c.n_prim, c.k_prim, c.m_l2, c.n_l2,
+            getattr(c, "order", 0))
 
 
 def batch_of(einsum, shapes):
@@ -38,7 +39,8 @@ def load_csv(name):
     meas = {}
     for r in csv.DictReader(open(path)):
         key = (r["variant"], int(r["m_prim"]), int(r["n_prim"]),
-               int(r["k_prim"]), int(r["m_l2"]), int(r["n_l2"]))
+               int(r["k_prim"]), int(r["m_l2"]), int(r["n_l2"]),
+               int(r.get("order") or 0))
         meas[key] = {"ms": float(r["ms"]), "tflops": float(r["tflops"]), "ok": int(r["ok"])}
     return meas
 

@@ -86,10 +86,17 @@ DEFAULT_CONFIG = dict(variant="A", m_prim=128, n_prim=128, k_prim=64, m_l2=8, n_
 # Padding-Quantisierung. Auf glatt teilbaren Shapes verliert man dadurch 0-5 %, auf
 # krummen gewinnt man 25-92 %.
 BASELINE_CONFIGS = {
+    # GB10: aus der Vollmessung (results_dgx_v2), 89.5 % im leave-one-out
     "NVIDIA GB10": dict(variant="A", m_prim=64, n_prim=256, k_prim=64,
                         m_l2=8, n_l2=2, order=0),
-    "NVIDIA GeForce RTX 3070": dict(variant="A", m_prim=64, n_prim=256, k_prim=32,
-                                    m_l2=4, n_l2=2, order=0),
+    # 3070: aus baseline_probe (results_3070_v2). Erreicht nur 75.9 % des
+    # Per-Shape-Optimums -- auf dieser Karte gibt es keine gute feste Config, die
+    # Optima liegen viel weiter auseinander als auf der GB10. Genau deshalb lohnt
+    # Per-Shape-Tuning hier mehr (1.32x statt 1.12x).
+    # Der frueher hier stehende Wert (64/256/32, 4x2) kam aus dem alten 3070-Sweep
+    # und war unbrauchbar: dort waren alle batch=1-Shapes 3-5x zu langsam gemessen.
+    "NVIDIA GeForce RTX 3070": dict(variant="A", m_prim=64, n_prim=128, k_prim=64,
+                                    m_l2=8, n_l2=2, order=0),
 }
 
 

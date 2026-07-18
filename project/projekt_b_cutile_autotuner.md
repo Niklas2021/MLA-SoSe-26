@@ -743,6 +743,32 @@ davor. Kostet eine Messung. Im Lauf danach steht `a06` bei −0.3 % statt −20 
 schrumpfte von 79.7–150 % auf 97.1–146.4 %. Der Selbsttest in `strategies.py` baut den Fall nach
 (ohne Seed 70, mit Seed 100).
 
+### M5.6 — Der alte 3070-Sweep ist für `batch=1` unbrauchbar
+
+Beim Gegenrechnen des zweiten 3070-Laufs (`results_3070_v2/`) fällt eine Diskrepanz auf, die
+ausschließlich die fünf Shapes mit `c = 1` trifft:
+
+| | square_1b | tall | wide | small_k | large_k | a05 (c=4) | krumm (c=2) | a06-Familie |
+|---|---|---|---|---|---|---|---|---|
+| alt (`result_3070/`) | 10.7 | 8.1 | 11.3 | 8.1 | 8.5 | 41.6 | 9.9 | 34.8–39.9 |
+| neu (`results_3070_v2/`) | 40.4 | 39.1 | 39.9 | 27.0 | 31.6 | 41.0 | 10.0 | 34.1–39.6 |
+| Faktor | 3.8× | 4.8× | 3.5× | 3.3× | 3.7× | 0.99× | 1.01× | 0.92–1.00× |
+
+Alles mit `c ≥ 2` stimmt auf ±13 % überein, alles mit `c = 1` liegt um 3.3–4.8× daneben. Dazu passt
+das Timing: im alten Lauf brauchten genau diese Shapes 9–14 s pro Config statt 0.5–2 s. Und die neuen
+Werte sind die plausibleren — ~40 TFLOPS liegen nahe am fp16-Tensor-Peak einer GA104, während 8–11
+TFLOPS als *bestes von 342 Configs* auffällig wenig sind. Die Ursache lässt sich nachträglich nicht
+mehr bestimmen (der alte Lauf lief unter WSL; kleine Grids plus Display-Kontext wären ein Kandidat).
+
+**Betroffene Aussagen.** Der Cross-GPU-Optimierungshebel „Ø 1.88× vs. 1.36×" und die Randtreffer-Analyse
+(„65 % der 3070-Optima am unteren Gitterrand") stützen sich beide auf diese Daten und sind damit nicht
+belastbar. Die Richtung stimmt weiterhin — der weite Suchraum bringt auf der 3070 tatsächlich +6.0 %,
+auf der GB10 nichts —, aber die konkreten Zahlen gehören ersetzt. Dafür bräuchte es einen frischen
+Voll-Sweep auf der 3070 (~3.5 h); bis dahin ist alles zur 3070 mit dieser Einschränkung zu lesen.
+
+Was davon *nicht* betroffen ist: die neuen Läufe (`results_3070_v2/`) selbst, die GB10-Ergebnisse und
+alle Aussagen zu M5.1–M5.3.
+
 ### M5.5 — Welche Baseline ist fair? (Korrektur einer Kernaussage)
 
 Bis hierher war die Vergleichsbasis für den „Tuner-Gewinn" immer `DEFAULT_CONFIG`, also die aus A05
@@ -758,7 +784,7 @@ Reproduzierbar mit `baselines_study.py` (läuft lokal aus den Sweep-CSVs):
 | feste Config für die GPU, oracle | 90.9 % | 1.100× |
 | feste Config, leave-one-out | **89.5 %** | **1.117×** |
 | A05-Default, übernommen (3070) | 39.1 % | 2.560× |
-| feste Config für die 3070 | 83.4 % | 1.199× |
+| feste Config für die 3070 | **75.9 %** | **1.317×** |
 
 Leave-one-out (feste Config auf 15 Shapes wählen, auf der 16. bewerten) liegt bei 89.5 % gegen 90.9 %
 oracle — die Wahl ist also robust und kein Nachwissen-Artefakt.
@@ -798,7 +824,11 @@ fremde Config passt — das ist eine legitime und sogar wichtige Aussage, aber e
 1. *Was kostet es, beim GPU-Wechsel nicht neu zu tunen?* → 2.56× auf der 3070. Das rechtfertigt den
    GPU-Modell-Key im Cache.
 2. *Was bringt Per-Shape-Tuning gegen eine kompetent gewählte feste Config derselben Karte?* → 1.12×
-   (GB10) bzw. 1.20× (3070, nur zwei Shapes, daher schwach).
+   (GB10) bzw. **1.32× (3070)**. Der Unterschied ist echt und hat einen Grund: auf der GB10 holt die
+   beste feste Config 89.5 % des Per-Shape-Optimums, auf der 3070 nur 75.9 %. Dort liegen die Optima
+   also viel weiter auseinander, und eine einzelne Config kann sie nicht abdecken — genau deshalb
+   lohnt Per-Shape-Tuning auf der kleineren Karte mehr. Das ist die belastbare Fassung der Aussage,
+   die wir vorher als „Ø 1.88×" berichtet hatten.
 
 Ein Argument bleibt dabei auf der Seite des Tuners: an die „kompetent gewählte feste Config" kommt man
 nur über einen vollen Multi-Shape-Sweep auf der Zielkarte — also genau die 35 Minuten, die der Tuner

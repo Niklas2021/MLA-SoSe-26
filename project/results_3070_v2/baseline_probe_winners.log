@@ -1,0 +1,42 @@
+=== Baseline-Sonde ===
+Zeit: 2026-07-18T17:56:04
+GPU: NVIDIA GeForce RTX 3070   Pool: winners
+
+Phase 1: Per-Shape-Gewinner (Hybrid)
+  a05            41.00 TFLOPS  A: m_prim=64 n_prim=256 k_prim=32 m_l2=2 n_l2=4
+  square_1b      40.41 TFLOPS  A: m_prim=64 n_prim=256 k_prim=32 m_l2=8 n_l2=2
+  tall           39.11 TFLOPS  A: m_prim=64 n_prim=256 k_prim=32 m_l2=8 n_l2=2
+  wide           39.87 TFLOPS  A: m_prim=64 n_prim=256 k_prim=32 m_l2=8 n_l2=2
+  small_k        27.01 TFLOPS  A: m_prim=64 n_prim=64 k_prim=32 m_l2=4 n_l2=4
+  large_k        31.56 TFLOPS  A: m_prim=64 n_prim=128 k_prim=32 m_l2=4 n_l2=8
+  krumm           9.96 TFLOPS  A: m_prim=256 n_prim=64 k_prim=32 m_l2=2 n_l2=8
+  batch16        29.51 TFLOPS  A: m_prim=128 n_prim=64 k_prim=128 m_l2=8 n_l2=8
+  a06            34.65 TFLOPS  A: m_prim=64 n_prim=128 k_prim=64 m_l2=8 n_l2=2
+  a06_square     35.27 TFLOPS  A: m_prim=128 n_prim=64 k_prim=32 m_l2=8 n_l2=8
+  a06_tall       37.29 TFLOPS  A: m_prim=128 n_prim=64 k_prim=64 m_l2=2 n_l2=8
+  a06_wide       38.76 TFLOPS  A: m_prim=64 n_prim=128 k_prim=64 m_l2=8 n_l2=2
+  a06_small_k    27.76 TFLOPS  A: m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=8
+  a06_large_k    39.56 TFLOPS  A: m_prim=128 n_prim=64 k_prim=32 m_l2=8 n_l2=8
+  a06_krumm      10.28 TFLOPS  A: m_prim=64 n_prim=256 k_prim=64 m_l2=8 n_l2=4
+  a06_batch      34.07 TFLOPS  A: m_prim=64 n_prim=128 k_prim=32 m_l2=8 n_l2=4
+
+Phase 2: 13 Kandidaten auf 16 Shapes = 208 Messungen
+
+Rang   Anteil  Config
+   1    75.9 %  m_prim=64 n_prim=128 k_prim=64 m_l2=8 n_l2=2 order=0 variant=A
+   2    68.7 %  m_prim=64 n_prim=128 k_prim=32 m_l2=4 n_l2=8 order=0 variant=A
+   3    67.0 %  m_prim=128 n_prim=64 k_prim=64 m_l2=2 n_l2=8 order=0 variant=A
+   4    60.2 %  m_prim=64 n_prim=64 k_prim=32 m_l2=4 n_l2=4 order=0 variant=A
+   5    55.2 %  m_prim=64 n_prim=128 k_prim=32 m_l2=8 n_l2=4 order=0 variant=A
+   6    53.2 %  m_prim=128 n_prim=128 k_prim=32 m_l2=8 n_l2=8 order=0 variant=A
+   7    45.4 %  m_prim=64 n_prim=256 k_prim=32 m_l2=2 n_l2=4 order=0 variant=A
+   8    43.9 %  m_prim=64 n_prim=256 k_prim=32 m_l2=8 n_l2=2 order=0 variant=A
+   9    41.7 %  m_prim=256 n_prim=64 k_prim=32 m_l2=2 n_l2=8 order=0 variant=A
+  10    38.7 %  m_prim=128 n_prim=64 k_prim=32 m_l2=8 n_l2=8 order=0 variant=A
+
+-> Eintrag fuer BASELINE_CONFIGS in problems.py:
+    "NVIDIA GeForce RTX 3070": dict(variant="A", m_prim=64, n_prim=128, k_prim=64,
+                          m_l2=8, n_l2=2, order=0),
+
+Gruppen-Ausdehnung: 512 x 256   Akkumulator: 8192 fp32
+Messungen gesamt: 582

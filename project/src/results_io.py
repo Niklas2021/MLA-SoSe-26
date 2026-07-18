@@ -14,9 +14,11 @@ def results_dir():
 def write_csv(name, header, rows):
     # csv.writer statt join: Einsum-Strings ("cmk,ckn->cmn") und Notizen enthalten
     # Kommas, die muessen gequotet werden, sonst verrutschen die Spalten
+    # lineterminator explizit: csv.writer nimmt sonst \r\n, und dann haben die neuen
+    # CSVs andere Zeilenenden als alles, was tune.py bisher geschrieben hat.
     path = os.path.abspath(os.path.join(results_dir(), name))
     with open(path, "w", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         w.writerow(header)
         for r in rows:
             w.writerow(["" if v is None else v for v in r])

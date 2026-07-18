@@ -1,0 +1,17 @@
+name,einsum,strategy,space_size,variant,m_prim,n_prim,k_prim,m_l2,n_l2,tflops,n_measured,wall_s
+a05,"cmk,ckn->cmn",hybrid,1152,A,128,128,64,8,4,65.424,26,12.47
+square_1b,"cmk,ckn->cmn",hybrid,1152,A,128,128,64,8,4,63.173,42,11.56
+tall,"cmk,ckn->cmn",hybrid,1152,A,128,128,64,8,8,62.671,24,6.54
+wide,"cmk,ckn->cmn",hybrid,1152,A,128,128,64,8,4,60.200,42,13.43
+small_k,"cmk,ckn->cmn",hybrid,1152,A,128,128,64,4,8,35.285,26,9.16
+large_k,"cmk,ckn->cmn",hybrid,1152,A,64,128,128,4,8,45.926,33,11.38
+krumm,"cmk,ckn->cmn",hybrid,1152,A,64,256,64,8,2,39.423,27,6.84
+batch16,"cmk,ckn->cmn",hybrid,1152,A,128,128,64,2,8,45.233,39,12.27
+a06,"acspx,bspy->abcyx",hybrid,1152,A,128,128,32,4,2,60.945,26,13.69
+a06_square,"acspx,bspy->abcyx",hybrid,1152,A,128,128,32,8,2,69.640,41,15.68
+a06_tall,"acspx,bspy->abcyx",hybrid,1152,A,128,128,32,2,2,67.879,42,19.29
+a06_wide,"acspx,bspy->abcyx",hybrid,1152,A,128,128,32,4,2,64.452,26,10.10
+a06_small_k,"acspx,bspy->abcyx",hybrid,1152,A,64,256,16,4,2,22.812,38,18.32
+a06_large_k,"acspx,bspy->abcyx",hybrid,1152,A,128,128,32,8,2,73.723,25,7.94
+a06_krumm,"acspx,bspy->abcyx",hybrid,1152,A,64,256,16,8,2,29.919,40,15.15
+a06_batch,"acspx,bspy->abcyx",hybrid,1152,A,128,128,32,8,8,62.345,22,12.03

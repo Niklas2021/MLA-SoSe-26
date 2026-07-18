@@ -1,0 +1,12 @@
+name,einsum,supported,expected,tflops,n_measured,status,note
+gemm_batch,"cmk,ckn->cmn",1,1,38.526,15,gerechnet,"A05-Form, ein Batch (Regression)"
+gemm_nobatch,"mk,kn->mn",1,1,51.029,15,gerechnet,kein Batch -> Dummy-Achse
+gemm_2batch,"bcmk,bckn->bcmn",1,1,17.972,17,gerechnet,zwei Batches -> fusioniert
+attn_out,"bhqk,bhkd->bhqd",1,1,8.425,17,gerechnet,"Attention-Output, b/h fusioniert"
+ring,"acspx,bspy->abcyx",1,1,59.469,14,gerechnet,A06-Form (Regression)
+gemm_nt,"cmk,cnk->cmn",1,1,36.881,22,gerechnet,"B als (N,K) -- NT"
+gemm_tn,"ckm,ckn->cmn",1,1,38.548,22,gerechnet,"A als (K,M) -- TN"
+gemm_outT,"cmk,ckn->cnm",1,1,39.272,20,gerechnet,Output transponiert
+attn_scores,"bhqd,bhkd->bhqk",1,1,5.893,20,gerechnet,"Attention-Scores, B als NT"
+gemm_all_t,"ckm,cnk->cnm",1,1,33.402,14,gerechnet,"A, B und C gedreht"
+batch_inner,"mck,ckn->mcn",0,0,,,abgelehnt,Batch-Dim nicht aussen

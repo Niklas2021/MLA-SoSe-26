@@ -8,5 +8,6 @@ Willkommen zur Projektdokumentation von MLA-SoSe-26.
    :caption: Inhalte
 
    assignments
+   project
    ai_usage
    slides

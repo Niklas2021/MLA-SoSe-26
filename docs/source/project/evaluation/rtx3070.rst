@@ -1,0 +1,58 @@
+Evaluation: RTX 3070
+====================
+
+.. Datenbasis: project/results_3070_v2/ (belastbar) und project/result_3070/
+   (erster Sweep, fuer batch=1 unbrauchbar -- siehe Methodik).
+   ACHTUNG beim Schreiben: dieses Kapitel kann NICHT dieselbe Tiefe haben wie das
+   GB10-Kapitel, weil es keinen belastbaren Voll-Sweep auf dieser Karte gibt.
+   Das offen sagen statt kaschieren -- und daraus keine Zahlen ableiten, die eine
+   Vollmessung braeuchten.
+
+Datenlage
+---------
+
+.. Inhalt:
+   - Was gemessen wurde: coverage_run, baseline_probe (inkl. Per-Shape-Hybrid ueber
+     alle 16 Shapes), order_isolated, autotune_hybrid_wide.
+   - Was NICHT vorliegt: ein belastbarer Voll-Sweep. Begruendung: der alte ist fuer
+     batch=1 defekt, ein neuer kostet 3.5 Stunden und wurde bewusst nicht gemacht.
+   - Konsequenz: statt "Anteil am Vollmessungs-Optimum" ist die Bezugsgroesse hier
+     das Per-Shape-Ergebnis des Hybrid.
+
+Portabilität von Kernel und Pipeline
+------------------------------------
+
+.. Inhalt:
+   - 11 von 11 Abdeckungsfaellen wie erwartet -- der flex-Kernel und alle zehn
+     Einsum-Familien laufen auch hier. Das ist der stabilste Befund dieses Kapitels
+     und belegt, dass die Erweiterung nicht GB10-spezifisch ist.
+   - Auch die cuTile-Annahme (Verzweigung ueber ct.Constant) traegt auf beiden
+     Karten.
+
+Ergebnisse
+----------
+
+.. Inhalt:
+   - Tabelle der 16 Per-Shape-Hybrid-Ergebnisse aus baseline_probe_winners.log.
+   - Die faire Baseline: 64/128/64 8x2, erreicht aber nur 75.9 % des
+     Per-Shape-Optimums (GB10: 89.5 %). Das ist DER Befund des Kapitels: auf dieser
+     Karte gibt es keine gute feste Config, die Optima liegen weit auseinander.
+   - Daraus der Tuner-Gewinn gegen eine faire Baseline: 1.32x.
+   - Ordnungs-Knopf isoliert: 1.012x -- weniger als auf der GB10, entgegen unserer
+     Vorhersage.
+   - Weiter Suchraum: +6.0 % im geometrischen Mittel, mit Ausreissern bis +33 %.
+     Hier traegt er, anders als auf der GB10.
+   - Die Auffaelligkeit bei tall (78.5 %) erklaeren: der Cache enthielt keine
+     engen Eintraege zum Seeden, also griff der Monotonie-Schutz nicht. Das ist
+     ein Bedienfehler von uns, kein Verfahrensfehler -- so benennen.
+
+Was aus dem alten Sweep nicht übernommen wird
+---------------------------------------------
+
+.. Inhalt:
+   - Explizit auflisten, welche frueheren 3070-Aussagen zurueckgezogen sind:
+     der Cross-GPU-Hebel "Ø 1.88x" und die Randtreffer-Analyse "65 % am unteren
+     Gitterrand".
+   - Warum: beide stuetzen sich auf die batch=1-Shapes des alten Laufs.
+   - Was von der Richtung bleibt (der weite Suchraum bringt auf der 3070 wirklich
+     etwas, das ist unabhaengig bestaetigt).

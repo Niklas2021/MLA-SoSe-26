@@ -7,6 +7,7 @@ from .config import Config, DimType, ExecType
 from .generate import generate_config
 from .optimizer import Optimizer
 from .einsum_parser import parse_einsum
+from .layout import plan_layout
 
 
 def ceildiv(a, b):
@@ -21,6 +22,21 @@ M_L2_CHOICES = [2, 4, 8]
 N_L2_CHOICES = [2, 4, 8]
 VARIANT_CHOICES = ["A", "B"]   # A = m_l2/n_l2 als PAR (swizzle), B = als SEQ-Loops
 
+# Reihenfolge-Knopf (M5.2): Bit 0 = welche Achse die schnellste bid-Komponente ist
+# (0 = n_l2, wie bisher), Bit 1 = welche Gruppen-Achse aussen zuerst laeuft
+# (0 = n_l2_outer, wie bisher). 0 ist also exakt das alte Verhalten.
+# Nur fuer Variante A sinnvoll -- bei B sind m_l2/n_l2 SEQ-Loops, da gibt es kein
+# Swizzling ueber die bid.
+ORDER_CHOICES = [0, 1, 2, 3]
+
+# Kleinere Tiles fuer GPUs, denen die obigen zu gross sind. Hintergrund: prueft man,
+# wo der Gewinner im Gitter sitzt, kleben auf der GB10 46 % der Gewinner-Koordinaten
+# auf einem Rand, auf der 3070 aber 65 % -- und fast alle am *unteren* (k_prim=32
+# gewinnt dort 8 von 16 Mal, m_prim=64 7 von 16). Der Raum wurde auf der GB10
+# entworfen und passt zu ihr. 32 bleibt mit MMA_ALIGN=16 sauber teilbar.
+WIDE_MN_PRIM_CHOICES = [32, 64, 128, 256]
+WIDE_K_PRIM_CHOICES = [16, 32, 64, 128]
+
 
 @dataclass
 class SearchSpace:
@@ -30,11 +46,32 @@ class SearchSpace:
     m_l2_choices:   list = field(default_factory=lambda: list(M_L2_CHOICES))
     n_l2_choices:   list = field(default_factory=lambda: list(N_L2_CHOICES))
     variants:       list = field(default_factory=lambda: list(VARIANT_CHOICES))
+    orders:         list = field(default_factory=lambda: [0])
 
     def size(self):
-        return (len(self.m_prim_choices) * len(self.n_prim_choices) *
-                len(self.k_prim_choices) * len(self.m_l2_choices) *
-                len(self.n_l2_choices) * len(self.variants))
+        # Reihenfolgen zaehlen nur fuer Variante A (B hat kein Swizzling)
+        tiles = (len(self.m_prim_choices) * len(self.n_prim_choices) *
+                 len(self.k_prim_choices) * len(self.m_l2_choices) *
+                 len(self.n_l2_choices))
+        n = 0
+        for v in self.variants:
+            n += tiles * (len(self.orders) if v == "A" else 1)
+        return n
+
+    @classmethod
+    def ordered(cls, **kw):
+        # mit allen vier Traversierungs-Reihenfolgen
+        return cls(orders=list(ORDER_CHOICES), **kw)
+
+    @classmethod
+    def wide(cls):
+        # Ausgangsraum plus kleinere Tiles (4x so gross). Bewusst NICHT der Default:
+        # die bisherigen Messungen und die Hybrid-Auswertung beziehen sich auf den
+        # engen Raum, ein stiller Wechsel waere nicht mehr vergleichbar. Lohnt sich,
+        # wo die Optima am unteren Rand kleben -- auf der 3070 deutlich.
+        return cls(m_prim_choices=list(WIDE_MN_PRIM_CHOICES),
+                   n_prim_choices=list(WIDE_MN_PRIM_CHOICES),
+                   k_prim_choices=list(WIDE_K_PRIM_CHOICES))
 
 
 @dataclass
@@ -52,13 +89,16 @@ class Candidate:
     padded_m: int        # so wie es in der Config steht
     padded_n: int
     padded_k: int
+    order: int = 0        # Traversierungs-Reihenfolge, 0 = wie bisher
     multi: bool = False   # A06-Fall (mehrere M/N/K) -> Ring-Kernel statt GEMM
     par_batch_extra: int = 1   # unabh. PAR-Batches, nicht im estimate_grid (A06: a*c*b)
     seq_batch: int = 1         # zusaetzliche SEQ-Reduktion (A06: s)
+    layout: object = None      # wie die Tensoren fuer den Kernel umzuformen sind
 
     def label(self):
+        ordr = f" order={self.order}" if self.order else ""
         return (f"{self.variant}: m_prim={self.m_prim} n_prim={self.n_prim} "
-                f"k_prim={self.k_prim} m_l2={self.m_l2} n_l2={self.n_l2}")
+                f"k_prim={self.k_prim} m_l2={self.m_l2} n_l2={self.n_l2}{ordr}")
 
 
 def _split_tracked(opt, labels, target_label, outer_size, inner_size,
@@ -72,7 +112,11 @@ def _split_tracked(opt, labels, target_label, outer_size, inner_size,
 
 
 def build_one_config(einsum_props, variant,
-                     m_prim, n_prim, k_prim, m_l2, n_l2):
+                     m_prim, n_prim, k_prim, m_l2, n_l2, layout=None, order=0):
+    # layout kommt aus enumerate_candidates (einmal geplant); direkte Aufrufer
+    # (candidate_from_config) lassen es weg und kriegen es hier.
+    if layout is None:
+        layout = plan_layout(einsum_props)
     # split_dim will exakte Teilbarkeit, also runden wir krumme Groessen hoch.
     # dim_sizes sind damit gepaddet, der Ueberhang wird im Kernel genullt.
     m_l2_outer = ceildiv(einsum_props.orig_m, m_prim * m_l2)
@@ -108,6 +152,12 @@ def build_one_config(einsum_props, variant,
         if einsum_props.is_multi():
             # der strict-Loop-Kernel deckt den Mehrdim-Fall (A06) nicht ab -> nur A
             raise NotImplementedError("Variante B nur fuer Single-M/N/K")
+        if layout.needs_transpose():
+            # gedrehte Layouts laufen ueber matmul_flex_a, und den gibt es nur als A
+            raise NotImplementedError("Variante B nur fuer kanonisches Layout")
+        if order:
+            # bei B sind m_l2/n_l2 SEQ-Loops -> kein Swizzling ueber die bid
+            raise NotImplementedError("Reihenfolge-Knopf nur fuer Variante A")
         # strict wie A05 task4b_strict: m_l2/n_l2 als SEQ
         target_order = (list(einsum_props.batch_chars) +
                         ["m_l2_outer", "n_l2_outer", "k_outer",
@@ -124,12 +174,14 @@ def build_one_config(einsum_props, variant,
     return Candidate(
         config=cfg, variant=variant,
         m_prim=m_prim, n_prim=n_prim, k_prim=k_prim, m_l2=m_l2, n_l2=n_l2,
+        order=order,
         orig_m=einsum_props.orig_m, orig_n=einsum_props.orig_n, orig_k=einsum_props.orig_k,
         padded_m=padded_m, padded_n=padded_n, padded_k=padded_k,
         multi=einsum_props.is_multi(),
         par_batch_extra=math.prod(einsum_props.size_of[c]
                                   for c in einsum_props.extra_m_chars + einsum_props.extra_n_chars),
         seq_batch=math.prod(einsum_props.size_of[c] for c in einsum_props.seq_k_chars),
+        layout=layout,
     )
 
 
@@ -139,6 +191,10 @@ def enumerate_candidates(einsum_str, input_shapes, space=None):
         space = SearchSpace()
     # einmal parsen -- die Ground Truth ist für alle Kandidaten gleich
     einsum_props = parse_einsum(einsum_str, input_shapes)
+    # Layout einmal vorab pruefen, ausserhalb der Schleife: UnsupportedLayout ist ein
+    # NotImplementedError und wuerde unten sonst 486x stumm geschluckt -> leere Liste
+    # statt einer klaren Meldung.
+    layout = plan_layout(einsum_props)
     candidates = []
     skipped = 0
     for variant in space.variants:
@@ -147,12 +203,13 @@ def enumerate_candidates(einsum_str, input_shapes, space=None):
                 for k_prim in space.k_prim_choices:
                     for m_l2 in space.m_l2_choices:
                         for n_l2 in space.n_l2_choices:
-                            try:
-                                candidates.append(build_one_config(
-                                    einsum_props, variant,
-                                    m_prim, n_prim, k_prim, m_l2, n_l2))
-                            except (ValueError, NotImplementedError):
-                                skipped += 1
+                            for order in space.orders:
+                                try:
+                                    candidates.append(build_one_config(
+                                        einsum_props, variant, m_prim, n_prim,
+                                        k_prim, m_l2, n_l2, layout, order))
+                                except (ValueError, NotImplementedError):
+                                    skipped += 1
     return candidates, skipped
 
 

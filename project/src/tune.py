@@ -3,30 +3,28 @@
 # Auf der GB10:  python tune.py            (alle Shapes)
 #                python tune.py a06        (nur Namen, die mit a06 anfangen)
 import datetime
-import os
 import sys
 import time
 
 import torch
 import triton.testing
 
+import results_io
 from autotuner.search import enumerate_candidates, prune
 from autotuner.einsum_parser import parse_einsum
 from autotuner.kernels import run_candidate
-from problems import PROBLEMS, DEFAULT_CONFIG
+from problems import PROBLEMS, DEFAULT_CONFIG, baseline_for
 
-try:
-    from autotuner.device_props import get_device_properties
-    DEV = get_device_properties()
-except Exception:
-    from autotuner.device_props import GB10 as DEV
+from autotuner.device_props import resolve_device_properties
+
+DEV = resolve_device_properties()
 
 WARMUP = 50    # ms-Budget fuer do_bench
 REP = 200
 
 
 def sig(c):
-    return (c.variant, c.m_prim, c.n_prim, c.k_prim, c.m_l2, c.n_l2)
+    return (c.variant, c.m_prim, c.n_prim, c.k_prim, c.m_l2, c.n_l2, c.order)
 
 
 def flops_and_batch(einsum, shapes):
@@ -90,11 +88,16 @@ def sweep_problem(problem, log):
     n_fail = len(kept) - len(good)
     if good:
         best = good[0]
-        default = results.get(tuple(DEFAULT_CONFIG[k] for k in
-                              ("variant", "m_prim", "n_prim", "k_prim", "m_l2", "n_l2")))
+        keys = ("variant", "m_prim", "n_prim", "k_prim", "m_l2", "n_l2", "order")
+        # zwei Baselines: die faire (feste Config fuer DIESE GPU) und die naiv
+        # uebernommene A05-Wahl. Der Unterschied ist gross und gehoert benannt.
+        base = results.get(tuple(baseline_for(DEV.gpu_name)[k] for k in keys))
+        default = results.get(tuple(DEFAULT_CONFIG[k] for k in keys))
         gain = ""
-        if default and default["ok"]:
-            gain = f", Default {default['tflops']:.1f} -> Gewinn {best['tflops']/default['tflops']:.3f}x"
+        if base and base["ok"]:
+            gain = f", Baseline {base['tflops']:.1f} -> Gewinn {best['tflops']/base['tflops']:.3f}x"
+        if default and default["ok"] and default is not base:
+            gain += f" (A05-Default {default['tflops']:.1f} -> {best['tflops']/default['tflops']:.3f}x)"
         log(f"best {best['tflops']:.2f} TFLOPS | {best['cand'].label()}{gain}")
         log(f"torch.einsum {torch_tflops:.2f} TFLOPS -> Tuner {best['tflops']/torch_tflops:.2f}x")
     log(f"{len(good)} ok, {n_fail} fehlgeschlagen/inkorrekt   Sweep-Wall-Clock {wall:.1f} s")
@@ -139,28 +142,20 @@ def main():
     _write_log(lines, log_name)
 
 
-def _results_dir():
-    d = os.path.join(os.path.dirname(__file__), "..", "results")
-    os.makedirs(d, exist_ok=True)
-    return d
-
-
 def _write_csv(results, name):
-    path = os.path.abspath(os.path.join(_results_dir(), f"tune_{name}.csv"))
-    with open(path, "w") as f:
-        f.write("variant,m_prim,n_prim,k_prim,m_l2,n_l2,ok,ms,tflops,note\n")
-        for r in results.values():
-            c = r["cand"]
-            f.write(f"{c.variant},{c.m_prim},{c.n_prim},{c.k_prim},{c.m_l2},"
-                    f"{c.n_l2},{int(r['ok'])},{r['ms']:.5f},{r['tflops']:.3f},{r['note']}\n")
-    print(f"[CSV: {path}]")
+    rows = []
+    for r in results.values():
+        c = r["cand"]
+        rows.append([c.variant, c.m_prim, c.n_prim, c.k_prim, c.m_l2, c.n_l2,
+                     c.order, int(r["ok"]), f"{r['ms']:.5f}", f"{r['tflops']:.3f}",
+                     r["note"]])
+    results_io.write_csv(f"tune_{name}.csv",
+                         ["variant", "m_prim", "n_prim", "k_prim", "m_l2", "n_l2",
+                          "order", "ok", "ms", "tflops", "note"], rows)
 
 
 def _write_log(lines, name="study.log"):
-    path = os.path.abspath(os.path.join(_results_dir(), name))
-    with open(path, "w") as f:
-        f.write("\n".join(lines) + "\n")
-    print(f"[Log: {path}]")
+    results_io.write_log(lines, name)
 
 
 if __name__ == "__main__":

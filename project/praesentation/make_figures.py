@@ -11,8 +11,9 @@ import math
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "..", "src")
-RESULTS = os.path.join(HERE, "..", "result_dgx")           # GB10
-R3070 = os.path.join(HERE, "..", "result_3070", "src", "results")   # RTX 3070
+RESULTS = os.path.join(HERE, "..", "results_dgx_v2")       # GB10
+RESULTS_V1 = os.path.join(HERE, "..", "result_dgx_v1")     # nur noch fuer hand_a06
+R3070 = os.path.join(HERE, "..", "result_3070", "src", "results")   # RTX 3070 (v1)
 R3070_ALT = os.path.join(HERE, "..", "result_3070", "results")      # large_k liegt hier
 FIGDIR = os.path.join(HERE, "figures")
 sys.path.insert(0, SRC)
@@ -63,9 +64,9 @@ def _clean(ax, grid_axis="y"):
 
 
 def _save(fig, name):
+    # nur PNG -- build_pptx und die Doku lesen beide PNG, die SVGs hat nie jemand benutzt
     os.makedirs(FIGDIR, exist_ok=True)
-    for ext in ("png", "svg"):
-        fig.savefig(os.path.join(FIGDIR, f"{name}.{ext}"), bbox_inches="tight", pad_inches=0.15)
+    fig.savefig(os.path.join(FIGDIR, f"{name}.png"), bbox_inches="tight", pad_inches=0.15)
     plt.close(fig)
     print("  ->", name)
 
@@ -76,34 +77,84 @@ def _save(fig, name):
 # (label, default, tuner_top7, bench_best, torch)
 # Default = naive 8x8 · Tuner = bester der Modell-Top-7 (was der Tuner praktisch liefert)
 # Bench Best = bestes von 342/171 gemessenen Configs (Voll-Sweep-Optimum) · torch = cuBLAS
+#
+# Die Zahlen standen hier frueher als Konstanten und sind beim Wechsel v1 -> v2 still
+# veraltet (torch bei "wide" z.B. 80.5 -> 66.0). Jetzt wird alles aus RESULTS gezogen:
+# default/bench/torch aus study.log, top-7 aus tune_*.csv ueber dasselbe rank() wie im Tuner.
 C_TOP7  = "#3987e5"   # Tuner-Pick (top-7) -> mittleres Blau
 C_BENCH = "#12386b"   # Bench Best (voller Sweep) -> dunkles Blau (Decke)
-A05 = [
-    ("a05\n(square,b4)", 63.9, 63.9, 65.49, 63.09),
-    ("square\nb1",       61.8, 61.8, 63.97, 80.34),
-    ("tall\nM≫N",        62.6, 62.6, 63.32, 82.80),
-    ("wide\nN≫M",        60.0, 60.0, 60.98, 80.51),
-    ("small_k",          35.8, 35.8, 36.14, 58.92),
-    ("large_k",          42.7, 45.0, 45.83, 68.89),
-    ("krumm\n(padding)", 26.6, 35.6, 41.83, 49.45),
-    ("batch16",          45.6, 45.6, 46.30, 62.39),
-]
-A06 = [
-    ("a06\n(Referenz)",  26.3, 59.8, 59.83, 60.22),
-    ("square\nx=y",      58.6, 64.3, 66.65, 46.82),
-    ("tall\nx≫y",        31.0, 67.4, 68.02, 17.24),
-    ("wide\ny≫x",        26.9, 59.6, 66.45, 51.14),
-    ("small_k",          18.5, 22.8, 22.76, 38.33),
-    ("large_k",          62.5, 68.7, 73.34, 27.73),
-    ("krumm\n(padding)", 14.3, 20.9, 20.92, 54.70),
-    ("batch\n(a8c4b8)",  54.3, 61.6, 61.58, 76.07),
-]
-# Handkernel (A06): von Hand getunt wurde nur die Referenz-Shape. Hier das feste
-# Referenz-Tiling (run_ring_a, 128/128/64, m_l2=2 n_l2=3) auf JEDER Shape gemessen
-# (result_dgx/hand_a06.csv, kind=fixed, gleiche do_bench-Methodik wie study.log). Auf a06
-# ergibt das 46.5 (das Assignment berichtete aus einem aelteren Lauf 49.84). Der Tuner
-# schlaegt dieses feste Tiling in allen 8 Regimen -- es passt nur auf die Referenz gut.
-A06_HAND = [46.5, 44.6, 42.0, 44.7, 16.2, 57.0, 12.0, 42.7]
+
+A05_LABELS = [("a05", "a05\n(square,b4)"), ("square_1b", "square\nb1"),
+              ("tall", "tall\nM≫N"), ("wide", "wide\nN≫M"),
+              ("small_k", "small_k"), ("large_k", "large_k"),
+              ("krumm", "krumm\n(padding)"), ("batch16", "batch16")]
+A06_LABELS = [("a06", "a06\n(Referenz)"), ("a06_square", "square\nx=y"),
+              ("a06_tall", "tall\nx≫y"), ("a06_wide", "wide\ny≫x"),
+              ("a06_small_k", "small_k"), ("a06_large_k", "large_k"),
+              ("a06_krumm", "krumm\n(padding)"), ("a06_batch", "batch\n(a8c4b8)")]
+
+
+def _parse_study_log():
+    # study.log -> name: (default, bench_best, torch)
+    import re
+    out = {}
+    for blk in open(os.path.join(RESULTS, "study.log")).read().split("--- ")[1:]:
+        name = blk.split()[0]
+        best = re.search(r"best ([\d.]+) TFLOPS", blk)
+        dflt = re.search(r"Default ([\d.]+)", blk)
+        tor = re.search(r"torch\.einsum ([\d.]+) TFLOPS", blk)
+        if best and dflt and tor:
+            out[name] = (float(dflt.group(1)), float(best.group(1)), float(tor.group(1)))
+    return out
+
+
+def _build_rows(labels):
+    # top-7 = bester der ersten 7 nach rank() -- das, was der Tuner praktisch liefert
+    from analyze_tune import load_csv, batch_of, sig, _pool
+    from autotuner.search import enumerate_candidates, prune, rank
+    from autotuner.device_props import GB10
+    from problems import PROBLEMS
+
+    study = _parse_study_log()
+    byname = {p["name"]: p for p in PROBLEMS}
+    rows = []
+    for name, label in labels:
+        p = byname[name]
+        meas = load_csv(name)
+        ok = {s: m["tflops"] for s, m in meas.items() if m["ok"]}
+        cands, _ = enumerate_candidates(p["einsum"], p["shapes"])
+        kept, _ = prune(cands, GB10)
+        pool = _pool(kept, meas, reg_clean=True)
+        batch = batch_of(p["einsum"], p["shapes"])
+        order = [sig(c) for c, _ in rank(pool, GB10, batch=batch, model="bw")]
+        top7 = max(ok[s] for s in order[:7])
+        default, bench, torch = study[name]
+        rows.append((label, default, top7, bench, torch))
+    return rows
+
+
+A05 = _build_rows(A05_LABELS)
+A06 = _build_rows(A06_LABELS)
+
+
+def _hand_a06():
+    # Handkernel: von Hand getunt wurde nur die Referenz-Shape. Das feste Referenz-Tiling
+    # (run_ring_a, 128/128/64, m_l2=2 n_l2=3) auf JEDER Shape gemessen, kind=fixed.
+    # Fuer v2 nicht neu gemessen -- ohne die Datei bleiben die Balken leer statt geraten.
+    import csv
+    path = os.path.join(RESULTS, "hand_a06.csv")
+    if not os.path.exists(path):
+        return [None] * len(A06_LABELS)
+    best = {}
+    for r in csv.DictReader(open(path)):
+        if r.get("ok") not in ("1", "True", "true"):
+            continue
+        n = r.get("name") or r.get("problem")
+        best[n] = max(best.get(n, 0.0), float(r["tflops"]))
+    return [best.get(n) for n, _ in A06_LABELS]
+
+
+A06_HAND = _hand_a06()
 
 
 def grouped_bars(data, title, fname, note, hand=None):
@@ -153,27 +204,41 @@ def grouped_bars(data, title, fname, note, hand=None):
 
 
 def fig_a06_ladder():
-    # Referenz-Shape a06: die ehrliche Leiter Default -> Hand -> Tuner ~ torch
-    names  = ["Default\n(8×8)", "Handkernel\n(A06)", "Tuner", "torch.einsum"]
-    vals   = [26.3, 46.5, 59.83, 60.22]
-    cols   = [C_DEFAULT, C_HAND, C_TUNER, C_TORCH]
+    # Referenz-Shape a06: die ehrliche Leiter Default -> Hand -> Tuner ~ torch.
+    # Ohne hand_a06.csv faellt die Hand-Stufe raus (in v2 nicht nachgemessen).
+    _, default, top7, _, torch = A06[0]
+    hand = A06_HAND[0]
+    names = ["Default\n(8×8)"] + (["Handkernel\n(A06)"] if hand else []) + ["Tuner", "torch.einsum"]
+    vals  = [default] + ([hand] if hand else []) + [top7, torch]
+    cols  = [C_DEFAULT] + ([C_HAND] if hand else []) + [C_TUNER, C_TORCH]
     fig, ax = plt.subplots(figsize=(6.6, 5.2))
     bars = ax.bar(names, vals, color=cols, width=0.62)
     for b, v in zip(bars, vals):
         ax.annotate(f"{v:.1f}", (b.get_x() + b.get_width() / 2, v),
                     textcoords="offset points", xytext=(0, 4), ha="center",
                     va="bottom", fontsize=13, fontweight="bold", color=INK)
-    # +29% Klammer zwischen Hand und Tuner (59.83 / 46.5)
-    ax.annotate("", xy=(2, 59.83), xytext=(1, 46.5),
-                arrowprops=dict(arrowstyle="->", color=INK2, lw=1.4))
-    ax.text(1.5, 55, "+29 %", ha="center", color=INK, fontsize=12, fontweight="bold")
+    if hand:
+        ax.annotate("", xy=(2, top7), xytext=(1, hand),
+                    arrowprops=dict(arrowstyle="->", color=INK2, lw=1.4))
+        ax.text(1.5, (hand + top7) / 2 + 2, f"+{(top7 / hand - 1) * 100:.0f} %",
+                ha="center", color=INK, fontsize=12, fontweight="bold")
+    else:
+        # ohne Handkernel bleibt der Default-Sprung die Aussage
+        ax.annotate("", xy=(1, top7), xytext=(0, default),
+                    arrowprops=dict(arrowstyle="->", color=INK2, lw=1.4))
+        ax.text(0.5, (default + top7) / 2 + 2, f"{top7 / default:.2f}×",
+                ha="center", color=INK, fontsize=12, fontweight="bold")
     ax.set_ylabel("TFLOPS")
-    ax.set_ylim(0, 72)
-    ax.set_title("A06-Referenz: der Tuner schlägt den Handkernel\nund liegt gleichauf mit torch",
-                 loc="left", color=INK, pad=12, fontsize=15)
+    ax.set_ylim(0, max(vals) * 1.20)
+    title = ("A06-Referenz: der Tuner schlägt den Handkernel\nund liegt gleichauf mit torch"
+             if hand else
+             "A06-Referenz: der Tuner holt den Default ein\nund liegt gleichauf mit torch")
+    ax.set_title(title, loc="left", color=INK, pad=12, fontsize=15)
     _clean(ax)
-    ax.text(0, -0.16, "GB10 · study.log · fp16 · acspx,bspy→abcyx  (4,3,64,64,1536)×(4,64,64,1152)",
-            transform=ax.transAxes, fontsize=9, color=MUTED)
+    note = "GB10 · study.log · fp16 · acspx,bspy→abcyx  (4,3,64,64,1536)×(4,64,64,1152)"
+    if not hand:
+        note += "\nHandkernel-Vergleich fehlt: hand_a06.csv wurde für v2 nicht nachgemessen"
+    ax.text(0, -0.16, note, transform=ax.transAxes, fontsize=9, color=MUTED)
     _save(fig, "fig_a06_ladder")
 
 
@@ -207,7 +272,10 @@ def fig_tuner_vs_torch():
     ax.text(math.log2(0.95), len(rows) - 0.3, "← torch schneller", color=NEG, fontsize=11,
             fontweight="bold", ha="right")
     _clean(ax, grid_axis="x")
-    ax.text(0, -0.115, "GB10 · study.log · geom. Mittel A05 ~0.77× · A06 ~1.17×",
+    geo = lambda rs: math.exp(sum(math.log(r) for r in rs) / len(rs))
+    g05 = geo([d[3] / d[4] for d in A05])
+    g06 = geo([d[3] / d[4] for d in A06])
+    ax.text(0, -0.115, f"GB10 · study.log · geom. Mittel A05 ~{g05:.2f}× · A06 ~{g06:.2f}×",
             transform=ax.transAxes, fontsize=9.5, color=MUTED)
     _save(fig, "fig_tuner_vs_torch")
 
@@ -287,10 +355,39 @@ def fig_topk_curve():
 
 
 def fig_ranking_models():
-    # (name, subtitle, spearman, top7-Ausbeute %, farbe, offset(pt), ha, va)
-    models = [("bw · Bandbreite", 0.03, 83.0, C_DEFAULT, (14, -4), "left", "top"),
-              ("v2 · bw + Reg-Filter", 0.38, 97.8, C_TUNER, (0, 15), "center", "bottom"),
-              ("roofline · max(mem, compute)", 0.50, 85.5, C_TORCH, (0, -16), "center", "top")]
+    # Spearman und top-7-Ausbeute ueber alle 16 Shapes gemittelt -- dieselbe Rechnung
+    # wie analyze_tune.main(), nur hier zusammengefasst.
+    from analyze_tune import load_csv, batch_of, model_eval
+    from autotuner.search import enumerate_candidates, prune
+    from autotuner.device_props import GB10
+    from problems import PROBLEMS
+
+    acc = {"bw": [], "v2": [], "roof": []}
+    for p in PROBLEMS:
+        meas = load_csv(p["name"])
+        if not meas:
+            continue
+        cands, _ = enumerate_candidates(p["einsum"], p["shapes"])
+        kept, _ = prune(cands, GB10)
+        batch = batch_of(p["einsum"], p["shapes"])
+        for key, kw in (("bw", dict(model="bw")),
+                        ("v2", dict(model="bw", reg_clean=True)),
+                        ("roof", dict(model="roofline"))):
+            r = model_eval(kept, meas, batch, **kw)
+            if r:
+                acc[key].append((r["spearman"], r["topk_frac"] * 100))
+
+    def avg(key):
+        rows = acc[key]
+        return (sum(s for s, _ in rows) / len(rows), sum(t for _, t in rows) / len(rows))
+
+    sp_bw, tk_bw = avg("bw")
+    sp_v2, tk_v2 = avg("v2")
+    sp_rf, tk_rf = avg("roof")
+    # (name, spearman, top7-Ausbeute %, farbe, offset(pt), ha, va)
+    models = [("bw · Bandbreite", sp_bw, tk_bw, C_DEFAULT, (14, -4), "left", "top"),
+              ("v2 · bw + Reg-Filter", sp_v2, tk_v2, C_TUNER, (0, 15), "center", "bottom"),
+              ("roofline · max(mem, compute)", sp_rf, tk_rf, C_TORCH, (0, -16), "center", "top")]
     fig, ax = plt.subplots(figsize=(9.0, 5.8))
     for name, sp, top, col, off, ha, va in models:
         ax.scatter([sp], [top], s=360, color=col, zorder=5, edgecolor="white", linewidth=1.5)
@@ -300,10 +397,16 @@ def fig_ranking_models():
                     fontweight="bold" if ha == "center" else "normal")
     ax.set_xlabel("Spearman-Korrelation  (Modell vs. Messung)")
     ax.set_ylabel("Top-7-Ausbeute  (% vom Optimum)")
-    ax.set_xlim(-0.05, 0.63)
-    ax.set_ylim(78, 104)
+    sps = [m[1] for m in models]
+    tks = [m[2] for m in models]
+    ax.set_xlim(min(sps) - 0.10, max(sps) + 0.15)
+    ax.set_ylim(min(tks) - 6, min(104, max(tks) + 6))
     ax.set_title("Besserer Ranker ≠ besserer Vorfilter", loc="left", color=INK, pad=24)
-    ax.text(0, 1.02, "roofline korreliert am besten (+0.50), aber v2 filtert am besten (98 % @ top-7)",
+    best_sp = max(models, key=lambda m: m[1])
+    best_tk = max(models, key=lambda m: m[2])
+    ax.text(0, 1.02, f"{best_sp[0].split(' · ')[0]} korreliert am besten ({best_sp[1]:+.2f}), "
+                     f"aber {best_tk[0].split(' · ')[0]} filtert am besten "
+                     f"({best_tk[2]:.0f} % @ top-7)",
             transform=ax.transAxes, fontsize=11.5, color=INK2)
     _clean(ax)
     ax.text(0, -0.135, "16 Shapes (A05+A06) · analyze_tune.py",
@@ -465,6 +568,10 @@ def fig_regimes():
 def fig_crossgpu_lever():
     # Absolute TFLOPS der GB10 und 3070 sind nicht vergleichbar (andere Peak/BW/L2).
     # Vergleichbar ist der OPTIMIERUNGSHEBEL: Speedup Tuner/Default pro Shape.
+    #
+    # BEIDE Seiten aus v1: fuer die 3070 gibt es keinen v2-Sweep, und der Speedup hat
+    # den Default im Nenner -- genau der wurde fuer v2 korrigiert. GB10-v2 gegen
+    # 3070-v1 waere ein Baseline-Artefakt. Lieber eine konsistente alte Kampagne.
     from problems import PROBLEMS
     a05 = [p["name"] for p in PROBLEMS if not p["name"].startswith("a06")]
     a06 = [p["name"] for p in PROBLEMS if p["name"].startswith("a06")]
@@ -476,7 +583,7 @@ def fig_crossgpu_lever():
              "a06_batch": "batch"}
     gb_sp, r_sp, labels, splitpos = [], [], [], len(a05)
     for n in order:
-        g = _load_csv_dir(RESULTS, n)
+        g = _load_csv_dir(RESULTS_V1, n)
         r = _load_csv_dir(R3070, n) or _load_csv_dir(R3070_ALT, n)
         gb_sp.append(_lever(g)[0] if g else float("nan"))
         r_sp.append(_lever(r)[0] if r else float("nan"))
@@ -527,7 +634,8 @@ def fig_crossgpu_lever():
     ax.legend(ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.16))
     _clean(ax)
     ax.text(0, -0.30, "relativer Speedup (unitless) — absolute TFLOPS beider Karten sind nicht "
-            "vergleichbar · beste Config in 16/16 Shapes je GPU verschieden",
+            "vergleichbar · beste Config in 16/16 Shapes je GPU verschieden\n"
+            "beide Karten aus der v1-Kampagne (alte Baseline) — nur Vortrag, nicht in der Doku",
             transform=ax.transAxes, fontsize=9.5, color=MUTED)
     _save(fig, "fig_crossgpu_lever")
 
@@ -766,25 +874,189 @@ def fig_tiling():
     _save(fig, "fig_tiling")
 
 
+# ============================================================
+#  Doku-Figuren (Erweiterungen). Quellen: results_*_v2/*.csv
+# ============================================================
+
+def _read_csv(path):
+    import csv
+    if not os.path.exists(path):
+        return []
+    return list(csv.DictReader(open(path)))
+
+
+def fig_hybrid_vs_sweep():
+    # Hybrid misst ~20-30 Configs statt 342/171 und landet innerhalb weniger Prozent
+    # am Voll-Sweep-Optimum. Dass er es teils UEBERtrifft, ist Session-Rauschen --
+    # gleicher Suchraum, anderer Lauf. Genau deshalb sind Cross-Run-Vergleiche heikel.
+    rows = _read_csv(os.path.join(RESULTS, "autotune_hybrid.csv"))
+    if not rows:
+        print("  (uebersprungen: autotune_hybrid.csv fehlt)")
+        return
+    sweep = {n: b for (n, _), (_, _, _, b, _) in zip(A05_LABELS, A05)}
+    sweep.update({n: b for (n, _), (_, _, _, b, _) in zip(A06_LABELS, A06)})
+
+    names, ratios, measured = [], [], []
+    for r in rows:
+        n = r["name"]
+        if n not in sweep:
+            continue
+        names.append(n)
+        ratios.append(float(r["tflops"]) / sweep[n] * 100)
+        measured.append(int(r["n_measured"]))
+
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(13.2, 6.0),
+                                  gridspec_kw=dict(width_ratios=[2.4, 1]))
+    y = np.arange(len(names))[::-1]
+    for yi, v in zip(y, ratios):
+        ax.barh(yi, v - 100, left=100, height=0.66, color=C_TUNER if v >= 100 else C_TOP7)
+        ax.annotate(f"{v:.0f} %", (v, yi), xytext=(4 if v >= 100 else -4, 0),
+                    textcoords="offset points", va="center",
+                    ha="left" if v >= 100 else "right", fontsize=10, color=INK2)
+    ax.axvline(100, color=AXIS, lw=1.4)
+    ax.set_yticks(y)
+    ax.set_yticklabels(names, fontsize=10.5)
+    ax.set_xlim(90, 110)
+    ax.set_xlabel("Hybrid / Voll-Sweep-Optimum")
+    ax.set_title("Hybrid trifft das Sweep-Optimum", loc="left", color=INK, pad=10)
+    _clean(ax, grid_axis="x")
+
+    full = [342 if not n.startswith("a06") else 171 for n in names]
+    ax2.barh(y, full, height=0.66, color=GRID, label="Voll-Sweep")
+    ax2.barh(y, measured, height=0.66, color=C_TUNER, label="Hybrid")
+    ax2.set_yticks(y)
+    ax2.set_yticklabels([])
+    ax2.set_xlabel("gemessene Configs")
+    ax2.set_title(f"bei Ø {sum(measured) / len(measured):.0f} statt 342/171 Messungen",
+                  loc="left", color=INK, pad=10, fontsize=13)
+    ax2.legend(loc="lower right", fontsize=10)
+    _clean(ax2, grid_axis="x")
+
+    over = sum(1 for v in ratios if v > 100)
+    fig.text(0.06, -0.02,
+             f"GB10 · results_dgx_v2 · {over}/{len(ratios)} Shapes liegen über 100 %: "
+             "gleicher Suchraum, andere Session — der Abstand ist Messrauschen, kein Gewinn",
+             fontsize=9.5, color=MUTED)
+    _save(fig, "fig_hybrid_vs_sweep")
+
+
+def fig_order_effect():
+    # Reihenfolge der Block-Iteration isoliert: bestes von 4 Ordnungen / order0.
+    # Beide Karten in v2 gemessen -> der Vergleich ist zulaessig (gain ist ein
+    # Verhaeltnis INNERHALB eines Laufs, nicht zwischen Kampagnen).
+    gb = _read_csv(os.path.join(RESULTS, "order_isolated.csv"))
+    rt = _read_csv(os.path.join(HERE, "..", "results_3070_v2", "order_isolated.csv"))
+    if not gb or not rt:
+        print("  (uebersprungen: order_isolated.csv fehlt)")
+        return
+    rt_by = {r["name"]: r for r in rt}
+    names = [r["name"] for r in gb if r["name"] in rt_by]
+    g_gain = [(float(next(r for r in gb if r["name"] == n)["gain"]) - 1) * 100 for n in names]
+    r_gain = [(float(rt_by[n]["gain"]) - 1) * 100 for n in names]
+
+    x = np.arange(len(names))
+    w = 0.38
+    fig, ax = plt.subplots(figsize=(12.6, 5.4))
+    ax.bar(x - w / 2, g_gain, w, label="GB10", color=C_TUNER)
+    ax.bar(x + w / 2, r_gain, w, label="RTX 3070", color=C_TORCH)
+    for xi, v in list(zip(x - w / 2, g_gain)) + list(zip(x + w / 2, r_gain)):
+        if v > 0.05:
+            ax.annotate(f"{v:.1f}", (xi, v), textcoords="offset points", xytext=(0, 2),
+                        ha="center", va="bottom", fontsize=8.5, color=INK2)
+    ax.set_xticks(x)
+    ax.set_xticklabels(names, rotation=30, ha="right", fontsize=10)
+    ax.set_ylabel("Gewinn durch beste Reihenfolge  (%)")
+    ax.set_ylim(0, max(g_gain + r_gain) * 1.22)   # Platz fuer Legende ueber dem hoechsten Balken
+    ax.set_title("Die Block-Reihenfolge bringt meist wenig — in Einzelfällen viel",
+                 loc="left", color=INK, pad=10)
+    ax.legend(ncol=2, loc="upper left")
+    _clean(ax)
+    ax.text(0, -0.30,
+            f"festes Tiling 128/128/64 8×8 · bestes von 4 Ordnungen gegen order0 · beide v2 · "
+            f"Median GB10 {np.median(g_gain):.1f} % / 3070 {np.median(r_gain):.1f} %, "
+            f"Maximum {max(g_gain):.1f} % / {max(r_gain):.1f} % — kein gemeinsames Muster",
+            transform=ax.transAxes, fontsize=9.5, color=MUTED)
+    _save(fig, "fig_order_effect")
+
+
+def fig_coverage():
+    # Welche einsum-Formen der Kernel abdeckt. Eine abgelehnte Form ist ein Ergebnis,
+    # kein Fehler -- die Grenze gehoert sichtbar in die Doku.
+    gb = _read_csv(os.path.join(RESULTS, "coverage_run.csv"))
+    rt = _read_csv(os.path.join(HERE, "..", "results_3070_v2", "coverage_run.csv"))
+    if not gb:
+        print("  (uebersprungen: coverage_run.csv fehlt)")
+        return
+    rt_by = {r["name"]: r for r in rt}
+
+    fig, ax = plt.subplots(figsize=(12.0, 6.4))
+    ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    n = len(gb)
+    top, rh = 0.88, 0.88 / (n + 1)
+    cols = [0.015, 0.175, 0.42, 0.53, 0.65]
+    for hx, h in zip(cols, ["Form", "einsum", "GB10", "RTX 3070", "Anmerkung"]):
+        ax.text(hx, top, h, fontsize=12, fontweight="bold", color=C_TUNER, va="center")
+    for i, r in enumerate(gb):
+        y = top - (i + 1) * rh
+        ok = r["supported"] == "1"
+        if i % 2 == 0:
+            ax.add_patch(Rectangle((0, y - rh * 0.5), 1, rh, color=C_TUNER, alpha=0.05))
+        ax.text(cols[0], y, r["name"], fontsize=10.5, color=INK if ok else MUTED, va="center")
+        ax.text(cols[1], y, r["einsum"], fontsize=10.5, va="center",
+                color=INK2 if ok else MUTED, family="DejaVu Sans Mono")
+        gt = f"{float(r['tflops']):.1f}" if ok and r["tflops"] else "abgelehnt"
+        ax.text(cols[2], y, gt, fontsize=10.5, color=INK if ok else NEG, va="center",
+                fontweight="bold" if ok else "normal")
+        r2 = rt_by.get(r["name"])
+        rtv = f"{float(r2['tflops']):.1f}" if r2 and r2["supported"] == "1" and r2["tflops"] else \
+              ("abgelehnt" if r2 else "—")
+        ax.text(cols[3], y, rtv, fontsize=10.5, va="center",
+                color=INK if r2 and r2["supported"] == "1" else (NEG if r2 else MUTED))
+        ax.text(cols[4], y, r["note"], fontsize=9.5, color=MUTED, va="center")
+    n_ok = sum(1 for r in gb if r["supported"] == "1")
+    ax.text(0.015, 0.985, f"Abdeckung: {n_ok} von {n} einsum-Formen laufen",
+            fontsize=15, fontweight="bold", color=INK, va="top")
+    ax.text(0.015, -0.03, "TFLOPS · beide Karten v2 · abgelehnt = Layout vom Kernel nicht unterstützt "
+                          "(Batch-Dim muss außen liegen)", fontsize=9.5, color=MUTED, va="top")
+    _save(fig, "fig_coverage")
+
+
 if __name__ == "__main__":
     print("erzeuge Figures ->", FIGDIR)
     grouped_bars(A05, "A05: Tuner ≈ Default (= die A05-Handarbeit) — Bench-Best bleibt unter cuBLAS",
                  "fig_a05_bars",
                  "GB10 · Default (8×8) = die von Hand getunte A05-Config · Bench Best = bestes von 342 · torch = cuBLAS")
-    grouped_bars(A06, "A06: Tuner ≫ Default (8×8) — und schlägt den Handkernel (Referenz +29 %)",
+    _hand = any(h is not None for h in A06_HAND)
+    grouped_bars(A06,
+                 "A06: Tuner ≫ Default (8×8)" +
+                 (" — und schlägt den Handkernel" if _hand else ""),
                  "fig_a06_bars",
-                 "GB10 · Handkernel = festes A06-Referenz-Tiling (2×3) auf jede Shape · Bench Best = bestes von 171 · torch = cuBLAS",
-                 hand=A06_HAND)
+                 "GB10 · " +
+                 ("Handkernel = festes A06-Referenz-Tiling (2×3) auf jede Shape · " if _hand else "") +
+                 "Bench Best = bestes von 171 · torch = cuBLAS",
+                 hand=A06_HAND if _hand else None)
     fig_a06_ladder()
     fig_tuner_vs_torch()
     fig_topk_curve()
     fig_ranking_models()
     fig_funnel()
     fig_regimes()
+    # ACHTUNG: mischt GB10-v2 mit 3070-v1. Der Speedup hat den Default im Nenner, und
+    # genau der wurde fuer v2 korrigiert -> "auf der 3070 staerker" kann ein Artefakt
+    # der Baseline sein. Nicht in die Doku, bis die 3070 einen v2-Sweep hat.
     fig_crossgpu_lever()
+    print("     ^ nur Vortrag (v1/v2 gemischt) -- nicht in die Doku uebernehmen")
     fig_config_table()
     fig_math()
     fig_exec_order()
     fig_pipeline()
     fig_tiling()
+    # Doku-Figuren (Erweiterungen)
+    fig_hybrid_vs_sweep()
+    fig_order_effect()
+    fig_coverage()
+
+    # Die Doku bindet direkt aus figures/ ein (wie 06_assignment), keine Kopie in _static.
     print("fertig.")

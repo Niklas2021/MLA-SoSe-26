@@ -1,0 +1,20 @@
+=== M5.1 Tuner-Lauf (hybrid) ===
+Zeit: 2026-07-18T11:27:11
+GPU: NVIDIA GB10   Strategie: hybrid   Suchraum: 486
+
+a05            66.5 TFLOPS   24 Messungen    9.3 s  (2. Aufruf aus Cache: True)
+square_1b      62.1 TFLOPS   24 Messungen    6.5 s  (2. Aufruf aus Cache: True)
+tall           62.5 TFLOPS   24 Messungen    6.4 s  (2. Aufruf aus Cache: True)
+wide           62.0 TFLOPS   24 Messungen    6.5 s  (2. Aufruf aus Cache: True)
+small_k        35.1 TFLOPS   22 Messungen    5.3 s  (2. Aufruf aus Cache: True)
+large_k        45.4 TFLOPS   18 Messungen    4.5 s  (2. Aufruf aus Cache: True)
+krumm          39.6 TFLOPS   25 Messungen    6.2 s  (2. Aufruf aus Cache: True)
+batch16        44.7 TFLOPS   32 Messungen    8.3 s  (2. Aufruf aus Cache: True)
+a06            61.1 TFLOPS   17 Messungen    6.7 s  (2. Aufruf aus Cache: True)
+a06_square     70.6 TFLOPS   21 Messungen    6.6 s  (2. Aufruf aus Cache: True)
+a06_tall       67.3 TFLOPS   22 Messungen    6.3 s  (2. Aufruf aus Cache: True)
+a06_wide       62.4 TFLOPS   25 Messungen    9.3 s  (2. Aufruf aus Cache: True)
+a06_small_k    22.3 TFLOPS   21 Messungen    9.6 s  (2. Aufruf aus Cache: True)
+a06_large_k    73.1 TFLOPS   22 Messungen    6.8 s  (2. Aufruf aus Cache: True)
+a06_krumm      20.4 TFLOPS   24 Messungen   11.7 s  (2. Aufruf aus Cache: True)
+a06_batch      62.4 TFLOPS   14 Messungen    7.0 s  (2. Aufruf aus Cache: True)

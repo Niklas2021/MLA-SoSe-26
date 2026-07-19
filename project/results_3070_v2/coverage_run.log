@@ -1,0 +1,17 @@
+=== M5.3 Einsum-Abdeckung ===
+Zeit: 2026-07-18T17:53:39
+GPU: NVIDIA GeForce RTX 3070
+
+  ok   gemm_batch     cmk, ckn -> cmn          26.9 TFLOPS (16 Messungen, 270 Kandidaten)  A05-Form, ein Batch (Regression)
+  ok   gemm_nobatch   mk, kn -> mn             38.0 TFLOPS (33 Messungen, 270 Kandidaten)  kein Batch -> Dummy-Achse
+  ok   gemm_2batch    bcmk, bckn -> bcmn       21.8 TFLOPS (17 Messungen, 270 Kandidaten)  zwei Batches -> fusioniert
+  ok   attn_out       bhqk, bhkd -> bhqd       13.5 TFLOPS (17 Messungen, 212 Kandidaten)  Attention-Output, b/h fusioniert
+  ok   ring           acspx, bspy -> abcyx     34.8 TFLOPS (15 Messungen, 135 Kandidaten)  A06-Form (Regression)
+  ok   gemm_nt        cmk, cnk -> cmn          24.8 TFLOPS (14 Messungen, 135 Kandidaten)  B als (N,K) -- NT
+  ok   gemm_tn        ckm, ckn -> cmn          25.1 TFLOPS (14 Messungen, 135 Kandidaten)  A als (K,M) -- TN
+  ok   gemm_outT      cmk, ckn -> cnm          26.0 TFLOPS (17 Messungen, 135 Kandidaten)  Output transponiert
+  ok   attn_scores    bhqd, bhkd -> bhqk       11.3 TFLOPS (22 Messungen, 135 Kandidaten)  Attention-Scores, B als NT
+  ok   gemm_all_t     ckm, cnk -> cnm          25.9 TFLOPS (15 Messungen, 135 Kandidaten)  A, B und C gedreht
+  --   batch_inner    mck, ckn -> mcn        abgelehnt (Batch-Dim nicht aussen)
+
+11 von 11 wie erwartet, 0 Abweichungen

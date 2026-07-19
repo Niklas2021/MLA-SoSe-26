@@ -117,6 +117,112 @@ def run_variant_b(A, B, m_prim, n_prim, k_prim, m_l2, n_l2):
     return C_pad[:, :m_size, :n_size]
 
 
+# --- gedrehte Layouts (NT / TN / Output transponiert) ---
+# Gleiche Struktur wie matmul_variant_a, nur werden die Tiles beim Laden bei Bedarf
+# transponiert. Bewusst ein EIGENER Kernel und keine Flags in matmul_variant_a: der
+# ist auf GB10 und 3070 erprobt, und ein Fehler hier soll den nicht mitreissen.
+# Der Tile-Transpose ist derselbe Trick wie in matmul_ring_a (ct.permute nach dem
+# Laden) -- keine Kopie im Speicher, die Transposition passiert im Tile.
+# TRANS_* sind ct.Constant, die Verzweigungen loest der JIT beim Spezialisieren auf.
+@ct.kernel
+def matmul_flex_a(A, B, C,
+                  M_PRIM: ct.Constant[int],
+                  N_PRIM: ct.Constant[int],
+                  K_PRIM: ct.Constant[int],
+                  M_L2: ct.Constant[int],
+                  N_L2: ct.Constant[int],
+                  num_m_l2_outer: ct.Constant[int],
+                  num_n_l2_outer: ct.Constant[int],
+                  num_k_outer: ct.Constant[int],
+                  TRANS_A: ct.Constant[int],
+                  TRANS_B: ct.Constant[int],
+                  TRANS_C: ct.Constant[int],
+                  SWIZZLE_MN: ct.Constant[int],
+                  OUTER_MN: ct.Constant[int]):
+    # SWIZZLE_MN/OUTER_MN = Reihenfolge-Knopf (M5.2). Welche Achse die schnellste
+    # bid-Komponente ist, entscheidet, welcher Operand innerhalb einer Wave im L2
+    # bleibt -- das Gegenstueck zu GROUP_SIZE_M im Triton-Tutorial. Das Grid bleibt
+    # gleich gross, nur die Zuordnung Block -> Kachel aendert sich.
+    pid = ct.bid(0)
+    if SWIZZLE_MN:
+        m_l2_idx = pid % M_L2
+        pid = pid // M_L2
+        n_l2_idx = pid % N_L2
+        pid = pid // N_L2
+    else:
+        n_l2_idx = pid % N_L2
+        pid = pid // N_L2
+        m_l2_idx = pid % M_L2
+        pid = pid // M_L2
+    if OUTER_MN:
+        m_l2_outer_idx = pid % num_m_l2_outer
+        pid = pid // num_m_l2_outer
+        n_l2_outer_idx = pid % num_n_l2_outer
+        pid = pid // num_n_l2_outer
+    else:
+        n_l2_outer_idx = pid % num_n_l2_outer
+        pid = pid // num_n_l2_outer
+        m_l2_outer_idx = pid % num_m_l2_outer
+        pid = pid // num_m_l2_outer
+    c_idx = pid
+
+    m_block = m_l2_outer_idx * M_L2 + m_l2_idx
+    n_block = n_l2_outer_idx * N_L2 + n_l2_idx
+
+    acc = ct.zeros((M_PRIM, N_PRIM), dtype=ct.float32)
+    for k_it in range(num_k_outer):
+        if TRANS_A:
+            # A liegt als (batch, K, M)
+            t = ct.load(A, index=(c_idx, k_it, m_block),
+                        shape=(1, K_PRIM, M_PRIM), padding_mode=ct.PaddingMode.ZERO)
+            a_tile = ct.permute(ct.reshape(t, (K_PRIM, M_PRIM)), (1, 0))
+        else:
+            t = ct.load(A, index=(c_idx, m_block, k_it),
+                        shape=(1, M_PRIM, K_PRIM), padding_mode=ct.PaddingMode.ZERO)
+            a_tile = ct.reshape(t, (M_PRIM, K_PRIM))
+        if TRANS_B:
+            # B liegt als (batch, N, K)
+            t = ct.load(B, index=(c_idx, n_block, k_it),
+                        shape=(1, N_PRIM, K_PRIM), padding_mode=ct.PaddingMode.ZERO)
+            b_tile = ct.permute(ct.reshape(t, (N_PRIM, K_PRIM)), (1, 0))
+        else:
+            t = ct.load(B, index=(c_idx, k_it, n_block),
+                        shape=(1, K_PRIM, N_PRIM), padding_mode=ct.PaddingMode.ZERO)
+            b_tile = ct.reshape(t, (K_PRIM, N_PRIM))
+        acc = ct.mma(a_tile, b_tile, acc)
+
+    if TRANS_C:
+        out = ct.reshape(ct.permute(acc, (1, 0)), (1, N_PRIM, M_PRIM)).astype(ct.float16)
+        ct.store(C, index=(c_idx, n_block, m_block), tile=out)
+    else:
+        out = ct.reshape(acc, (1, M_PRIM, N_PRIM)).astype(ct.float16)
+        ct.store(C, index=(c_idx, m_block, n_block), tile=out)
+
+
+def run_flex_a(A, B, m_prim, n_prim, k_prim, m_l2, n_l2,
+               trans_a, trans_b, trans_c, swizzle_mn=0, outer_mn=0):
+    c_size = A.shape[0]
+    k_size, m_size = (A.shape[1], A.shape[2]) if trans_a else (A.shape[2], A.shape[1])
+    n_size = B.shape[1] if trans_b else B.shape[2]
+    num_m_l2_outer = ceildiv(m_size, m_prim * m_l2)
+    num_n_l2_outer = ceildiv(n_size, n_prim * n_l2)
+    num_k_outer = ceildiv(k_size, k_prim)
+    m_pad = num_m_l2_outer * m_l2 * m_prim
+    n_pad = num_n_l2_outer * n_l2 * n_prim
+
+    shape = (c_size, n_pad, m_pad) if trans_c else (c_size, m_pad, n_pad)
+    C_pad = torch.zeros(shape, dtype=torch.float16, device="cuda")
+    grid = (c_size * num_m_l2_outer * num_n_l2_outer * m_l2 * n_l2,)
+    ct.launch(torch.cuda.current_stream(), grid, matmul_flex_a,
+              (A, B, C_pad, m_prim, n_prim, k_prim, m_l2, n_l2,
+               num_m_l2_outer, num_n_l2_outer, num_k_outer,
+               int(trans_a), int(trans_b), int(trans_c),
+               int(swizzle_mn), int(outer_mn)))
+    if trans_c:
+        return C_pad[:, :n_size, :m_size]
+    return C_pad[:, :m_size, :n_size]
+
+
 # --- A06-Familie (Ring-Kontraktion acspx,bspy->abcyx) ---
 # Eigene Batch-Topologie: a,c indizieren nur A, b nur B (kein geteilter Batch wie
 # in A05). Zwei Reduktionen: p als prim_k (im mma), s als aeusserer SEQ-Loop.
@@ -135,13 +241,27 @@ def matmul_ring_a(A, B, C,
                   SIZE_A: ct.Constant[int],
                   SIZE_C: ct.Constant[int],
                   SIZE_B: ct.Constant[int],
-                  SIZE_S: ct.Constant[int]):
+                  SIZE_S: ct.Constant[int],
+                  SWIZZLE_MN: ct.Constant[int],
+                  OUTER_MN: ct.Constant[int]):
+    # gleicher Reihenfolge-Knopf wie in matmul_flex_a. Die aeussere Achse ist hier
+    # mit den Batch-Dims verschraenkt (b sitzt zwischen y_l2_out und x_l2_out),
+    # getauscht wird deshalb das Paar um b herum.
     pid = ct.bid(0)
-    y_l2_idx = pid % N_L2;          pid = pid // N_L2
-    x_l2_idx = pid % M_L2;          pid = pid // M_L2
-    y_l2_out = pid % num_n_l2_outer; pid = pid // num_n_l2_outer
-    b_idx    = pid % SIZE_B;        pid = pid // SIZE_B
-    x_l2_out = pid % num_m_l2_outer; pid = pid // num_m_l2_outer
+    if SWIZZLE_MN:
+        x_l2_idx = pid % M_L2;      pid = pid // M_L2
+        y_l2_idx = pid % N_L2;      pid = pid // N_L2
+    else:
+        y_l2_idx = pid % N_L2;      pid = pid // N_L2
+        x_l2_idx = pid % M_L2;      pid = pid // M_L2
+    if OUTER_MN:
+        x_l2_out = pid % num_m_l2_outer; pid = pid // num_m_l2_outer
+        b_idx    = pid % SIZE_B;        pid = pid // SIZE_B
+        y_l2_out = pid % num_n_l2_outer; pid = pid // num_n_l2_outer
+    else:
+        y_l2_out = pid % num_n_l2_outer; pid = pid // num_n_l2_outer
+        b_idx    = pid % SIZE_B;        pid = pid // SIZE_B
+        x_l2_out = pid % num_m_l2_outer; pid = pid // num_m_l2_outer
     c_idx    = pid % SIZE_C;        pid = pid // SIZE_C
     a_idx    = pid
 
@@ -170,7 +290,8 @@ def matmul_ring_a(A, B, C,
     ct.store(C, index=(a_idx, b_idx, c_idx, y_block, x_block), tile=out)
 
 
-def run_ring_a(A, B, m_prim, n_prim, k_prim, m_l2, n_l2):
+def run_ring_a(A, B, m_prim, n_prim, k_prim, m_l2, n_l2,
+               swizzle_mn=0, outer_mn=0):
     size_a, size_c, size_s, size_p, size_x = A.shape
     size_b, _, _, size_y = B.shape
     num_m_l2_outer = ceildiv(size_x, m_prim * m_l2)
@@ -185,15 +306,32 @@ def run_ring_a(A, B, m_prim, n_prim, k_prim, m_l2, n_l2):
     ct.launch(torch.cuda.current_stream(), grid, matmul_ring_a,
               (A, B, C_pad, m_prim, n_prim, k_prim, m_l2, n_l2,
                num_m_l2_outer, num_n_l2_outer, num_k_outer,
-               size_a, size_c, size_b, size_s))
+               size_a, size_c, size_b, size_s,
+               int(swizzle_mn), int(outer_mn)))
     return C_pad[:, :, :, :size_y, :size_x]
 
 
 def run_candidate(cand, A, B):
+    # cand.layout biegt die Batch-Achsen auf das, was der Kernel indiziert (kein Batch
+    # -> Dummy-1 davor, mehrere -> zu einer fusioniert) und danach das Ergebnis zurueck.
+    # Beides reine views, keine Kopie. Layouts, die das nicht koennen (NT/TN), sind
+    # schon in plan_layout rausgefallen.
+    lay = cand.layout
+    sw, ou = cand.order & 1, (cand.order >> 1) & 1
     if cand.multi:
-        return run_ring_a(A, B, cand.m_prim, cand.n_prim, cand.k_prim, cand.m_l2, cand.n_l2)
+        return run_ring_a(A, B, cand.m_prim, cand.n_prim, cand.k_prim, cand.m_l2,
+                          cand.n_l2, sw, ou)
+    A, B = lay.to_kernel(A, B)
+    if lay.needs_transpose() or cand.order:
+        # gedrehtes Layout oder nicht-Default-Reihenfolge -> flex-Kernel. Der
+        # kanonische Standardfall bleibt auf matmul_variant_a (erprobt).
+        C = run_flex_a(A, B, cand.m_prim, cand.n_prim, cand.k_prim, cand.m_l2, cand.n_l2,
+                       lay.trans_a, lay.trans_b, lay.trans_c, sw, ou)
+        return lay.from_kernel(C)
     if cand.variant == "A":
-        return run_variant_a(A, B, cand.m_prim, cand.n_prim, cand.k_prim, cand.m_l2, cand.n_l2)
+        C = run_variant_a(A, B, cand.m_prim, cand.n_prim, cand.k_prim, cand.m_l2, cand.n_l2)
     elif cand.variant == "B":
-        return run_variant_b(A, B, cand.m_prim, cand.n_prim, cand.k_prim, cand.m_l2, cand.n_l2)
-    raise ValueError(f"unbekannte Variante: {cand.variant!r}")
+        C = run_variant_b(A, B, cand.m_prim, cand.n_prim, cand.k_prim, cand.m_l2, cand.n_l2)
+    else:
+        raise ValueError(f"unbekannte Variante: {cand.variant!r}")
+    return lay.from_kernel(C)

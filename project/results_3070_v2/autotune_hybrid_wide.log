@@ -1,0 +1,20 @@
+=== M5.1 Tuner-Lauf (hybrid) ===
+Zeit: 2026-07-18T18:09:34
+GPU: NVIDIA GeForce RTX 3070   Strategie: hybrid   Suchraum: 1152
+
+a05            40.4 TFLOPS   44 Messungen   37.7 s  (2. Aufruf aus Cache: True)
+square_1b      40.2 TFLOPS   41 Messungen   19.6 s  (2. Aufruf aus Cache: True)
+tall           30.7 TFLOPS   22 Messungen   14.9 s  (2. Aufruf aus Cache: True)
+wide           40.0 TFLOPS   41 Messungen   20.6 s  (2. Aufruf aus Cache: True)
+small_k        30.8 TFLOPS   41 Messungen   56.9 s  (2. Aufruf aus Cache: True)
+large_k        34.6 TFLOPS   56 Messungen   31.7 s  (2. Aufruf aus Cache: True)
+krumm          10.2 TFLOPS   26 Messungen   24.3 s  (2. Aufruf aus Cache: True)
+batch16        30.9 TFLOPS   22 Messungen   13.6 s  (2. Aufruf aus Cache: True)
+a06            37.3 TFLOPS   41 Messungen   35.0 s  (2. Aufruf aus Cache: True)
+a06_square     42.5 TFLOPS   37 Messungen   28.0 s  (2. Aufruf aus Cache: True)
+a06_tall       42.1 TFLOPS   39 Messungen   27.5 s  (2. Aufruf aus Cache: True)
+a06_wide       39.2 TFLOPS   40 Messungen   19.2 s  (2. Aufruf aus Cache: True)
+a06_small_k    28.2 TFLOPS   38 Messungen   24.8 s  (2. Aufruf aus Cache: True)
+a06_large_k    40.4 TFLOPS   59 Messungen   41.4 s  (2. Aufruf aus Cache: True)
+a06_krumm      13.7 TFLOPS   44 Messungen   39.4 s  (2. Aufruf aus Cache: True)
+a06_batch      41.1 TFLOPS   37 Messungen   41.0 s  (2. Aufruf aus Cache: True)

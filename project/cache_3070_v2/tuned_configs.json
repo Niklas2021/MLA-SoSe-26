@@ -1,0 +1,242 @@
+{
+  "acspx,bspy->abcyx|2,2,128,128,1024;2,128,128,1024|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 2,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 59,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 40.356
+  },
+  "acspx,bspy->abcyx|2,2,64,64,2048;2,64,64,2048|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 16,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 4,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 37,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 42.528
+  },
+  "acspx,bspy->abcyx|2,2,64,64,4096;2,64,64,512|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 16,
+      "m_l2": 4,
+      "m_prim": 128,
+      "n_l2": 4,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 39,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 42.114
+  },
+  "acspx,bspy->abcyx|2,2,64,64,512;2,64,64,4096|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 2,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 40,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 39.232
+  },
+  "acspx,bspy->abcyx|3,2,48,48,1500;3,48,48,1000|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 4,
+      "m_prim": 32,
+      "n_l2": 4,
+      "n_prim": 256,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 44,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 13.7
+  },
+  "acspx,bspy->abcyx|4,2,8,32,2048;4,8,32,2048|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 2,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 38,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 28.227
+  },
+  "acspx,bspy->abcyx|4,3,64,64,1536;4,64,64,1152|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 16,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 2,
+      "n_prim": 64,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 41,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 37.286
+  },
+  "acspx,bspy->abcyx|8,4,32,64,1024;8,32,64,1024|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 16,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 4,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 37,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 41.091
+  },
+  "cmk,ckn->cmn|1,1024,4096;1,4096,8192|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 2,
+      "n_prim": 256,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 41,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 39.977
+  },
+  "cmk,ckn->cmn|1,1024,8192;1,8192,1024|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 128,
+      "m_l2": 2,
+      "m_prim": 64,
+      "n_l2": 2,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 56,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 34.603
+  },
+  "cmk,ckn->cmn|1,4096,4096;1,4096,4096|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 32,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 2,
+      "n_prim": 256,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 41,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 40.163
+  },
+  "cmk,ckn->cmn|1,4096,512;1,512,4096|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 16,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 4,
+      "n_prim": 256,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 41,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 30.784
+  },
+  "cmk,ckn->cmn|1,8192,4096;1,4096,1024|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 16,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 22,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 30.698
+  },
+  "cmk,ckn->cmn|16,1024,1024;16,1024,1024|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 16,
+      "m_l2": 8,
+      "m_prim": 128,
+      "n_l2": 8,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 22,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 30.897
+  },
+  "cmk,ckn->cmn|2,1500,1000;2,1000,3000|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 16,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 8,
+      "n_prim": 32,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 26,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 10.22
+  },
+  "cmk,ckn->cmn|4,4096,4096;4,4096,4096|NVIDIA GeForce RTX 3070": {
+    "config": {
+      "k_prim": 64,
+      "m_l2": 8,
+      "m_prim": 64,
+      "n_l2": 2,
+      "n_prim": 128,
+      "order": 0,
+      "variant": "A"
+    },
+    "n_measured": 44,
+    "space_size": 1152,
+    "strategy": "hybrid",
+    "tflops": 40.386
+  }
+}

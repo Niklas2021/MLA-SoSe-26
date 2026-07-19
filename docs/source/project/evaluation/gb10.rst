@@ -1,0 +1,52 @@
+Evaluation: DGX Spark (GB10)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. Datenbasis: project/results_dgx_v2/ (zweiter Durchlauf, alles in einer Session)
+   und project/result_dgx_v1/ (erster Durchlauf, fuer die Drift-Gegenprobe).
+
+Korrektheit
+"""""""""""
+
+.. Inhalt:
+   - Ueber alle Shapes und alle geprunten Configs: 0 Fehlschlaege, 0 inkorrekte
+     Ergebnisse -- inklusive der unteilbaren Shapes, womit der Padding-Pfad auf
+     echter Hardware bestaetigt ist.
+   - Die Einsum-Abdeckung: 11 von 11 Faellen wie erwartet (10 rechnen korrekt,
+     einer wird sauber abgelehnt). literalinclude coverage_run.log.
+
+Vollmessung als Referenz
+""""""""""""""""""""""""
+
+.. Inhalt:
+   - Tabelle ueber die 16 Shapes: bestes Ergebnis, faire Baseline, A05-Default,
+     torch.einsum. Aus results_dgx_v2/study.log und tune_*.csv.
+   - Was die beste Config ist und wie stabil sie ueber Regime hinweg bleibt.
+   - fig_a05_bars.png und fig_a06_bars.png einbinden.
+
+Suchstrategien im Vergleich
+"""""""""""""""""""""""""""
+
+.. Inhalt:
+   - Die Leiter: Default (0 Messungen) / Top-7 (7) / Hybrid (22) / Vollmessung.
+     Auswahlguete und Zeit je Stufe.
+   - Das Hauptergebnis: 99.1 % Auswahlguete bei 22 Messungen, ~7 s statt ~2 min.
+   - fig_topk_curve.png.
+
+Externe Referenz: torch.einsum
+""""""""""""""""""""""""""""""
+
+.. Inhalt:
+   - Der ehrliche "was, wenn man einfach die Library nimmt"-Vergleich, getrennt
+     nach Familien: bei GEMM gewinnt cuBLAS meist, bei den Ring-Shapes ist das
+     Bild stark shape-abhaengig.
+   - fig_tuner_vs_torch.png.
+   - Die Korrektur mitnehmen, dass der alte A06_TORCH_EINSUM-Wert aus dem
+     Assignment nicht vergleichbar war.
+
+Wirkung der Erweiterungen
+"""""""""""""""""""""""""
+
+.. Inhalt:
+   - Kompakte Tabelle: Ordnungs-Knopf (isoliert 1.026x), weiter Suchraum
+     (Nullsummenspiel, ausser a06_krumm +46 %), Hybrid (siehe oben).
+   - Jeweils eine Zeile Deutung, keine Wiederholung der Erweiterungs-Kapitel.

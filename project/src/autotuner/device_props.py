@@ -33,6 +33,38 @@ class DeviceProperties:
         return self.number_sm * self.core_clock_khz * 1e3 * self.tensor_flop_per_sm_cycle * 2
 
 
+def gpu_name():
+    # nur der Name, geht ohne cupy
+    import torch
+    return torch.cuda.get_device_properties(0).name
+
+
+def resolve_device_properties():
+    # Die Properties fuers Pruning/Ranking besorgen -- und NIEMALS stillschweigend die
+    # falsche Karte annehmen. Genau das ist vorher passiert: fehlte cupy, fiel alles auf
+    # GB10 zurueck und lief dann mit 25 MB L2 und 48 SMs auf einer 3070. Das verfaelscht
+    # das Ranking und -- schlimmer -- den Cache-Key, der ja gerade das GPU-Modell
+    # enthalten soll.
+    try:
+        return get_device_properties()
+    except Exception as why:
+        detail = f"{type(why).__name__}: {why}"
+    try:
+        name = gpu_name()
+    except Exception:
+        raise RuntimeError(
+            f"weder cupy-Properties ({detail}) noch eine CUDA-GPU verfuegbar. "
+            f"Fuer Laeufe ohne GPU die Konstanten direkt importieren (GB10 / RTX3070).")
+    if name in KNOWN_GPUS:
+        print(f"[warnung] cupy nicht verfuegbar ({detail}) -- nehme die hinterlegten "
+              f"Werte fuer '{name}'. Takt/Bandbreite sind Schaetzungen.")
+        return KNOWN_GPUS[name]
+    raise RuntimeError(
+        f"GPU '{name}' ist unbekannt und cupy steht nicht zur Verfuegung ({detail}). "
+        f"Entweder cupy installieren oder die Karte in KNOWN_GPUS eintragen -- "
+        f"mit falschen Properties zu rechnen waere schlimmer als abzubrechen.")
+
+
 def get_device_properties():
     # cupy/torch erst hier importieren, damit die Dataclass auch ohne GPU geht
     import cupy as cp
@@ -81,3 +113,11 @@ RTX3070 = DeviceProperties(
     mem_bus_bits=256,
     core_clock_khz=1725000,
 )
+
+
+# Nachschlagetabelle fuer den Fall, dass cupy fehlt. Nur exakte Namenstreffer --
+# eine unbekannte Karte fuehrt zum Abbruch, nicht zu einer Annahme.
+KNOWN_GPUS = {
+    GB10.gpu_name: GB10,
+    RTX3070.gpu_name: RTX3070,
+}

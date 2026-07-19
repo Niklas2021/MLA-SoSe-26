@@ -67,6 +67,84 @@ PROBLEMS = [
          shapes=[(8, 4, 32, 64, 1024), (8, 32, 64, 1024)], regime="ring, viele Batches (a8 c4 b8)"),
 ]
 
-# Die Config, die man OHNE Tuner nehmen wuerde (die handoptimierte A05-Wahl).
-# Dient als Baseline fuer den "Tuner-Gewinn".
-DEFAULT_CONFIG = dict(variant="A", m_prim=128, n_prim=128, k_prim=64, m_l2=8, n_l2=8)
+# Die handoptimierte A05-Wahl. ACHTUNG: das ist NICHT die faire Baseline, auch wenn wir
+# sie lange so benutzt haben. Sie wurde fuer eine einzige Shape (4096^3) hergeleitet,
+# und ihre Gruppen-Ausdehnung ist mit 8*128 = 1024 so gross, dass M und N auf Vielfache
+# von 1024 hochgepaddet werden. Auf Shapes, die das nicht sind, kostet das brutal:
+# bei a06 (x=1536, y=1152) ist das gepaddete Volumen 2.37x das echte. Sie steht hier
+# noch als Referenz "naiv von einer anderen Shape/GPU uebernommen".
+DEFAULT_CONFIG = dict(variant="A", m_prim=128, n_prim=128, k_prim=64, m_l2=8, n_l2=8, order=0)
+
+# Die faire Baseline: EINE feste Config pro GPU, so wie sie jemand waehlt, der einmal
+# auf der Zielkarte nachmisst und sich dann festlegt. Hergeleitet mit baselines_study.py
+# (beste feste Config ueber alle Shapes; leave-one-out bestaetigt die Wahl).
+#
+# Warum sie besser ist, laesst sich ohne Messung begruenden: der Akkumulator ist mit
+# 64*256 = 16384 fp32 genau so gross wie bei 128x128, kostet also dieselben Register --
+# aber die Gruppen-Ausdehnung halbiert sich auf 512x512. Man tauscht ~25 % Arithmetic
+# Intensity (Operanden-Traffic (64+256) statt (128+128) pro K) gegen deutlich weniger
+# Padding-Quantisierung. Auf glatt teilbaren Shapes verliert man dadurch 0-5 %, auf
+# krummen gewinnt man 25-92 %.
+BASELINE_CONFIGS = {
+    # GB10: aus der Vollmessung (results_dgx_v2), 89.5 % im leave-one-out
+    "NVIDIA GB10": dict(variant="A", m_prim=64, n_prim=256, k_prim=64,
+                        m_l2=8, n_l2=2, order=0),
+    # 3070: aus baseline_probe (results_3070_v2). Erreicht nur 75.9 % des
+    # Per-Shape-Optimums -- auf dieser Karte gibt es keine gute feste Config, die
+    # Optima liegen viel weiter auseinander als auf der GB10. Genau deshalb lohnt
+    # Per-Shape-Tuning hier mehr (1.32x statt 1.12x).
+    # Der frueher hier stehende Wert (64/256/32, 4x2) kam aus dem alten 3070-Sweep
+    # und war unbrauchbar: dort waren alle batch=1-Shapes 3-5x zu langsam gemessen.
+    "NVIDIA GeForce RTX 3070": dict(variant="A", m_prim=64, n_prim=128, k_prim=64,
+                                    m_l2=8, n_l2=2, order=0),
+}
+
+
+def baseline_for(gpu_name):
+    # unbekannte GPU -> A05-Default, aber das ist dann eben nur eine Notloesung
+    return BASELINE_CONFIGS.get(gpu_name, DEFAULT_CONFIG)
+
+
+# M5.3: welche Einsum-Strings die Kernel abdecken. Bewusst NICHT in PROBLEMS, damit
+# die Studie oben vergleichbar bleibt -- das hier prueft Abdeckung, nicht Performance.
+# supported=False heisst: muss mit klarer Meldung abgelehnt werden (frueher hat der
+# Kernel da still das falsche Layout gelesen und es fiel erst beim allclose auf).
+COVERAGE = [
+    dict(name="gemm_batch", einsum="cmk, ckn -> cmn",
+         shapes=[(4, 1024, 1024), (4, 1024, 1024)], supported=True,
+         note="A05-Form, ein Batch (Regression)"),
+    dict(name="gemm_nobatch", einsum="mk, kn -> mn",
+         shapes=[(2048, 2048), (2048, 2048)], supported=True,
+         note="kein Batch -> Dummy-Achse"),
+    dict(name="gemm_2batch", einsum="bcmk, bckn -> bcmn",
+         shapes=[(2, 3, 512, 512), (2, 3, 512, 512)], supported=True,
+         note="zwei Batches -> fusioniert"),
+    dict(name="attn_out", einsum="bhqk, bhkd -> bhqd",
+         shapes=[(2, 8, 1024, 1024), (2, 8, 1024, 64)], supported=True,
+         note="Attention-Output, b/h fusioniert"),
+    dict(name="ring", einsum="acspx, bspy -> abcyx",
+         shapes=[(2, 2, 32, 64, 1024), (2, 32, 64, 1024)], supported=True,
+         note="A06-Form (Regression)"),
+
+    # ab hier gedrehte Layouts -> Tile-Transpose im flex-Kernel (nur Variante A)
+    dict(name="gemm_nt", einsum="cmk, cnk -> cmn",
+         shapes=[(4, 1024, 1024), (4, 1024, 1024)], supported=True,
+         note="B als (N,K) -- NT"),
+    dict(name="gemm_tn", einsum="ckm, ckn -> cmn",
+         shapes=[(4, 1024, 1024), (4, 1024, 1024)], supported=True,
+         note="A als (K,M) -- TN"),
+    dict(name="gemm_outT", einsum="cmk, ckn -> cnm",
+         shapes=[(4, 1024, 1024), (4, 1024, 1024)], supported=True,
+         note="Output transponiert"),
+    dict(name="attn_scores", einsum="bhqd, bhkd -> bhqk",
+         shapes=[(2, 8, 1024, 64), (2, 8, 1024, 64)], supported=True,
+         note="Attention-Scores, B als NT"),
+    dict(name="gemm_all_t", einsum="ckm, cnk -> cnm",
+         shapes=[(4, 1024, 1024), (4, 1024, 1024)], supported=True,
+         note="A, B und C gedreht"),
+
+    # das bleibt abgelehnt: Batch nicht aussen -> kein Reshape, kein Tile-Transpose hilft
+    dict(name="batch_inner", einsum="mck, ckn -> mcn",
+         shapes=[(1024, 4, 1024), (4, 1024, 1024)], supported=False,
+         note="Batch-Dim nicht aussen"),
+]

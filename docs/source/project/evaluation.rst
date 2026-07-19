@@ -1,5 +1,5 @@
 Evaluation
-==========
+----------
 
 .. Sammelseite. Inhalt:
    - Aufbau erklaeren: erst die Methodik (inklusive eines Messartefakts, das man
@@ -10,10 +10,10 @@ Evaluation
      alles in einer Session), result_3070 (erster 3070-Sweep, mit Einschraenkung),
      results_3070_v2 (zweiter 3070-Durchlauf).
 
-.. toctree::
-   :maxdepth: 1
+.. include:: /project/evaluation/methodik.rst
 
-   evaluation/methodik
-   evaluation/gb10
-   evaluation/rtx3070
-   evaluation/vergleich
+.. include:: /project/evaluation/gb10.rst
+
+.. include:: /project/evaluation/rtx3070.rst
+
+.. include:: /project/evaluation/vergleich.rst

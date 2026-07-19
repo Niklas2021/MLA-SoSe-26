@@ -1,11 +1,11 @@
 Mess-Harness, Tuner und Cache
-=============================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Quellen: project/src/tune.py, project/src/autotune.py,
    project/src/autotuner/cache.py, project/src/analyze_tune.py
 
 Vollmessung als Ground Truth
-----------------------------
+""""""""""""""""""""""""""""
 
 .. Inhalt:
    - tune.py: enumeriert, prunt, kompiliert jeden Kandidaten im try/except, prueft
@@ -17,7 +17,7 @@ Vollmessung als Ground Truth
      die Library nimmt").
 
 Die Shape-Menge
----------------
+"""""""""""""""
 
 .. Inhalt:
    - Tabelle der 16 Shapes aus problems.py mit Regime-Label. Warum gerade diese:
@@ -25,7 +25,7 @@ Die Shape-Menge
      einmal in beiden Familien. fig_regimes.png passt hier.
 
 Praktischer Tuner und Cache
----------------------------
+"""""""""""""""""""""""""""
 
 .. Inhalt:
    - autotune.py: erst Cache, sonst suchen, dann cachen.
@@ -37,7 +37,7 @@ Praktischer Tuner und Cache
      Shapes -> Bucketing).
 
 Reproduzierbare Auswertung
---------------------------
+""""""""""""""""""""""""""
 
 .. Inhalt:
    - analyze_tune.py laeuft lokal aus den CSVs, ohne GPU. Das Prinzip

@@ -1,5 +1,5 @@
 Architektur und Datenfluss
-==========================
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Modul-Landkarte als Tabelle: Datei -> Zustaendigkeit -> laeuft ohne GPU?
@@ -16,7 +16,7 @@ Architektur und Datenfluss
      enumerate_candidates -> prune -> rank -> Strategie -> run_candidate -> Cache.
 
 Übernommene Bausteine aus Assignment 05
----------------------------------------
+"""""""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Config, Optimizer, generate_config wurden unveraendert uebernommen.

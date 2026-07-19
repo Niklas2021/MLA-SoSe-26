@@ -1,5 +1,5 @@
 Umsetzung
-=========
+---------
 
 .. Sammelseite. Inhalt:
    - Kurzer Absatz, wie die Kapitel zusammenhaengen: die Reihenfolge unten ist die
@@ -8,13 +8,16 @@ Umsetzung
      Ein-Bild-Zusammenfassung der Pipeline.
    - Hinweis auf die Modul-Landkarte: welches Kapitel welche Datei behandelt.
 
-.. toctree::
-   :maxdepth: 1
+.. include:: /project/umsetzung/ueberblick.rst
 
-   umsetzung/ueberblick
-   umsetzung/einsum
-   umsetzung/suchraum
-   umsetzung/pruning
-   umsetzung/ranking
-   umsetzung/kernel
-   umsetzung/harness
+.. include:: /project/umsetzung/einsum.rst
+
+.. include:: /project/umsetzung/suchraum.rst
+
+.. include:: /project/umsetzung/pruning.rst
+
+.. include:: /project/umsetzung/ranking.rst
+
+.. include:: /project/umsetzung/kernel.rst
+
+.. include:: /project/umsetzung/harness.rst

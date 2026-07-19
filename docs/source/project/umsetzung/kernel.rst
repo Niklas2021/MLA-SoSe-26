@@ -1,10 +1,10 @@
 Kernel-Instanziierung
-=====================
+^^^^^^^^^^^^^^^^^^^^^
 
 .. Quelle: project/src/autotuner/kernels.py
 
 Ein generischer Kernel statt Codegen
-------------------------------------
+""""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Der Pitch sprach von "Codegen aus Templates". Warum wir das nicht gemacht
@@ -16,7 +16,7 @@ Ein generischer Kernel statt Codegen
      Ergebnis: ja, ~0.4 s pro Compile.
 
 Variante A: Swizzle über die Block-ID
--------------------------------------
+"""""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - literalinclude matmul_variant_a. Den pid-Decode Zeile fuer Zeile erklaeren:
@@ -24,14 +24,14 @@ Variante A: Swizzle über die Block-ID
    - Warum diese Reihenfolge L2-Reuse erzeugt. code_variant_a.png passt hier.
 
 Variante B: L2-Gruppe als SEQ-Loops
------------------------------------
+"""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - literalinclude matmul_variant_b, Unterschied zum Swizzle: weniger CTAs,
      dafuer Schleifen im Block.
 
 Zweite Familie: der Ring-Kernel
--------------------------------
+"""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Warum A06 einen eigenen Kernel braucht und kein Umbau reicht: A05 hat einen
@@ -45,7 +45,7 @@ Zweite Familie: der Ring-Kernel
      innerhalb einer Familie nicht. Genauso arbeiten cuBLAS/CUTLASS und Triton.
 
 Dispatcher
-----------
+""""""""""
 
 .. Inhalt:
    - run_candidate als einzige Stelle, die aus einem Candidate einen Kernel-Start

@@ -1,5 +1,7 @@
+.. _rtx3070:
+
 Evaluation: RTX 3070
-====================
+^^^^^^^^^^^^^^^^^^^^
 
 .. Datenbasis: project/results_3070_v2/ (belastbar) und project/result_3070/
    (erster Sweep, fuer batch=1 unbrauchbar -- siehe Methodik).
@@ -9,7 +11,7 @@ Evaluation: RTX 3070
    Vollmessung braeuchten.
 
 Datenlage
----------
+"""""""""
 
 .. Inhalt:
    - Was gemessen wurde: coverage_run, baseline_probe (inkl. Per-Shape-Hybrid ueber
@@ -20,7 +22,7 @@ Datenlage
      das Per-Shape-Ergebnis des Hybrid.
 
 Portabilität von Kernel und Pipeline
-------------------------------------
+""""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - 11 von 11 Abdeckungsfaellen wie erwartet -- der flex-Kernel und alle zehn
@@ -30,7 +32,7 @@ Portabilität von Kernel und Pipeline
      Karten.
 
 Ergebnisse
-----------
+""""""""""
 
 .. Inhalt:
    - Tabelle der 16 Per-Shape-Hybrid-Ergebnisse aus baseline_probe_winners.log.
@@ -47,7 +49,7 @@ Ergebnisse
      ein Bedienfehler von uns, kein Verfahrensfehler -- so benennen.
 
 Was aus dem alten Sweep nicht übernommen wird
----------------------------------------------
+"""""""""""""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Explizit auflisten, welche frueheren 3070-Aussagen zurueckgezogen sind:

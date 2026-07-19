@@ -12,3 +12,186 @@
 .rst-content div[class^="highlight"] {
   max-width: 100%;
 }
+
+/* ---- Kapitelnummern 1 / 1.1 / 1.1.1 (nur auf der Projektseite) ----
+   Die Klasse am <body> setzt toc-collapse.js, sobald es ein .word-toc findet.
+   CSS-Counter statt .. sectnum::, weil sectnum den Seitentitel als Ebene 1
+   mitzaehlt und die Gliederung dann bei 1.1 statt bei 1 beginnt. */
+
+/* Die Ebenen exakt adressieren -- ein blosses "section > section" wuerde auf
+   jeder Tiefe greifen und die Zaehler staendig zuruecksetzen. */
+body.has-word-toc div[itemprop="articleBody"] > section {
+  counter-reset: h2;
+}
+
+body.has-word-toc div[itemprop="articleBody"] > section > section {
+  counter-reset: h3;
+}
+
+body.has-word-toc div[itemprop="articleBody"] > section > section > section {
+  counter-reset: h4;
+}
+
+body.has-word-toc div[itemprop="articleBody"] > section > section > h2 {
+  counter-increment: h2;
+}
+
+body.has-word-toc div[itemprop="articleBody"] > section > section > section > h3 {
+  counter-increment: h3;
+}
+
+body.has-word-toc div[itemprop="articleBody"] > section > section > section > section > h4 {
+  counter-increment: h4;
+}
+
+body.has-word-toc div[itemprop="articleBody"] > section > section > h2::before {
+  content: counter(h2) "\00a0\00a0";
+}
+
+body.has-word-toc div[itemprop="articleBody"] > section > section > section > h3::before {
+  content: counter(h2) "." counter(h3) "\00a0\00a0";
+}
+
+body.has-word-toc div[itemprop="articleBody"] > section > section > section > section > h4::before {
+  content: counter(h2) "." counter(h3) "." counter(h4) "\00a0\00a0";
+}
+
+/* ---- Inhaltsverzeichnis im Word-Stil (nur auf der Projektseite) ---- */
+
+/* dieselbe Nummerierung im Verzeichnis -- die Verschachtelung ist identisch,
+   also zaehlen beide Counter synchron */
+.rst-content .word-toc > ul { counter-reset: t2; }
+.rst-content .word-toc > ul > li > ul { counter-reset: t3; }
+.rst-content .word-toc > ul > li > ul > li > ul { counter-reset: t4; }
+
+.rst-content .word-toc > ul > li { counter-increment: t2; }
+.rst-content .word-toc > ul > li > ul > li { counter-increment: t3; }
+.rst-content .word-toc > ul > li > ul > li > ul > li { counter-increment: t4; }
+
+.rst-content .word-toc > ul > li > p > a::before {
+  content: counter(t2) "\00a0\00a0";
+  color: #5a6570;
+}
+
+.rst-content .word-toc > ul > li > ul > li > p > a::before {
+  content: counter(t2) "." counter(t3) "\00a0\00a0";
+  color: #7a838c;
+}
+
+.rst-content .word-toc > ul > li > ul > li > ul > li > p > a::before {
+  content: counter(t2) "." counter(t3) "." counter(t4) "\00a0\00a0";
+  color: #8b939b;
+}
+
+.rst-content .word-toc {
+  border: 1px solid #d9dde1;
+  border-radius: 3px;
+  background: #fcfcfd;
+  padding: 1.2em 1.8em 1.4em;
+  margin: 1.5em 0 2.5em;
+}
+
+.rst-content .word-toc > p.topic-title {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin-bottom: .8em;
+  border-bottom: 1px solid #e3e7ea;
+  padding-bottom: .4em;
+}
+
+.rst-content .word-toc ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+}
+
+.rst-content .word-toc ul ul {
+  padding-left: 1.6em;
+}
+
+.rst-content .word-toc li {
+  margin: 0;
+  line-height: 1.9;
+  list-style: none;
+}
+
+/* docutils packt jeden Eintrag in ein <p> -- als Block wuerde das Toggle-Dreieck
+   auf einer eigenen Zeile landen */
+.rst-content .word-toc li > p {
+  display: inline;
+  margin: 0;
+}
+
+/* Fuehrungspunkte: der Link laesst sich nicht bepunkten, also ein Pseudo-Element
+   dazwischen, das den freien Platz mit Punkten fuellt. */
+.rst-content .word-toc li > a {
+  display: inline;
+  color: #2e3d49;
+  text-decoration: none;
+}
+
+.rst-content .word-toc li > a:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+/* Ebene 1 kraeftiger, damit die Hauptteile hervorstechen */
+.rst-content .word-toc > ul > li > a {
+  font-weight: 700;
+  font-size: 1.02em;
+}
+
+.rst-content .word-toc > ul > li {
+  margin-top: .45em;
+}
+
+.rst-content .word-toc > ul > li > ul > li > a {
+  font-weight: 500;
+}
+
+.rst-content .word-toc > ul > li > ul > ul a {
+  color: #5a6570;
+  font-size: .95em;
+}
+
+/* ---- Ein-/Ausklappen ---- */
+
+.word-toc .toc-toggle {
+  display: inline-block;
+  width: 1.15em;
+  margin-left: -1.15em;   /* haengt links raus, Text bleibt buendig */
+  color: #9aa4ad;
+  cursor: pointer;
+  user-select: none;
+  font-size: .85em;
+  text-align: left;
+}
+
+.word-toc .toc-toggle:hover {
+  color: #2980b9;
+}
+
+.word-toc li.collapsed > ul {
+  display: none;
+}
+
+.word-toc .toc-controls {
+  margin-bottom: .9em;
+  font-size: .88em;
+}
+
+.word-toc .toc-controls button {
+  background: none;
+  border: 1px solid #ccd2d8;
+  border-radius: 3px;
+  color: #4a5560;
+  cursor: pointer;
+  padding: .2em .7em;
+  margin-right: .4em;
+  font-size: inherit;
+}
+
+.word-toc .toc-controls button:hover {
+  border-color: #2980b9;
+  color: #2980b9;
+}

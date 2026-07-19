@@ -1,10 +1,10 @@
 Suchraum und Enumerator
-=======================
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Quelle: project/src/autotuner/search.py
 
 Die Knöpfe
-----------
+""""""""""
 
 .. Inhalt:
    - Tabelle der sechs Knoepfe mit Wertemenge und Bedeutung:
@@ -19,7 +19,7 @@ Die Knöpfe
    - literalinclude SearchSpace.
 
 Aufbau einer Kandidaten-Config
-------------------------------
+""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - build_one_config Schritt fuer Schritt: generate_config fuer die Basic-Config,
@@ -31,7 +31,7 @@ Aufbau einer Kandidaten-Config
    - literalinclude build_one_config.
 
 Padding krummer Shapes
-----------------------
+""""""""""""""""""""""
 
 .. Inhalt:
    - Das Problem: split_dim verlangt outer*inner == alte Groesse, M=1234 geht also

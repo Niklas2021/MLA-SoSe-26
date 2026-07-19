@@ -1,10 +1,10 @@
 Schlussfolgerungen
-==================
+------------------
 
 .. Kein Wiederholen der Ergebnisse -- hier steht, was wir daraus gelernt haben.
 
 Was der Tuner leistet
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Die Kernaussage in einem Absatz, mit der belastbaren Zahl (1.12x GB10,
@@ -15,7 +15,7 @@ Was der Tuner leistet
      feste Wahl schlecht passt.
 
 Modell und Messung sind komplementär
-------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Das ist die uebertragbarste Erkenntnis des Projekts und verdient einen
@@ -27,7 +27,7 @@ Modell und Messung sind komplementär
      die Realitaet punktuell.
 
 Die Baseline entscheidet über die Aussage
------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Zweite uebertragbare Lehre: derselbe Datensatz ergibt 1.27x oder 1.12x, je
@@ -38,7 +38,7 @@ Die Baseline entscheidet über die Aussage
      praesentierten Zahl gefuehrt hat, gehoert dazu.
 
 Was wir über die Hardware gelernt haben
----------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Das 25-MB-L2 der GB10 verschiebt die Story deutlich: die L2-Reuse-Regel aus
@@ -49,7 +49,7 @@ Was wir über die Hardware gelernt haben
      Lastdauer 4.6 % anders.
 
 Negativergebnisse
------------------
+^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Bewusst als eigener Abschnitt: reiner Koordinatenabstieg schlechter als das

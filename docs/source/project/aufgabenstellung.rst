@@ -1,11 +1,11 @@
 Aufgabenstellung
-================
+----------------
 
 .. Diese Seite ist das Gegenstueck zu den "Aufgabenstellung"-Abschnitten der
    Assignments: WAS wollten wir bauen und WARUM -- noch keine Loesung.
 
 Ausgangslage
-------------
+^^^^^^^^^^^^
 
 .. Inhalt:
    - In A05 haben wir die L2-optimale Aufteilung von "cmk,ckn->cmn" von Hand
@@ -19,7 +19,7 @@ Ausgangslage
      liefern nur eine Vorauswahl, keine Rangfolge.
 
 Zielsetzung
------------
+^^^^^^^^^^^
 
 .. Inhalt:
    - Ein Satz Kernziel: aus (Einsum-String, Shapes) automatisch eine gute
@@ -32,7 +32,7 @@ Zielsetzung
      cuBLAS/CUTLASS (endliche Template-Menge) und Triton (@autotune pro @jit).
 
 Erfolgskriterien
-----------------
+^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Die urspruenglich gesetzten Ziele als Tabelle: A05-Handloesung zu >= 95 %
@@ -43,7 +43,7 @@ Erfolgskriterien
      aufgeloest. Hier nur ankuendigen.
 
 Abgrenzung und Rahmenbedingungen
---------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Scope: zwei Inputs, fp16 mit fp32-Akku, Row-Major.

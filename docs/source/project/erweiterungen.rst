@@ -1,5 +1,5 @@
 Erweiterungen nach der Präsentation
-====================================
+------------------------------------
 
 .. Sammelseite. Inhalt:
    - Einleitender Absatz: nach der Praesentation kam Feedback mit drei Punkten
@@ -11,11 +11,12 @@ Erweiterungen nach der Präsentation
      kein schlechtes Ergebnis, sondern ein praezises -- bei beiden laesst sich aus
      den Daten sagen, WARUM. Das gehoert prominent gesagt statt versteckt.
 
-.. toctree::
-   :maxdepth: 1
+.. include:: /project/erweiterungen/hybrid.rst
 
-   erweiterungen/hybrid
-   erweiterungen/abdeckung
-   erweiterungen/reihenfolge
-   erweiterungen/suchraum_weit
-   erweiterungen/baseline
+.. include:: /project/erweiterungen/abdeckung.rst
+
+.. include:: /project/erweiterungen/reihenfolge.rst
+
+.. include:: /project/erweiterungen/suchraum_weit.rst
+
+.. include:: /project/erweiterungen/baseline.rst

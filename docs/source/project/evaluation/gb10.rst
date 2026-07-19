@@ -1,11 +1,11 @@
 Evaluation: DGX Spark (GB10)
-============================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Datenbasis: project/results_dgx_v2/ (zweiter Durchlauf, alles in einer Session)
    und project/result_dgx_v1/ (erster Durchlauf, fuer die Drift-Gegenprobe).
 
 Korrektheit
------------
+"""""""""""
 
 .. Inhalt:
    - Ueber alle Shapes und alle geprunten Configs: 0 Fehlschlaege, 0 inkorrekte
@@ -15,7 +15,7 @@ Korrektheit
      einer wird sauber abgelehnt). literalinclude coverage_run.log.
 
 Vollmessung als Referenz
-------------------------
+""""""""""""""""""""""""
 
 .. Inhalt:
    - Tabelle ueber die 16 Shapes: bestes Ergebnis, faire Baseline, A05-Default,
@@ -24,7 +24,7 @@ Vollmessung als Referenz
    - fig_a05_bars.png und fig_a06_bars.png einbinden.
 
 Suchstrategien im Vergleich
----------------------------
+"""""""""""""""""""""""""""
 
 .. Inhalt:
    - Die Leiter: Default (0 Messungen) / Top-7 (7) / Hybrid (22) / Vollmessung.
@@ -33,7 +33,7 @@ Suchstrategien im Vergleich
    - fig_topk_curve.png.
 
 Externe Referenz: torch.einsum
-------------------------------
+""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Der ehrliche "was, wenn man einfach die Library nimmt"-Vergleich, getrennt
@@ -44,7 +44,7 @@ Externe Referenz: torch.einsum
      Assignment nicht vergleichbar war.
 
 Wirkung der Erweiterungen
--------------------------
+"""""""""""""""""""""""""
 
 .. Inhalt:
    - Kompakte Tabelle: Ordnungs-Knopf (isoliert 1.026x), weiter Suchraum

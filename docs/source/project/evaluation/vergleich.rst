@@ -1,12 +1,12 @@
 Vergleich der beiden Karten
-===========================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Dieses Kapitel soll die Frage beantworten: wie gut hat der Tuner auf welcher
    Karte geholfen, und warum unterscheidet es sich? Der Auftraggeber will hier
    ausdruecklich detaillierte Hardware-Specs.
 
 Hardware im Detail
-------------------
+""""""""""""""""""
 
 .. Inhalt:
    - Grosse Vergleichstabelle beider Karten. Werte aus project/project_diary.md
@@ -27,7 +27,7 @@ Hardware im Detail
      hinkommt).
 
 Wie viel hat das Tuning gebracht?
----------------------------------
+"""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Die zentrale Tabelle, drei Ebenen pro Karte:
@@ -40,7 +40,7 @@ Wie viel hat das Tuning gebracht?
      falls ja, neu erzeugen oder nicht verwenden.
 
 Warum die kleinere Karte mehr profitiert
-----------------------------------------
+""""""""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Der eigentlich interessante Teil: auf der 3070 holt die beste feste Config nur
@@ -54,7 +54,7 @@ Warum die kleinere Karte mehr profitiert
      "16/16 Shapes verschieden" auf den defekten Daten beruhte.
 
 Portabilität des Verfahrens
----------------------------
+"""""""""""""""""""""""""""
 
 .. Inhalt:
    - Was auf beiden Karten unveraendert funktioniert hat: Enumerator, Pruning,

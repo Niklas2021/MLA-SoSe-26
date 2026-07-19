@@ -1,10 +1,10 @@
 Limitations
-===========
+-----------
 
 .. Ehrliche Grenzen des Projekts. Nach Art gegliedert, nicht nach Schwere.
 
 Grenzen des Verfahrens
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Koordinatenabstieg ist greedy: die Achsen sind nicht unabhaengig (m_prim und
@@ -17,7 +17,7 @@ Grenzen des Verfahrens
      Wahl (kleine k_prim nur bei unteilbarem K) ist erkannt, aber nicht umgesetzt.
 
 Grenzen der Abdeckung
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Zwei Inputs, fp16 mit fp32-Akku, Row-Major.
@@ -30,7 +30,7 @@ Grenzen der Abdeckung
    - Die s/k-Verschachtelung im Ring-Kernel ist nicht durchsucht.
 
 Grenzen der Messung
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Der Messrahmen-Effekt: bis 4.6 % Abweichung derselben Config je nach
@@ -42,7 +42,7 @@ Grenzen der Messung
      bzw. Mediane aus wenigen Runden; Konfidenzintervalle gibt es nicht.
 
 Grenzen der Datenbasis
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Der erste 3070-Sweep ist fuer batch=1 unbrauchbar (3.3-4.8x zu niedrig), die
@@ -56,7 +56,7 @@ Grenzen der Datenbasis
      eine optimistische, also konservative Schranke fuer den Tuner-Gewinn.
 
 Was wir mit mehr Zeit gemacht hätten
-------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Inhalt:
    - Kurze, konkrete Liste statt vager Ausblick: frischer 3070-Voll-Sweep,

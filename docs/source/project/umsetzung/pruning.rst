@@ -1,5 +1,5 @@
 Statisches Pruning
-==================
+^^^^^^^^^^^^^^^^^^
 
 .. Quelle: project/src/autotuner/search.py (prune, prune_reason, estimate_*)
    Das ist eines der Kapitel, das der Auftraggeber explizit detailliert haben will.
@@ -7,7 +7,7 @@ Statisches Pruning
    was er bei A05 konkret wegwirft, und wie sicher/heuristisch er ist.
 
 Warum überhaupt filtern
------------------------
+"""""""""""""""""""""""
 
 .. Inhalt:
    - Ziel: alles wegwerfen, was ohne Kompilieren als unsinnig erkennbar ist.
@@ -16,13 +16,13 @@ Warum überhaupt filtern
    - code_prune.png aus den Praesentations-Figuren passt hier.
 
 Filter 1: MMA-Alignment
------------------------
+"""""""""""""""""""""""
 
 .. Inhalt: Vielfache von 16 fuer die fp16-Tensor-Cores. Guard-Charakter -- unsere
    Kandidatenwerte erfuellen ihn alle, er schuetzt vor kuenftigen Knopfwerten.
 
 Filter 2: Shared-Memory-Budget
-------------------------------
+""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Die harte Schranke. Formel: (M_PRIM*K_PRIM + K_PRIM*N_PRIM) * 2 Byte * stages.
@@ -35,7 +35,7 @@ Filter 2: Shared-Memory-Budget
      und der eigentliche Schutz ist das try/except ums Kompilieren.
 
 Filter 3: Akkumulator-Register
-------------------------------
+""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - M_PRIM*N_PRIM fp32 gegen reg_fraction * regs_per_block.
@@ -45,7 +45,7 @@ Filter 3: Akkumulator-Register
      ausgerechnet die Register-Fresser nach oben sortiert. Verweis auf Ranking.
 
 Filter 4: Padding-Verschwendung
--------------------------------
+"""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - gepaddetes Volumen / Original-Volumen gegen max_padding (Default 8.0).
@@ -54,7 +54,7 @@ Filter 4: Padding-Verschwendung
      warum die A05-Default-Config als Baseline versagt (Vorwaertsverweis).
 
 Was das Pruning NICHT kann
---------------------------
+""""""""""""""""""""""""""
 
 .. Inhalt:
    - 486 -> 342 ist weniger, als man hofft, und das ist strukturell: das

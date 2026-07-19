@@ -1,54 +1,77 @@
 Einsum-Abdeckung: Layout-Guard und Kanonisierung
-================================================
-
-.. Quellen: project/src/autotuner/layout.py, project/src/check_coverage.py,
-   die Erweiterung von project/src/autotuner/kernels.py (matmul_flex_a)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Die stille Lücke
-----------------
+""""""""""""""""
 
-.. Inhalt:
-   - Der Befund, mit dem das Kapitel aufmachen sollte: parse_einsum akzeptierte
-     deutlich mehr, als die Kernel rechnen koennen, und nichts prueft das.
-     "cmk,cnk->cmn" (B als NT) parst sauber, der Kernel liest dann das falsche
-     Layout -- auffaellig erst beim allclose, ununterscheidbar von einem echten
-     Rechenfehler. Andere Strings crashten am Shape-Unpack.
-   - Tabelle vorher/nachher ueber alle getesteten Strings.
+``parse_einsum`` hat deutlich mehr akzeptiert, als die Kernel rechnen können,
+und geprüft hat das nichts. ``cmk,cnk->cmn`` — also B in NT-Layout — parst
+sauber durch, der Kernel liest dann aber das falsche Layout. Auffällig wird das
+erst beim ``allclose`` am Ende, und dort ist es von einem echten Rechenfehler
+im Kernel nicht zu unterscheiden. Andere Strings sind vorher am Shape-Unpack
+abgestürzt.
+
+Das ist die unangenehmere Sorte Fehler: nicht der, der crasht, sondern der, der
+plausibel aussieht und falsch rechnet.
 
 Zwei verschiedene Mechanismen
------------------------------
+"""""""""""""""""""""""""""""
 
-.. Inhalt:
-   - Die zentrale Unterscheidung, die das Kapitel traegt: Batch-Achsen umsortieren
-     ist GRATIS (reines view: fehlende Achse ergaenzen, mehrere fusionieren).
-     M/N/K umsortieren ist eine TRANSPOSITION -- kein Vertauschen von Indizes
-     aendert, was physisch stride-1 liegt.
-   - Warum bewusst view() statt reshape(): reshape wuerde bei nicht
-     zusammenhaengenden Tensoren still kopieren, und eine unsichtbare Kopie mitten
-     im Benchmark waere schlimmer als ein Fehler.
-   - literalinclude Layout und plan_layout.
+Beim Umsortieren von Achsen muss man zwei Fälle auseinanderhalten, und diese
+Unterscheidung trägt das ganze Kapitel.
+
+**Batch-Achsen umsortieren ist gratis.** Eine fehlende Batch-Achse ergänzen oder
+mehrere zu einer fusionieren ist ein reiner ``view`` — es ändert nur, wie wir
+den Speicher interpretieren, nicht den Speicher selbst.
+
+**M/N/K umsortieren ist eine Transposition.** Kein Vertauschen von Indizes
+ändert etwas daran, welche Achse physisch stride-1 liegt. Wer hier umsortieren
+will, muss die Daten anfassen.
+
+Bewusst ``view()`` und nicht ``reshape()``: ``reshape`` würde bei einem nicht
+zusammenhängenden Tensor still eine Kopie anlegen. Eine unsichtbare Kopie mitten
+im Benchmark wäre schlimmer als ein Fehler — sie würde einfach die Messung
+verfälschen. ``view`` wirft stattdessen.
+
+.. literalinclude:: ../../project/src/autotuner/layout.py
+   :language: python
+   :pyobject: plan_layout
 
 Der flex-Kernel
----------------
+"""""""""""""""
 
-.. Inhalt:
-   - matmul_flex_a mit drei Transponier-Flags als ct.Constant. Der Tile-Transpose
-     ist derselbe Trick, den matmul_ring_a schon nutzt (ct.permute nach dem Laden)
-     -- keine Kopie im Speicher.
-   - Die bewusste Entscheidung, einen EIGENEN Kernel zu bauen statt Flags in
-     matmul_variant_a: der ist auf beiden Karten erprobt, ein Fehler im neuen Pfad
-     sollte ihn nicht mitreissen. Das ist ein Engineering-Argument, das man
-     ausschreiben sollte.
-   - Die offene Annahme und ihre Aufloesung: fuer eine Verzweigung ueber eine
-     ct.Constant gab es in unseren 13 Kerneln keinen Praezedenzfall. cuTile loest
-     sie beim Spezialisieren auf -- auf GB10 und 3070 verifiziert.
+Für die Fälle, die eine echte Transposition brauchen, gibt es
+``matmul_flex_a`` mit drei Transponier-Flags als ``ct.Constant``. Transponiert
+wird auf Tile-Ebene über ``ct.permute`` nach dem Laden — derselbe Trick, den
+``matmul_ring_a`` schon benutzt, und damit ohne Kopie im Speicher.
+
+Das ist ein eigener Kernel geworden statt zusätzlicher Flags in
+``matmul_variant_a``. Der ist auf beiden Karten erprobt und liefert die Zahlen
+für die gesamte Evaluation; ein Fehler im neuen, deutlich selteneren Pfad sollte
+ihn nicht mitreißen können.
+
+Offen war dabei, ob cuTile über eine ``ct.Constant`` verzweigen kann — in
+unseren dreizehn Kerneln gab es dafür keinen Präzedenzfall. Es funktioniert:
+cuTile löst die Verzweigung beim Spezialisieren auf. Verifiziert auf GB10 und
+RTX 3070.
 
 Abdeckungstabelle
------------------
+"""""""""""""""""
 
-.. Inhalt:
-   - Die COVERAGE-Liste aus problems.py als Tabelle: Einsum, was noetig ist,
-     Status. Von 2 auf 10 laufende Familien.
-   - Was weiterhin abgelehnt wird und warum (Batch-Dim nicht aussen).
-   - check_coverage.py als reproduzierbarer Nachweis, lokal und mit --run.
-     Programmausgabe per literalinclude aus results_dgx_v2/coverage_run.log.
+``check_coverage.py`` fährt alle Formen aus der ``COVERAGE``-Liste durch, lokal
+als reine Layout-Prüfung und mit ``--run`` als echte Messung.
+
+.. image:: ../../project/praesentation/figures/fig_coverage.png
+   :alt: Abdeckung der einsum-Formen auf beiden Karten
+   :width: 95%
+
+Von ursprünglich zwei lauffähigen Familien — der A05-GEMM-Form und der
+A06-Ring-Form — sind es jetzt zehn. Abgelehnt wird weiterhin ``mck,ckn->mcn``:
+dort liegt die Batch-Dimension nicht außen, und das lässt sich nicht per
+``view`` reparieren, weil es eine echte Transposition der Daten wäre.
+
+Dass eine Form abgelehnt wird, ist dabei das gewünschte Verhalten. Vorher wäre
+sie durchgelaufen und hätte falsch gerechnet.
+
+.. literalinclude:: ../../project/results_dgx_v2/coverage_run.log
+   :language: text

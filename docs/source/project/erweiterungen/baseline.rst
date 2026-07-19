@@ -1,5 +1,5 @@
 Was ist eine faire Baseline?
-============================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Quellen: project/src/baselines_study.py, project/src/baseline_probe.py,
    problems.py (BASELINE_CONFIGS)
@@ -7,7 +7,7 @@ Was ist eine faire Baseline?
    sorgfaeltig und ohne Beschoenigung schreiben.
 
 Das Problem
------------
+"""""""""""
 
 .. Inhalt:
    - Bis hierher war die Vergleichsbasis DEFAULT_CONFIG, die aus A05 uebernommene
@@ -17,7 +17,7 @@ Das Problem
      Ansatz?") -- das gehoert so erzaehlt, es zeigt die Selbstkorrektur.
 
 Warum die A05-Config als Baseline versagt
------------------------------------------
+"""""""""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Sie ist nicht "die GB10-Config", sondern die Config fuer EINE Shape: auf ihrer
@@ -33,7 +33,7 @@ Warum die A05-Config als Baseline versagt
      es das Arithmetic-Intensity-Argument verlangt. Beide Richtungen stimmen.
 
 Warum 128/128/64 trotzdem eine vernünftige Wahl war
----------------------------------------------------
+"""""""""""""""""""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Die Herleitung ist lehrbuchmaessig sauber und sollte nachgezeichnet werden:
@@ -46,7 +46,7 @@ Warum 128/128/64 trotzdem eine vernünftige Wahl war
      Rand. Das ist die Pointe des Kapitels.
 
 Die neue Baseline
------------------
+"""""""""""""""""
 
 .. Inhalt:
    - BASELINE_CONFIGS: eine feste Config pro GPU (GB10 64/256/64 8x2,
@@ -60,7 +60,7 @@ Die neue Baseline
      Config die 89.6 % statt 90.9 % holt. Der Bias ist bekannt und beziffert.
 
 Auswirkung auf die Aussagen des Projekts
-----------------------------------------
+""""""""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Der ehrliche Tuner-Gewinn auf der GB10 ist 1.12x, nicht 1.27x.

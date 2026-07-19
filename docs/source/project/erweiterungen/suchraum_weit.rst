@@ -1,10 +1,10 @@
 Erweiterter Suchraum
-====================
+^^^^^^^^^^^^^^^^^^^^
 
 .. Quelle: search.py (SearchSpace.wide, WIDE_*_CHOICES)
 
 Motivation aus der Randanalyse
-------------------------------
+""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Die Diagnose: sitzt der Gewinner am Rand des Gitters, ist der Raum
@@ -16,7 +16,7 @@ Motivation aus der Randanalyse
      stehen, mit Verweis auf Evaluation/Datenbasis.
 
 Umsetzung
----------
+"""""""""
 
 .. Inhalt:
    - M/N_PRIM {32,64,128,256}, K_PRIM {16,32,64,128}; 32 bleibt mit MMA_ALIGN=16
@@ -28,7 +28,7 @@ Umsetzung
      bedient keine --wide-Anfrage (dieselbe Logik wie topk vs hybrid).
 
 Ergebnis
---------
+""""""""
 
 .. Inhalt:
    - GB10: netto ein Nullsummenspiel bei doppelten Kosten. Ohne die zwei

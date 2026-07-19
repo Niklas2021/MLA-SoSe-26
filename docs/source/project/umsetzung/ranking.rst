@@ -1,5 +1,7 @@
+.. _ranking:
+
 Ranking: die Kostenmodelle
-==========================
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. Quelle: project/src/autotuner/search.py (rank, estimate_dram_bytes,
    estimate_grid, occupancy_util, estimate_blocks_per_sm)
@@ -7,7 +9,7 @@ Ranking: die Kostenmodelle
    Formel, und was die Messung dazu gesagt hat.
 
 Zweck des Rankings
-------------------
+""""""""""""""""""
 
 .. Inhalt:
    - Klarstellen: das Ranking ist NICHT primaer zum Zeitsparen da. Der Compile
@@ -16,7 +18,7 @@ Zweck des Rankings
    - Erst spaeter wird es zum Vorfilter fuer den praktischen Tuner.
 
 Modell 1: Bandbreite (bw)
--------------------------
+"""""""""""""""""""""""""
 
 .. Inhalt:
    - Idee: FLOPs sind fuer alle Kandidaten gleich, also entscheidet der
@@ -27,7 +29,7 @@ Modell 1: Bandbreite (bw)
      das Kaltladen. Das ist der portable Umschalter zwischen den Karten.
 
 Modell 2: bw mit Occupancy (bw_occ)
------------------------------------
+"""""""""""""""""""""""""""""""""""
 
 .. Inhalt:
    - Motivation: Variante B mit grosser Gruppe hat nur 32 CTAs bei 48 SMs,
@@ -35,7 +37,7 @@ Modell 2: bw mit Occupancy (bw_occ)
    - Wave-Quantisierung ueber estimate_blocks_per_sm und occupancy_util.
 
 Modell 3: Roofline
-------------------
+""""""""""""""""""
 
 .. Inhalt:
    - max(memory_ms, compute_ms) als automatischer, hardwaregetriebener
@@ -50,7 +52,7 @@ Modell 3: Roofline
      ausgeschrieben werden.
 
 Bewertung der Modelle
----------------------
+"""""""""""""""""""""
 
 .. Inhalt:
    - Ergebnistabelle (Spearman und Top-7-Ausbeute) fuer bw / v2 / roofline.

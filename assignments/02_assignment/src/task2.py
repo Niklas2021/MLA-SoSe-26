@@ -9,22 +9,15 @@ import random #for random M,K size
 
 
 @ct.kernel
-def reduce(i_matrix, o_vector, k, tile_size: ct.Constant[int]):
+def reduce(i_matrix, o_vector, tile_size: ct.Constant[int]):
     # ct.bid(axes): Returns the index of current block.
     pid = ct.bid(0) #possible values are 0, 1, 2
-    
-    i_tile = ct.load(i_matrix, index=(pid,0), shape=(1, tile_size))
 
-# creates a tile with index values from 0 to tile_size - 1
-    offsets = ct.arange(tile_size, dtype=ct.int32) 
+    # OOB-Spalten direkt beim Laden nullen, kein extra Masking noetig.
+    i_tile = ct.load(i_matrix, index=(pid,0), shape=(1, tile_size),
+                     padding_mode=ct.PaddingMode.ZERO)
 
-    # Threads with index < k True, > k False
-    mask = ct.where(offsets < k, 1.0, 0.0)
-
-    # everything from index k = 0 
-    clean_tile = i_tile * mask
-
-    result = ct.sum(clean_tile, axis =1)
+    result = ct.sum(i_tile, axis =1)
     result_fp16 = result.astype(ct.float16)
 
     ct.store(o_vector,
@@ -60,7 +53,7 @@ def task2():
     ct.launch(torch.cuda.current_stream().cuda_stream,
                                     grid,
                                     reduce,
-                                    (i_matrix, o_vector, k, tile_size))
+                                    (i_matrix, o_vector, tile_size))
 
     # verify correctness by comparing the result to torch.sum(mat, dim=1) via torch.allclose
     print("torch.allclose() verification: ", torch.allclose(o_vector, torch.sum(i_matrix,dim=1)))

@@ -86,6 +86,8 @@ Mediane pro Shape liegen zwischen 94.7 % (``a05``) und 100.2 %
 die Aussage oben spielt das keine Rolle, weil der Vergleich zwischen Hybrid und
 Sweep komplett aus ``results_dgx_v2`` stammt.
 
+.. _datenbasis:
+
 Datenbasis und ihre Grenzen
 """""""""""""""""""""""""""
 

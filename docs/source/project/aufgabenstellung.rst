@@ -1,17 +1,18 @@
 Aufgabenstellung
 ----------------
 
-Ausgangslage: warum ein Tuner? 
+Ausgangslage
 ^^^^^^^^^^^^
-Wie findet man für eine Tensor-Kontraktion automatisch eine schnelle cuTile-Config?
-Darum ging es in unserem Projekt und dieser Post erklärt, welcher Spielraum
-beim Ausführen einer Kontraktion überhaupt existiert, wie daraus ein Suchraum wird
-und wie der Tuner ihn durcharbeitet.
+
+Das Projekt geht der Frage nach, wie man für eine Tensor-Kontraktion automatisch
+eine schnelle cuTile-Config findet. Die folgenden Abschnitte zeigen, welcher
+Spielraum beim Ausführen einer Kontraktion existiert, wie daraus ein Suchraum
+wird und wie der Tuner ihn durcharbeitet.
 
 In Assignment 05 und 06 haben wir zwei Kontraktionen von Hand getunt: den batched
 Matmul `cmk,ckn->cmn` und die Tensor-Ring-Kontraktion `acspx,bspy->abcyx`. Der Kernel-Code war dabei nie das Problem. Die Rechenvorschrift ist in beiden
 Fällen trivial — 2 fp16-Tensoren rein, über die gemeinsame Achse summieren,
-fp32 akkumulieren. Das Performance steckt woanders: in der Config, also darin, wie
+fp32 akkumulieren. Die Performance steckt woanders: in der Config, also darin, wie
 man die Arbeit in Kacheln zerlegt und in welcher Reihenfolge man die Kacheln
 abarbeitet.
 

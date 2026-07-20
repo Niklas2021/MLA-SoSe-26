@@ -3,16 +3,11 @@ Suchraum und Enumerator
 
 Für jeden der 6 Knöpfe gibt es eine Reihe hardware-sinnvoller Werte:
 
-.. code-block:: python
-   :caption: project/src/autotuner/search.py:16-22
-
-   # die Knoepfe (aus dem Pitch)
-   M_PRIM_CHOICES = [64, 128, 256]
-   N_PRIM_CHOICES = [64, 128, 256]
-   K_PRIM_CHOICES = [32, 64, 128]
-   M_L2_CHOICES = [2, 4, 8]
-   N_L2_CHOICES = [2, 4, 8]
-   VARIANT_CHOICES = ["A", "B"]   # A = m_l2/n_l2 als PAR (swizzle), B = als SEQ-Loops
+.. literalinclude:: ../../project/src/autotuner/search.py
+   :language: python
+   :caption: search.py — die sechs Knöpfe
+   :start-at: # die Knoepfe (aus dem Pitch)
+   :end-at: VARIANT_CHOICES
 
 Macht `3 · 3 · 3 · 3 · 3 · 2 = 486` Kombinationen — mehr als die 81 aus dem
 ursprünglichen Pitch. Die 81 zählten nur die Tile-Kombinatorik und ließen zwei
@@ -24,15 +19,12 @@ Kombination via `build_one_config` einen `Candidate`. Kombinationen, die
 `Optimizer.verify()` nicht bestehen, fallen mit einem `except` raus — noch ohne
 jedes Pruning:
 
-.. code-block:: python
-   :caption: project/src/autotuner/search.py:150-155
-
-                               try:
-                                   candidates.append(build_one_config(
-                                       einsum_props, variant,
-                                       m_prim, n_prim, k_prim, m_l2, n_l2))
-                               except (ValueError, NotImplementedError):
-                                   skipped += 1
+.. literalinclude:: ../../project/src/autotuner/search.py
+   :language: python
+   :caption: search.py — enumerate_candidates(), ungültige Configs raus
+   :start-at: try:
+   :end-at: skipped += 1
+   :dedent:
 
 Die Hand-Config als Sanity-Check
 """""""""""""""""""""""""""""""""
@@ -51,18 +43,12 @@ ergeben), sonst wirft es. Eine Shape wie `M = 1500` geht also nicht direkt. Stat
 solche Fälle abzulehnen, padden wir auf die nächste teilbare Größe hoch, der
 Überhang wird später im Kernel über `PaddingMode.ZERO` genullt:
 
-.. code-block:: python
-   :caption: project/src/autotuner/search.py:76-84
-
-       # split_dim will exakte Teilbarkeit, also runden wir krumme Groessen hoch.
-       # dim_sizes sind damit gepaddet, der Ueberhang wird im Kernel genullt.
-       m_l2_outer = ceildiv(einsum_props.orig_m, m_prim * m_l2)
-       n_l2_outer = ceildiv(einsum_props.orig_n, n_prim * n_l2)
-       k_outer = ceildiv(einsum_props.orig_k, k_prim)
-
-       padded_m = m_l2_outer * m_l2 * m_prim
-       padded_n = n_l2_outer * n_l2 * n_prim
-       padded_k = k_outer * k_prim
+.. literalinclude:: ../../project/src/autotuner/search.py
+   :language: python
+   :caption: search.py — krumme Größen hochrunden
+   :start-at: # split_dim will exakte Teilbarkeit
+   :end-at: padded_k = k_outer
+   :dedent:
 
 Die `dim_sizes` der Config sind damit die gepaddeten Größen — die TFLOPS rechnen
 wir aber konsequent auf der Original-Shape, sonst würde man sich die Padding-Arbeit

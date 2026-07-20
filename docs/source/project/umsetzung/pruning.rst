@@ -3,19 +3,10 @@ Statisches Pruning
 
 Bevor ein einziger Kernel kompiliert wird, wirft `prune` alles raus, was sich als nicht sinnvoll erkennen lässt. Es gibt 4 Filter:
 
-.. code-block:: python
-   :caption: project/src/autotuner/search.py:184-193
-
-   def prune_reason(cand, dev, buffer_stages, reg_fraction, max_padding, smem_limit):
-       if cand.m_prim % MMA_ALIGN or cand.n_prim % MMA_ALIGN or cand.k_prim % MMA_ALIGN:
-           return "mma_align"
-       if estimate_smem_bytes(cand, buffer_stages) > smem_limit:
-           return "smem_exceeded"
-       if estimate_acc_registers(cand) > dev.regs_per_block * reg_fraction:
-           return "acc_registers"
-       if padding_ratio(cand) > max_padding:
-           return "padding_waste"
-       return None
+.. literalinclude:: ../../project/src/autotuner/search.py
+   :language: python
+   :caption: search.py — prune_reason()
+   :pyobject: prune_reason
 
 1. **MMA-Teilbarkeit:** die Prim-Größen müssen Vielfache von 16 sein, sonst passt
    die fp16-Tensor-Core-Kachel nicht. Im Standardraum erfüllen das alle Werte; der
@@ -24,14 +15,10 @@ Bevor ein einziger Kernel kompiliert wird, wirft `prune` alles raus, was sich al
    nutzbare Shared Memory passen — auf der GB10 rund 100 KB. Das ist der Filter,
    der tatsächlich aussortiert.
 
-   .. code-block:: python
-      :caption: project/src/autotuner/search.py:167-171
-
-      def estimate_smem_bytes(cand, buffer_stages):
-          # die beiden fp16-Operand-Tiles mal Stages. Akku liegt in Registern.
-          a_tile = cand.m_prim * cand.k_prim
-          b_tile = cand.k_prim * cand.n_prim
-          return (a_tile + b_tile) * 2 * buffer_stages
+   .. literalinclude:: ../../project/src/autotuner/search.py
+      :language: python
+      :caption: search.py — estimate_smem_bytes()
+      :pyobject: estimate_smem_bytes
 
 3. **Akku-Register:** der Akkumulator braucht `M_PRIM · N_PRIM` fp32-Werte in
    Registern. Mehr als die halbe Registerdatei (`65536 · 0.5 = 32768`) lassen wir

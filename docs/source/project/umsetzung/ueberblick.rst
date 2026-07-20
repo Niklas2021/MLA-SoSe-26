@@ -1,10 +1,9 @@
 Architektur und Datenfluss
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Was kann ein Tuner an einer festen Kontraktion mit festen Shapes überhaupt
-variieren?
-
-Nehmen wir den GEMM `cmk,ckn->cmn`. Der Einsum besagt: `c` ist ein Batch (steht in beiden
+An einer festen Kontraktion mit festen Shapes kann ein Tuner nur variieren, wie
+die Arbeit auf die Hardware abgebildet wird. Am GEMM `cmk,ckn->cmn` lässt sich
+das durchspielen. Der Einsum besagt: `c` ist ein Batch (steht in beiden
 Eingabematrizen und im Ergebnis), `m` und `n` spannen das Ausgabegitter auf, und über `k`
 wird summiert. Das Ergebnis ist also ein `M×N`-Gitter pro Batch `c`, jeder Eintrag
 eine Summe über `K`.
@@ -18,7 +17,7 @@ eine Zerlegung und die Wahl hat zwei Dimensionen:
 `M_PRIM × N_PRIM`-Kachel, indem es über `K_PRIM`-breite Streifen
 der Eingaben `mma`-Instruktionen ausführt (`mma` = Matrix-Multiply-Accumulate, die
 Kern-Instruktion der Tensor-Cores: multipliziert zwei kleine Matrizen und akkumuliert auf
-das Ergebnis. Größere Kacheln heißen mehr Wiederverwendung pro geladenem Byte,
+das Ergebnis). Größere Kacheln heißen mehr Wiederverwendung pro geladenem Byte,
 aber auch mehr Register- und Shared-Memory-Druck. Das ist der klassische
 Tiling-Trade-off.
 
@@ -32,27 +31,17 @@ Diese Typen haben eine feste Ordnung: `PAR | SEQ | PRIM`, und `K` darf nie PAR
 sein (man kann eine Reduktion nicht ohne weiteres über unabhängige CTAs verteilen).
 Diese Regel ist in `Config` und `Optimizer` definiert:
 
-.. code-block:: python
-   :caption: project/src/autotuner/config.py:12-15
+.. literalinclude:: ../../project/src/autotuner/config.py
+   :language: python
+   :caption: config.py — ExecType
+   :pyobject: ExecType
 
-   class ExecType(Enum):
-       SEQ = "seq"
-       PAR = "par"
-       PRIM = "prim"
-
-.. code-block:: python
-   :caption: project/src/autotuner/optimizer.py:113-122
-
-           # 1) kein K darf PAR sein
-           for i in range(n):
-               if dim_types[i] == DimType.K and exec_types[i] == ExecType.PAR:
-                   raise ValueError(f"Dim {i} ist K mit PAR - nicht erlaubt")
-
-           # 2+3) Reihenfolge muss PAR -> SEQ -> PRIM sein
-           order = {ExecType.PAR: 0, ExecType.SEQ: 1, ExecType.PRIM: 2}
-           for i in range(n - 1):
-               if order[exec_types[i]] > order[exec_types[i + 1]]:
-                   raise ValueError(f"falsche Reihenfolge bei Dim {i}: {exec_types[i]} vor {exec_types[i+1]}")
+.. literalinclude:: ../../project/src/autotuner/optimizer.py
+   :language: python
+   :caption: optimizer.py — verify(), die beiden Reihenfolge-Regeln
+   :start-at: # 1) kein K darf PAR sein
+   :end-at: falsche Reihenfolge bei Dim
+   :dedent:
 
 Die L2-Gruppe
 """"""""""""""
@@ -92,43 +81,24 @@ Konkret ist eine Config vier parallele Listen (eine pro Dimension): `dim_types`
 `generate_config` baut zuerst die naive Ausgangs-Config, in der alle Achsen SEQ
 sind:
 
-.. code-block:: python
-   :caption: project/src/autotuner/generate.py:46-47
-
-       # alles auf SEQ setzen
-       exec_types = [ExecType.SEQ] * len(all_dims)
+.. literalinclude:: ../../project/src/autotuner/generate.py
+   :language: python
+   :caption: generate.py — naive Ausgangs-Config
+   :start-at: # alles auf SEQ setzen
+   :end-at: exec_types = [ExecType.SEQ] * len(all_dims)
+   :dedent:
 
 Der `Optimizer` formt daraus die eigentliche Config. `split_dim` zerlegt eine Achse
 in outer/inner und teilt die Strides korrekt auf; `make_executable`
 markiert die jeweils letzte M-, N- und K-Achse als PRIM, setzt den Rest (K→SEQ,
 sonst PAR) und sortiert alles in die `PAR | SEQ | PRIM`-Ordnung:
 
-.. code-block:: python
-   :caption: project/src/autotuner/optimizer.py:81-103
-
-           # letzte M, N, K jeweils als PRIM markieren
-           for needed_type in [DimType.M, DimType.N, DimType.K]:
-               for i in reversed(range(n)):
-                   if cfg.dim_types[i] == needed_type and exec_types[i] is None:
-                       exec_types[i] = ExecType.PRIM
-                       break
-
-           # Rest: K -> SEQ, sonst PAR
-           for i in range(n):
-               if exec_types[i] is not None:
-                   continue
-               if cfg.dim_types[i] == DimType.K:
-                   exec_types[i] = ExecType.SEQ
-               else:
-                   exec_types[i] = ExecType.PAR
-
-           cfg.exec_types = exec_types
-
-           # Reihenfolge PAR | SEQ | PRIM
-           par_ids = [i for i in range(n) if exec_types[i] == ExecType.PAR]
-           seq_ids = [i for i in range(n) if exec_types[i] == ExecType.SEQ]
-           prim_ids = [i for i in range(n) if exec_types[i] == ExecType.PRIM]
-           self.permute_dims(par_ids + seq_ids + prim_ids)
+.. literalinclude:: ../../project/src/autotuner/optimizer.py
+   :language: python
+   :caption: optimizer.py — make_executable(), PRIM markieren und sortieren
+   :start-at: # letzte M, N, K jeweils als PRIM markieren
+   :end-at: self.permute_dims(par_ids + seq_ids + prim_ids)
+   :dedent:
 
 Das ganze Modul `search.py` ist reines Python ohne cuTile-Import — so kann
 man Enumerieren, Prunen und Ranken komplett ohne GPU lokal testen.

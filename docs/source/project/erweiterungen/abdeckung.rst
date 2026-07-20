@@ -1,8 +1,10 @@
+.. _einsum-abdeckung:
+
 Einsum-Abdeckung: Layout-Guard und Kanonisierung
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Die stille Lücke
-""""""""""""""""
+Ungeprüfte Einsum-Formen
+""""""""""""""""""""""""
 
 ``parse_einsum`` hat deutlich mehr akzeptiert, als die Kernel rechnen können,
 und geprüft hat das nichts. ``cmk,cnk->cmn`` — also B in NT-Layout — parst
@@ -11,8 +13,8 @@ erst beim ``allclose`` am Ende, und dort ist es von einem echten Rechenfehler
 im Kernel nicht zu unterscheiden. Andere Strings sind vorher am Shape-Unpack
 abgestürzt.
 
-Das ist die unangenehmere Sorte Fehler: nicht der, der crasht, sondern der, der
-plausibel aussieht und falsch rechnet.
+Ein solcher Fehler ist schwerer zu finden als ein Absturz: die Config läuft
+durch, sieht plausibel aus und rechnet trotzdem falsch.
 
 Zwei verschiedene Mechanismen
 """""""""""""""""""""""""""""

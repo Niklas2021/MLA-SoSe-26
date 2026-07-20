@@ -13,3 +13,6 @@ assignments/10_assignment/build/
 
 # other
 .claude/
+
+# lokaler Tuning-Cache (Runtime-Artefakt)
+project/cache/

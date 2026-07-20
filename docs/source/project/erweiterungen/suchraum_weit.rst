@@ -1,3 +1,5 @@
+.. _erweiterter-suchraum:
+
 Erweiterter Suchraum
 ^^^^^^^^^^^^^^^^^^^^
 

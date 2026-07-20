@@ -44,10 +44,11 @@ in dem beide vorkommen, im Speicher direkt aufeinander folgen:
    stride[a] == stride[b] * size[b]      # a ist die äußere Dim
    stride[a] * size[a] == stride[b]      # b ist die äußere Dim
 
-Diese Bedingung wird vor der Fusion über alle Tensoren geprüft – schlägt sie
-fehl, gibt es einen ``ValueError``. Nach der Fusion ist die neue Größe
-``size[a] * size[b]``, der neue Stride ist der innere (kleinere) der beiden,
-und die fusionierte Dim erbt ``dim_type``/``exec_type`` von ``a``.
+Zusätzlich muss die **relative Reihenfolge in allen Tensoren gleich sein**.
+Der Optimizer merkt sich, welche Dimension im ersten gemeinsamen Tensor außen
+liegt, und lehnt einen Wechsel in späteren Tensoren mit ``ValueError`` ab.
+Nach der Fusion ist die neue Größe ``size[a] * size[b]`` und der neue Stride
+derjenige der inneren Dimension.
 
 Teilaufgabe c) – ``permute_dims``
 ----------------------------------

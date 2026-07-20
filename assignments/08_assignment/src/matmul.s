@@ -11,7 +11,8 @@ matmul:
 // Software-pipelined over r (II = 16): loads of iteration r+1 are prefetched into
 // the latency shadows of iteration r. vconv ex0 (in0) is scheduled AFTER the four
 // shuffles so the q0/q1 conversion chains lag by only 2 (not 3) -> the two vmacs
-// are 2 apart. Each pass keeps out[p][0]=dm0, out[p][1]=dm1.
+// are 2 apart, but independent (dm0 vs. dm1). Each pass keeps
+// out[p][0]=dm0, out[p][1]=dm1. Dependent vmacs use late forwarding (latency 3).
 //
 // Register map:
 //   ones (bf16 1.0)         y5 = (x10,x11)

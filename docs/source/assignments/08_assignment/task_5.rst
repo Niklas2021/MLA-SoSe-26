@@ -27,6 +27,9 @@ um 2 (statt 3) versetzt sind und die beiden ``vmac`` dicht beieinander liegen;
 die letzte ``r``-Iteration ist „gepeelt" (kein Prefetch), damit ``p0``/``p2``
 sauber durch beide Pässe laufen. Details siehe Task 6.
 
+Die zwei dicht stehenden ``vmac.f`` schreiben in verschiedene Akkumulatoren
+(``dm0``/``dm1``) und haben daher keine RAW-Abhängigkeit.
+
 .. literalinclude:: ../../../../assignments/08_assignment/src/matmul.s
    :language: asm
 

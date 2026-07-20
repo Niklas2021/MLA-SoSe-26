@@ -24,7 +24,7 @@ Instruction                             Slot    Latenz    Funktion
 ``vshuffle``                            M       2         Transpose ``kn -> nk``
 ``vconv.bfp16ebs8.fp32``                M       4         Konvertierung FP32-Akku -> BFP16 (ex)
 ``vmul.f``                              V       6         Multiplikation (BF16 bzw. 8x8x8 bfp16)
-``vmac.f``                              V       6         8x8x8 bfp16 Multiply-Accumulate
+``vmac.f``                              V       3         8x8x8 bfp16 MAC (effektiv durch Late Forwarding)
 ``vst.conv.bf16.fp32``                  S       ~5        Store FP32-Akku -> BF16 (MemoryCycles 5, kein dst-Reg)
 ``vbcst.16``                            M       2         Skalar in alle 16-bit-Lanes broadcasten (Bypass -> 1)
 ``vmov``                                M       1         Vektor-Register-Move
@@ -35,9 +35,8 @@ Instruction                             Slot    Latenz    Funktion
 
 Wichtige Eigenschaften für das Scheduling:
 
-- Der **Akkumulator-Eingang** von ``vmac.f`` hat über einen Bypass effektiv
-  Latenz 1 — aufeinanderfolgende MACs in *denselben* Akkumulator laufen
-  back-to-back (Ziel: ein ``vmac`` pro Zyklus).
+- ``vmac.f`` hat durch **Late Forwarding** eine effektive Latenz von 3.
+  Unabhängige MACs auf verschiedenen Akkumulatoren können dichter stehen.
 - ``vconv`` und ``vshuffle`` liegen beide auf dem **M-Slot** und können nicht
   im selben Zyklus ausgegeben werden — das ist der spätere Flaschenhals
   (siehe Task 6).

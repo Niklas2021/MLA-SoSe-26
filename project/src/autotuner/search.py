@@ -74,6 +74,29 @@ class SearchSpace:
                    k_prim_choices=list(WIDE_K_PRIM_CHOICES))
 
 
+def adaptive_space(einsum_props):
+    # Der weite Raum lohnt pauschal nicht (auf der GB10 ein Nullsummenspiel bei
+    # doppelten Kosten), der einzige echte Gewinn kam vom kleinen k_prim, wo es die
+    # Reduktionsachse exakt teilt statt sie zu padden (a06_krumm: k=48 -> k_prim=16).
+    # Also nehmen wir einen kleinen Tile pro Achse nur dann dazu, wenn die Achse
+    # nicht schon durch den Standard-Boden teilbar ist -- sonst paddet der Boden
+    # sauber und ein kleinerer Tile kann nichts gewinnen. Reine Shape-Rechnung.
+    #
+    # Der Boden (m/n=64, k=32) ist hardware-informiert: kleiner wird die mma-Kachel
+    # ineffizient. Die Obergrenze der Tiles kommt ohnehin aus dem Pruning (SMEM- und
+    # Register-Budget der Karte). Adaptiv ist also nur, wie weit wir nach UNTEN gehen.
+    m = list(M_PRIM_CHOICES)
+    n = list(N_PRIM_CHOICES)
+    k = list(K_PRIM_CHOICES)
+    if einsum_props.orig_m % M_PRIM_CHOICES[0]:
+        m = [WIDE_MN_PRIM_CHOICES[0]] + m
+    if einsum_props.orig_n % N_PRIM_CHOICES[0]:
+        n = [WIDE_MN_PRIM_CHOICES[0]] + n
+    if einsum_props.orig_k % K_PRIM_CHOICES[0]:
+        k = [WIDE_K_PRIM_CHOICES[0]] + k
+    return SearchSpace(m_prim_choices=m, n_prim_choices=n, k_prim_choices=k)
+
+
 @dataclass
 class Candidate:
     config: Config
@@ -400,3 +423,15 @@ if __name__ == "__main__":
     print("Ranking Top-5:")
     for i, (c, m) in enumerate(rank(kept, GB10, batch=4)[:5]):
         print(f"  #{i+1} est={m['est_ms']:.2f}ms grid={m['grid']} | {c.label()}")
+
+    # adaptive_space: teilbare Shape -> enger Raum, unteilbare -> die kleinen Tiles dazu
+    print("\nadaptive_space:")
+    e_div = parse_einsum(EINSUM, SHAPES)                       # 4096^3, alles teilbar
+    assert adaptive_space(e_div).size() == SearchSpace().size()
+    e_krumm = parse_einsum("acspx, bspy -> abcyx",
+                           [(3, 2, 48, 48, 1500), (3, 48, 48, 1000)])   # k=48, m/n krumm
+    a = adaptive_space(e_krumm)
+    assert 16 in a.k_prim_choices and 32 in a.m_prim_choices
+    assert a.size() == SearchSpace.wide().size()              # hier gleich dem vollen Raum
+    print(f"  4096^3 -> {adaptive_space(e_div).size()} (eng), "
+          f"a06_krumm -> {a.size()} (wide, weil k=48/m=1500/n=1000 alle unteilbar)")

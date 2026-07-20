@@ -6,7 +6,7 @@
 #             ~21 Messungen, ~99 %. Default, siehe simulate_search.py.
 # Braucht die GPU (misst via run_candidate). Auf der GB10:  python autotune.py
 from autotuner.search import (enumerate_candidates, prune, rank, SearchSpace,
-                              estimate_acc_registers, build_one_config)
+                              estimate_acc_registers, build_one_config, adaptive_space)
 from autotuner.einsum_parser import parse_einsum
 from autotuner import cache, strategies
 
@@ -91,6 +91,10 @@ def _make_measure(einsum, shapes, flops, warmup, rep):
 def autotune(einsum, shapes, dev, k=7, use_cache=True, warmup=50, rep=200,
              strategy="hybrid", space=None):
     # -> (config-dict, tflops, aus_cache)
+    if space == "adaptive":
+        # der Raum haengt hier von der Shape ab: kleine Tiles nur, wo die Achse
+        # sie braucht (siehe adaptive_space). Deshalb erst jetzt aufloesen.
+        space = adaptive_space(parse_einsum(einsum, shapes))
     space_size = (space or SearchSpace()).size()
     hit = cache.lookup(einsum, shapes, dev.gpu_name) if use_cache else None
     if hit and cache.good_enough(hit, strategy, space_size):
@@ -121,12 +125,15 @@ def autotune(einsum, shapes, dev, k=7, use_cache=True, warmup=50, rep=200,
 
 
 if __name__ == "__main__":
-    # python autotune.py [topk|hybrid|full] [--wide] [--ordered]
-    #   --wide    nimmt zusaetzlich die kleinen Tiles (32/16) dazu -- lohnt auf GPUs, wo
-    #             die Optima am unteren Gitterrand kleben (3070).
-    #   --ordered nimmt die vier Traversierungs-Reihenfolgen dazu (M5.2).
-    #   Beides kombinierbar. Default ist der enge Raum mit order=0, damit der Lauf
-    #   mit der bisherigen Auswertung vergleichbar bleibt.
+    # python autotune.py [topk|hybrid|full] [--wide|--adaptive] [--ordered]
+    #   --wide     nimmt zusaetzlich die kleinen Tiles (32/16) dazu -- lohnt auf GPUs, wo
+    #              die Optima am unteren Gitterrand kleben (3070).
+    #   --adaptive nimmt die kleinen Tiles nur pro Achse dazu, wo die Shape nicht durch
+    #              den Standard-Boden teilbar ist. Auf teilbaren Shapes exakt der enge
+    #              Raum, nur auf krummen der weite -- der Nutzen von --wide ohne die Kosten.
+    #   --ordered  nimmt die vier Traversierungs-Reihenfolgen dazu (M5.2).
+    #   Kombinierbar. Default ist der enge Raum mit order=0, damit der Lauf mit der
+    #   bisherigen Auswertung vergleichbar bleibt.
     import sys
     import time
 
@@ -143,16 +150,23 @@ if __name__ == "__main__":
 
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     strat = args[0] if args else "hybrid"
-    wide, ordered = "--wide" in sys.argv, "--ordered" in sys.argv
-    kw = {}
-    if wide:
-        kw = dict(m_prim_choices=list(search_mod.WIDE_MN_PRIM_CHOICES),
-                  n_prim_choices=list(search_mod.WIDE_MN_PRIM_CHOICES),
-                  k_prim_choices=list(search_mod.WIDE_K_PRIM_CHOICES))
-    if ordered:
-        kw["orders"] = list(search_mod.ORDER_CHOICES)
-    space = SearchSpace(**kw) if kw else None
-    size = (space or SearchSpace()).size()
+    wide = "--wide" in sys.argv
+    adaptive = "--adaptive" in sys.argv
+    ordered = "--ordered" in sys.argv
+    if adaptive:
+        # der Raum wird pro Shape aufgeloest (autotune() macht das), hier nur das Signal
+        space = "adaptive"
+        size = "adaptiv (pro Shape)"
+    else:
+        kw = {}
+        if wide:
+            kw = dict(m_prim_choices=list(search_mod.WIDE_MN_PRIM_CHOICES),
+                      n_prim_choices=list(search_mod.WIDE_MN_PRIM_CHOICES),
+                      k_prim_choices=list(search_mod.WIDE_K_PRIM_CHOICES))
+        if ordered:
+            kw["orders"] = list(search_mod.ORDER_CHOICES)
+        space = SearchSpace(**kw) if kw else None
+        size = (space or SearchSpace()).size()
 
     lines = []
 

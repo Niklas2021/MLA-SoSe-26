@@ -52,12 +52,14 @@ def task3_kernel(A, B, C,
 
     for c_i in range(C_SIZE):
         for k_i in range(num_k_blocks):
-            # A: ackm, shape (16, 32, k_pad, m_pad)
+            # A: ackm (16, 32, k, m) - OOB (k/m keine Tile-Vielfachen) nullt padding_mode
             a_tile = ct.load(A, index=(pid_a, c_i, k_i, pid_m),
-                             shape=(1, 1, k_tile, m_tile))
-            # B: bcnk, shape (16, 32, n_pad, k_pad)
+                             shape=(1, 1, k_tile, m_tile),
+                             padding_mode=ct.PaddingMode.ZERO)
+            # B: bcnk (16, 32, n, k)
             b_tile = ct.load(B, index=(pid_b, c_i, pid_n, k_i),
-                             shape=(1, 1, n_tile, k_tile))
+                             shape=(1, 1, n_tile, k_tile),
+                             padding_mode=ct.PaddingMode.ZERO)
             a_tile = ct.reshape(a_tile, (k_tile, m_tile))
             b_tile = ct.reshape(b_tile, (n_tile, k_tile))
             # output: (n_tile, m_tile) = B-tile @ A-tile
@@ -79,35 +81,21 @@ def run(A, B, m_tile=32, n_tile=32, k_tile=32):
     assert c_size_a == C_SIZE and c_size_b == C_SIZE
     assert k == k_b
 
-    m_pad = ceildiv(m, m_tile) * m_tile
-    n_pad = ceildiv(n, n_tile) * n_tile
-    k_pad = ceildiv(k, k_tile) * k_tile
+    # Kein Host-Padding mehr: A/B werden real gelassen, OOB-Reads nullt
+    # padding_mode=ZERO im Kernel, OOB-Writes ignoriert ct.store. Spart den
+    # extra Speicher fuer A_p/B_p/C_p. num_* runden aber weiter aufs Tile-Vielfache.
+    num_m = ceildiv(m, m_tile)
+    num_n = ceildiv(n, n_tile)
+    num_k = ceildiv(k, k_tile)
 
-    # padding falls nötig
-    if m_pad != m or k_pad != k:
-        A_p = torch.zeros((A_SIZE, C_SIZE, k_pad, m_pad), dtype=A.dtype, device=A.device)
-        A_p[:, :, :k, :m] = A
-    else:
-        A_p = A
-
-    if n_pad != n or k_pad != k:
-        B_p = torch.zeros((B_SIZE, C_SIZE, n_pad, k_pad), dtype=B.dtype, device=B.device)
-        B_p[:, :, :n, :k] = B
-    else:
-        B_p = B
-
-    C_p = torch.zeros((A_SIZE, B_SIZE, n_pad, m_pad), dtype=torch.float16, device=A.device)
-
-    num_m = m_pad // m_tile
-    num_n = n_pad // n_tile
-    num_k = k_pad // k_tile
+    C = torch.zeros((A_SIZE, B_SIZE, n, m), dtype=torch.float16, device=A.device)
 
     grid = (A_SIZE * B_SIZE * num_n * num_m,)
 
     ct.launch(torch.cuda.current_stream(), grid, task3_kernel,
-              (A_p, B_p, C_p, num_n, num_m, num_k, m_tile, n_tile, k_tile))
+              (A, B, C, num_n, num_m, num_k, m_tile, n_tile, k_tile))
 
-    return C_p[:, :, :n, :m]
+    return C
 
 
 # ------------------------------------------------------------ #

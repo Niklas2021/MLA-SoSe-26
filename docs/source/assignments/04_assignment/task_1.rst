@@ -14,7 +14,16 @@ Fünf Teilaufgaben:
 - **d)** GEMM über ``x,y,z,l`` – ``y`` und ``l`` werden gemerged
 - **e)** 3D-MMA über ``e,x,y,z`` – ``e`` wird zur GEMM-Dimension
 
-Alle Kernels werden gegen ``torch.einsum()`` verifiziert.
+Alle Kernels werden gegen ``torch.einsum()`` verifiziert, auch mit
+nicht-zweierpotenten Größen.
+
+Beliebige Größen – Padding im Kernel
+------------------------------------
+
+cuTile verlangt zweierpotente Tile-Dimensionen. ``next_pow2`` rundet deshalb
+nur die Kernel-Shapes auf. ``ct.load(..., padding_mode=ct.PaddingMode.ZERO)``
+füllt Randbereiche mit Nullen; OOB-Stores werden ignoriert. Die Tensoren selbst
+werden nicht gepaddet.
 
 Vollständige Implementierung
 ----------------------------
@@ -64,11 +73,11 @@ Jeder Block berechnet ein ``(x, z)``-Output-Tile. Die Kontraktionsdimensionen
 
 .. code-block:: python
 
-   acc = ct.zeros((x, z), dtype=ct.float32)
+   acc = ct.zeros((x, z), dtype=ct.float32)   # x,z = auf pow2 aufgerundet
    for k_i in range(k):
        for l_i in range(l):
-           a_tile = ct.load(A, ..., shape=(1,1,1,1,1,x,y))
-           b_tile = ct.load(B, ..., shape=(1,1,1,1,y,z))
+           a_tile = ct.load(A, ..., shape=(1,1,1,1,1,x,y), padding_mode=ct.PaddingMode.ZERO)
+           b_tile = ct.load(B, ..., shape=(1,1,1,1,y,z), padding_mode=ct.PaddingMode.ZERO)
            a_tile = ct.reshape(a_tile, (x, y))
            b_tile = ct.reshape(b_tile, (y, z))
            acc += ct.matmul(a_tile, b_tile)
@@ -104,15 +113,15 @@ Ergebnis direkt geschrieben.
 .. code-block:: text
 
    large b (b=64):
-     b) 3.506 ms  c) 7.733 ms  -> b) faster
+     b) 2.891 ms  c) 5.544 ms  -> b) faster
 
-   large e,a,c (e=32, a=32, b=2, c=32):
-     b) 0.716 ms  c) 0.555 ms  -> c) faster
+   large e,a,b (e=32, a=32, b=2, c=32):
+     b) 0.725 ms  c) 0.521 ms  -> c) faster
 
 Bei großem ``b`` lohnt sich Parallelisierung – 64 Iterationen pro Block
 serialisieren dauert zu lang. Bei kleinem ``b`` (zB ``b=2``) kostet die
 Serialisierung fast nichts, dafür spart c) Blöcke: ``e*a*c = 32768`` statt
-``e*a*b*c = 65536``
+``e*a*b*c = 65536``.
 
 Teilaufgabe d) – GEMM über xyzl (merged)
 ------------------------------------------
@@ -125,8 +134,8 @@ permutiert (``l`` und ``x`` tauschen die Position) und dann auf
 .. code-block:: python
 
    for k_i in range(k):
-       a_tile = ct.load(A, ..., shape=(1,1,1,1,l,x,y))
-       b_tile = ct.load(B, ..., shape=(1,1,1,l,y,z))
+       a_tile = ct.load(A, ..., shape=(1,1,1,1,l,x,y), padding_mode=ct.PaddingMode.ZERO)
+       b_tile = ct.load(B, ..., shape=(1,1,1,l,y,z), padding_mode=ct.PaddingMode.ZERO)
 
        a_tile = ct.permute(a_tile, (0,1,2,3,5,4,6))  # -> ...,x,l,y
        a_tile = ct.reshape(a_tile, (x, l*y))
@@ -135,21 +144,21 @@ permutiert (``l`` und ``x`` tauschen die Position) und dann auf
        acc = ct.mma(a_tile, b_tile, acc)
 
 Damit entfällt die innere ``l``-Schleife – ``l`` steckt jetzt in
-der GEMM-K-Dimension
+der GEMM-K-Dimension.
 
 **Wann ist b) besser, wann d)?**
 
 .. code-block:: text
 
    small GEMM dims (l=1, x=y=z=16):
-     b) 0.136 ms  d) 0.137 ms  -> b) faster
+     b) 0.130 ms  d) 0.125 ms  -> praktisch gleich
 
    large l (l=32, x=y=32, z=16):
-     b) 2.940 ms  d) 1.413 ms  -> d) faster
+     b) 2.643 ms  d) 1.283 ms  -> d) faster
 
-Bei ``l=1`` bringt das Merging nichts – ``l*y = 1*16 = 16``, exakt wie ohne
-Merge. Bei großem ``l`` (=32) wird die GEMM-K-Dimension von ``y=32`` auf
-``l*y = 1024`` vergrößert. Das gibt den Tensor Cores viel mehr Arbeit
+Bei ``l=1`` rechnen beide Varianten praktisch gleich; der kleine Unterschied
+ist Messrauschen. Bei ``l=32`` wächst die GEMM-K-Dimension auf ``l*y = 1024``,
+wodurch d) deutlich schneller wird.
 
 Teilaufgabe e) – 3D-MMA über exyz
 -----------------------------------
@@ -164,13 +173,12 @@ behandelt:
 
    for k_i in range(k):
        for l_i in range(l):
-           a_tile = ct.load(A, ..., shape=(e,1,1,1,1,x,y))
-           b_tile = ct.load(B, ..., shape=(e,1,1,1,y,z))
+           a_tile = ct.load(A, ..., shape=(e,1,1,1,1,x,y), padding_mode=ct.PaddingMode.ZERO)
+           b_tile = ct.load(B, ..., shape=(e,1,1,1,y,z), padding_mode=ct.PaddingMode.ZERO)
            a_tile = ct.reshape(a_tile, (e, x, y))
            b_tile = ct.reshape(b_tile, (e, y, z))
            acc = ct.mma(a_tile, b_tile, acc)
 
 ``ct.mma`` bekommt 3D-Tiles und führt ein batched Matmul über die
 ``e``-Dimension aus. Weniger Blöcke im Grid (``e`` weniger),
-aber mehr Arbeit pro Block
-
+aber mehr Arbeit pro Block.

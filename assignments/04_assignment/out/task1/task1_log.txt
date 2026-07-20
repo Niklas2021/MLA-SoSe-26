@@ -1,20 +1,26 @@
 b) Verification: True
-Runtime: 5992.442 ms
+Runtime: 4128.689 ms
 c) Verification: True
-Runtime: 11099.224 ms
+Runtime: 9325.159 ms
 d) Verification: True
-Runtime: 6468.040 ms
+Runtime: 6750.229 ms
 e) Verification: True
-Runtime: 14729.832 ms
+Runtime: 13242.272 ms
+
+=== Task 1 - arbitrary (non-power-of-2) sizes ===
+  b) verification: True
+  c) verification: True
+  d) verification: True
+  e) verification: True
 
 B VS C:
 large b:
-  b) 3.506 ms c) 7.733 ms  -> b) faster
+  b) 2.891 ms c) 5.544 ms  -> b) faster
 large e,a,b:
-  b) 0.716 ms c) 0.555 ms  -> c) faster
+  b) 0.725 ms c) 0.521 ms  -> c) faster
 
 B VS D:
 small GEMM dimensions:
-  b) 0.136 ms d) 0.137 ms  -> b) faster
+  b) 0.130 ms d) 0.125 ms  -> b) slower
 large l:
-  b) 2.940 ms d) 1.413 ms  -> d) faster
+  b) 2.643 ms d) 1.283 ms  -> d) faster

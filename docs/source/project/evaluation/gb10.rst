@@ -1,52 +1,105 @@
 Evaluation: DGX Spark (GB10)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. Datenbasis: project/results_dgx_v2/ (zweiter Durchlauf, alles in einer Session)
-   und project/result_dgx_v1/ (erster Durchlauf, fuer die Drift-Gegenprobe).
+Die GB10 ist die Karte, für die es einen belastbaren Voll-Sweep gibt. Alle Zahlen
+hier stammen aus ``results_dgx_v2`` (ein Durchlauf, eine Session).
 
 Korrektheit
 """""""""""
 
-.. Inhalt:
-   - Ueber alle Shapes und alle geprunten Configs: 0 Fehlschlaege, 0 inkorrekte
-     Ergebnisse -- inklusive der unteilbaren Shapes, womit der Padding-Pfad auf
-     echter Hardware bestaetigt ist.
-   - Die Einsum-Abdeckung: 11 von 11 Faellen wie erwartet (10 rechnen korrekt,
-     einer wird sauber abgelehnt). literalinclude coverage_run.log.
+Über alle 16 Shapes und alle gepruneten Configs — 342 pro GEMM-Shape, 171 pro
+Ring-Shape — gab es keinen einzigen Fehlschlag und kein inkorrektes Ergebnis. Das
+schließt die unteilbaren Shapes ``krumm`` und ``a06_krumm`` ein, womit der
+Padding-Pfad auf echter Hardware bestätigt ist.
+
+Die Einsum-Abdeckung verhält sich auf allen elf getesteten Formen wie erwartet:
+zehn rechnen korrekt, eine (``mck,ckn->mcn`` mit innenliegendem Batch) wird sauber
+abgelehnt.
+
+.. literalinclude:: ../../project/results_dgx_v2/coverage_run.log
+   :language: text
 
 Vollmessung als Referenz
 """"""""""""""""""""""""
 
-.. Inhalt:
-   - Tabelle ueber die 16 Shapes: bestes Ergebnis, faire Baseline, A05-Default,
-     torch.einsum. Aus results_dgx_v2/study.log und tune_*.csv.
-   - Was die beste Config ist und wie stabil sie ueber Regime hinweg bleibt.
-   - fig_a05_bars.png und fig_a06_bars.png einbinden.
+Der Voll-Sweep misst pro Shape jede überlebende Config und liefert damit das
+Optimum, gegen das sich alles andere vergleicht.
+
+.. image:: ../../project/praesentation/figures/fig_a05_bars.png
+   :alt: A05-Familie: Default, Tuner, Bench-Best, torch je Shape
+   :width: 95%
+
+.. image:: ../../project/praesentation/figures/fig_a06_bars.png
+   :alt: A06-Familie: Default, Tuner, Bench-Best, torch je Shape
+   :width: 95%
+
+Die beste Config bleibt über die Regime hinweg erstaunlich stabil: in der
+A05-Familie liegt sie fast immer bei ``128×128``-Tiles mit ``k_prim=64``, in der
+Ring-Familie bei ``128×128`` mit ``k_prim=32``. Was sich zwischen den Shapes
+ändert, ist vor allem die L2-Gruppe (``m_l2``, ``n_l2``) — genau der Freiheitsgrad,
+den das statische Pruning nicht einschränken kann und der deshalb gemessen werden
+muss.
 
 Suchstrategien im Vergleich
 """""""""""""""""""""""""""
 
-.. Inhalt:
-   - Die Leiter: Default (0 Messungen) / Top-7 (7) / Hybrid (22) / Vollmessung.
-     Auswahlguete und Zeit je Stufe.
-   - Das Hauptergebnis: 99.1 % Auswahlguete bei 22 Messungen, ~7 s statt ~2 min.
-   - fig_topk_curve.png.
+Der praktische Nutzen steht und fällt damit, wie wenig man messen muss, um nah ans
+Optimum zu kommen. Die vier Stufen:
+
+=====================  ===========  ==============  ==========
+Strategie              Messungen    Auswahlgüte     Zeit
+=====================  ===========  ==============  ==========
+Default (8×8)          0            81.4 %          0
+Modell-Top-7           7            96.6 %          ~3 s
+Hybrid                 22           99.7 %          ~7 s
+Vollmessung            342 / 171    100 %           ~2 min
+=====================  ===========  ==============  ==========
+
+Auf der GB10 selbst — nicht in der Simulation — erreicht der Hybrid 99.1 % des
+Sweep-Optimums bei median 24 Messungen und rund 7 Sekunden pro Shape. Statt zwei
+Minuten Vollmessung kostet er also wenige Sekunden und lässt weniger als ein
+Prozent liegen.
+
+.. image:: ../../project/praesentation/figures/fig_topk_curve.png
+   :alt: Anteil am Optimum über der Zahl gemessener Kandidaten
+   :width: 95%
 
 Externe Referenz: torch.einsum
 """"""""""""""""""""""""""""""
 
-.. Inhalt:
-   - Der ehrliche "was, wenn man einfach die Library nimmt"-Vergleich, getrennt
-     nach Familien: bei GEMM gewinnt cuBLAS meist, bei den Ring-Shapes ist das
-     Bild stark shape-abhaengig.
-   - fig_tuner_vs_torch.png.
-   - Die Korrektur mitnehmen, dass der alte A06_TORCH_EINSUM-Wert aus dem
-     Assignment nicht vergleichbar war.
+Die naheliegende Alternative zum Tunen ist, einfach die Library zu nehmen.
+``tune.py`` misst deshalb pro Shape ``torch.einsum`` in fp16 als externe Referenz —
+frisch gemessen, nicht der ältere, nicht vergleichbare Wert aus dem A06-Assignment.
+
+.. image:: ../../project/praesentation/figures/fig_tuner_vs_torch.png
+   :alt: Verhältnis Bench-Best zu torch.einsum je Shape
+   :width: 95%
+
+Das Bild zerfällt nach Familie. Bei den GEMM-Shapes (A05) gewinnt cuBLAS meist
+deutlich — im geometrischen Mittel liegt unser Bestes bei 0.78× von torch. Das ist
+zu erwarten: für dichte, teilbare GEMMs ist cuBLAS über Jahre optimiert. Bei den
+Ring-Shapes (A06) dreht sich das: dort liegt unser Bestes im Mittel bei 1.18× von
+torch, und einzelne Shapes gehen weit auseinander — bei ``a06_tall`` schlägt der
+Tuner torch um das 3.9-fache, bei ``a06_batch`` verliert er. Für die
+Ring-Kontraktion hat cuBLAS keinen spezialisierten Pfad, und genau da zahlt sich
+das Tunen aus.
 
 Wirkung der Erweiterungen
 """""""""""""""""""""""""
 
-.. Inhalt:
-   - Kompakte Tabelle: Ordnungs-Knopf (isoliert 1.026x), weiter Suchraum
-     (Nullsummenspiel, ausser a06_krumm +46 %), Hybrid (siehe oben).
-   - Jeweils eine Zeile Deutung, keine Wiederholung der Erweiterungs-Kapitel.
+Was die einzelnen Erweiterungen auf der GB10 gebracht haben, in einer Zeile je
+Punkt (die Herleitung steht in den jeweiligen Kapiteln):
+
+==========================  ===================================================
+Erweiterung                 Wirkung auf der GB10
+==========================  ===================================================
+Hybrid-Suche                99.1 % des Optimums bei ~22 statt 342 Messungen
+Loop-Reihenfolge            isoliert 1.026×, am Endergebnis +1.7 % (im Rauschen)
+Erweiterter Suchraum        netto null, außer ``a06_krumm`` +46 % durch k_prim=16
+Adaptiver Suchraum          derselbe Gewinn, aber nur wo die Shape ihn braucht
+==========================  ===================================================
+
+Der Messrahmen-Effekt aus der :ref:`Methodik <messrahmen>` bleibt dabei die
+Leitplanke: die Erweiterungen bewegen sich teils in derselben Größenordnung wie
+die Streuung zwischen zwei Läufen, weshalb wir sie über die Auswahlgüte im festen
+Sweep-Rahmen bewerten und nicht über absolute TFLOPS.

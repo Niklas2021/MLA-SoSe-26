@@ -565,6 +565,49 @@ def fig_regimes():
     _save(fig, "fig_regimes")
 
 
+def fig_tuning_ladder():
+    # Der ehrliche Cross-GPU-Vergleich (ersetzt fig_crossgpu_lever fuer die Doku):
+    # nicht absolute TFLOPS (nicht vergleichbar), sondern der Anteil am je Shape
+    # besten gefundenen Wert -- pro Config-Ebene, je Karte. Zeigt, dass die 3070
+    # auf beiden Ebenen weiter unten startet und deshalb mehr vom Tuning profitiert.
+    #
+    # Zahlen (geom. Mittel ueber 16 Shapes, alle aus v2, verifiziert):
+    #   GB10 fremd/fair aus baselines_study.py (Voll-Sweep-Referenz): 78.7 / 89.5
+    #   3070 fremd = order0(order_isolated)/Hybrid-Best = 62.2; fair = baseline_probe = 75.9
+    #   (GB10 gegen Hybrid-Best statt Voll-Sweep waere 79.4 -- praktisch gleich)
+    # Nur die zwei aussagekraeftigen Ebenen. Per-Shape-Tuning waere auf beiden Karten
+    # 100 % (das ist die Referenz, nicht ein Ergebnis) -> als Linie, nicht als Balken.
+    levels = ["fremde Config\n(A05-Default)", "passende feste Config"]
+    gb10 = [78.7, 89.5]
+    rtx  = [62.2, 75.9]
+    x = np.arange(len(levels))
+    w = 0.34
+    fig, ax = plt.subplots(figsize=(9.0, 5.6))
+    bg = ax.bar(x - w / 2, gb10, w, label="GB10 (25 MB L2)", color=C_TUNER)
+    br = ax.bar(x + w / 2, rtx, w, label="RTX 3070 (4 MB L2)", color=C_TORCH)
+    for bars in (bg, br):
+        for b in bars:
+            ax.annotate(f"{b.get_height():.0f} %", (b.get_x() + b.get_width() / 2, b.get_height()),
+                        textcoords="offset points", xytext=(0, 3), ha="center", va="bottom",
+                        fontsize=11, color=INK2)
+    # 100 % = das je Shape erreichbare Optimum, als Referenzlinie
+    ax.axhline(100, color=AXIS, lw=1.2, ls=(0, (4, 3)))
+    ax.text(x[-1] + w, 100, " Optimum (Per-Shape-Tuning)", va="center", ha="left",
+            fontsize=10, color=MUTED)
+    ax.set_xticks(x)
+    ax.set_xticklabels(levels, fontsize=11.5)
+    ax.set_ylabel("Anteil am je Shape besten Wert")
+    ax.set_ylim(0, 108)
+    ax.set_title("Auf der kleineren Karte holt das Tuning mehr heraus", loc="left", color=INK, pad=26)
+    ax.text(0, 1.03, f"Tuning-Hebel gegen die fremde Config:  GB10 {100/gb10[0]:.2f}×  ·  "
+            f"RTX 3070 {100/rtx[0]:.2f}×", transform=ax.transAxes, fontsize=11.5, color=INK2)
+    ax.legend(loc="lower left")
+    _clean(ax)
+    ax.text(0, -0.17, "geom. Mittel über 16 Shapes · GB10 gegen Voll-Sweep, 3070 gegen Hybrid-Best "
+            "(mangels Voll-Sweep) · v2-Daten", transform=ax.transAxes, fontsize=9.5, color=MUTED)
+    _save(fig, "fig_tuning_ladder")
+
+
 def fig_crossgpu_lever():
     # Absolute TFLOPS der GB10 und 3070 sind nicht vergleichbar (andere Peak/BW/L2).
     # Vergleichbar ist der OPTIMIERUNGSHEBEL: Speedup Tuner/Default pro Shape.
@@ -1043,6 +1086,7 @@ if __name__ == "__main__":
     fig_ranking_models()
     fig_funnel()
     fig_regimes()
+    fig_tuning_ladder()   # ehrlicher Cross-GPU-Vergleich (v2), fuer die Doku
     # ACHTUNG: mischt GB10-v2 mit 3070-v1. Der Speedup hat den Default im Nenner, und
     # genau der wurde fuer v2 korrigiert -> "auf der 3070 staerker" kann ein Artefakt
     # der Baseline sein. Nicht in die Doku, bis die 3070 einen v2-Sweep hat.

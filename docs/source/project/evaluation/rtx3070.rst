@@ -3,58 +3,87 @@
 Evaluation: RTX 3070
 ^^^^^^^^^^^^^^^^^^^^
 
-.. Datenbasis: project/results_3070_v2/ (belastbar) und project/result_3070/
-   (erster Sweep, fuer batch=1 unbrauchbar -- siehe Methodik).
-   ACHTUNG beim Schreiben: dieses Kapitel kann NICHT dieselbe Tiefe haben wie das
-   GB10-Kapitel, weil es keinen belastbaren Voll-Sweep auf dieser Karte gibt.
-   Das offen sagen statt kaschieren -- und daraus keine Zahlen ableiten, die eine
-   Vollmessung braeuchten.
+Dieses Kapitel kann nicht dieselbe Tiefe haben wie das GB10-Kapitel, und das hat
+einen einfachen Grund: für die 3070 gibt es keinen belastbaren Voll-Sweep. Statt
+das zu kaschieren, sagen wir offen, worauf die Zahlen hier beruhen und worauf
+nicht.
 
 Datenlage
 """""""""
 
-.. Inhalt:
-   - Was gemessen wurde: coverage_run, baseline_probe (inkl. Per-Shape-Hybrid ueber
-     alle 16 Shapes), order_isolated, autotune_hybrid_wide.
-   - Was NICHT vorliegt: ein belastbarer Voll-Sweep. Begruendung: der alte ist fuer
-     batch=1 defekt, ein neuer kostet 3.5 Stunden und wurde bewusst nicht gemacht.
-   - Konsequenz: statt "Anteil am Vollmessungs-Optimum" ist die Bezugsgroesse hier
-     das Per-Shape-Ergebnis des Hybrid.
+Auf der 3070 wurden vier Dinge gemessen, alle in ``results_3070_v2``: die
+Einsum-Abdeckung, die Baseline-Sonde (inklusive eines Per-Shape-Hybrid-Laufs über
+alle 16 Shapes), der isolierte Reihenfolge-Knopf und der Hybrid im weiten
+Suchraum.
+
+Was fehlt, ist ein voller Sweep. Der erste ist für ``batch=1`` unbrauchbar (siehe
+:ref:`Datenbasis <datenbasis>`), ein neuer hätte rund 3.5 Stunden gekostet und
+wurde bewusst nicht gemacht. Als Bezugsgröße dient hier deshalb nicht der Anteil
+am Vollmessungs-Optimum, sondern das Per-Shape-Ergebnis des Hybrid — das beste,
+das die Suche auf dieser Karte gefunden hat.
 
 Portabilität von Kernel und Pipeline
 """"""""""""""""""""""""""""""""""""
 
-.. Inhalt:
-   - 11 von 11 Abdeckungsfaellen wie erwartet -- der flex-Kernel und alle zehn
-     Einsum-Familien laufen auch hier. Das ist der stabilste Befund dieses Kapitels
-     und belegt, dass die Erweiterung nicht GB10-spezifisch ist.
-   - Auch die cuTile-Annahme (Verzweigung ueber ct.Constant) traegt auf beiden
-     Karten.
+Der stabilste Befund dieses Kapitels ist, dass alles läuft. Von den elf
+Abdeckungsfällen verhalten sich zehn wie erwartet und werden korrekt gerechnet,
+einer wird sauber abgelehnt — genau wie auf der GB10. Der flexible Kernel und alle
+zehn Einsum-Familien funktionieren also auch hier, die Erweiterung ist nicht
+GB10-spezifisch.
+
+Auch die eine offene cuTile-Annahme trägt auf beiden Karten: die Verzweigung über
+eine ``ct.Constant`` löst der Compiler beim Spezialisieren auf. Enumerator,
+Pruning, beide Kernel-Familien und die Hybrid-Suche laufen unverändert, nur mit
+den Hardware-Konstanten der 3070 parametrisiert.
 
 Ergebnisse
 """"""""""
 
-.. Inhalt:
-   - Tabelle der 16 Per-Shape-Hybrid-Ergebnisse aus baseline_probe_winners.log.
-   - Die faire Baseline: 64/128/64 8x2, erreicht aber nur 75.9 % des
-     Per-Shape-Optimums (GB10: 89.5 %). Das ist DER Befund des Kapitels: auf dieser
-     Karte gibt es keine gute feste Config, die Optima liegen weit auseinander.
-   - Daraus der Tuner-Gewinn gegen eine faire Baseline: 1.32x.
-   - Ordnungs-Knopf isoliert: 1.012x -- weniger als auf der GB10, entgegen unserer
-     Vorhersage.
-   - Weiter Suchraum: +6.0 % im geometrischen Mittel, mit Ausreissern bis +33 %.
-     Hier traegt er, anders als auf der GB10.
-   - Die Auffaelligkeit bei tall (78.5 %) erklaeren: der Cache enthielt keine
-     engen Eintraege zum Seeden, also griff der Monotonie-Schutz nicht. Das ist
-     ein Bedienfehler von uns, kein Verfahrensfehler -- so benennen.
+Der Per-Shape-Hybrid findet über die 16 Shapes folgende Bestwerte:
+
+==============  ========  ===============  ========
+Shape           TFLOPS    Shape            TFLOPS
+==============  ========  ===============  ========
+``a05``         41.0      ``a06``          34.6
+``square_1b``   40.4      ``a06_square``   35.3
+``tall``        39.1      ``a06_tall``     37.3
+``wide``        39.9      ``a06_wide``     38.8
+``small_k``     27.0      ``a06_small_k``  27.8
+``large_k``     31.6      ``a06_large_k``  39.6
+``krumm``       10.0      ``a06_krumm``    10.3
+``batch16``     29.5      ``a06_batch``    34.1
+==============  ========  ===============  ========
+
+Der eigentliche Befund steckt in der Baseline. Die beste feste Config für die
+3070 (``64/128/64, 8×2``) erreicht nur 75.9 % des Per-Shape-Optimums — auf der
+GB10 sind es 89.5 %. Auf dieser Karte gibt es also keine gute feste Config, die
+Optima liegen viel weiter auseinander. Genau deshalb bringt das Per-Shape-Tuning
+hier mehr: 1.32× gegen die faire Baseline, gegenüber 1.12× auf der GB10.
+
+Die beiden Erweiterungen bestätigen dasselbe Bild:
+
+* Der Reihenfolge-Knopf bringt isoliert 1.012× — weniger als die 1.026× auf der
+  GB10. Das widerspricht unserer Vorhersage, dass das kleinere L2 den Knopf
+  wichtiger machen sollte.
+* Der weite Suchraum bringt hier wirklich etwas: +6.0 % im geometrischen Mittel,
+  mit Ausreißern bis +33 % (``a06_krumm``). Anders als auf der GB10 trägt er also.
+
+Eine Auffälligkeit gehört benannt: bei ``tall`` fiel der weite Lauf auf 78.5 % des
+engen zurück. Das ist kein Verfahrensfehler, sondern ein Bedienfehler von uns —
+für ``tall`` lag kein enger Cache-Eintrag zum Seeden vor, also griff der
+Monotonie-Schutz nicht, der einen weiten Lauf sonst per Konstruktion nie unter den
+engen fallen lässt.
 
 Was aus dem alten Sweep nicht übernommen wird
 """""""""""""""""""""""""""""""""""""""""""""
 
-.. Inhalt:
-   - Explizit auflisten, welche frueheren 3070-Aussagen zurueckgezogen sind:
-     der Cross-GPU-Hebel "Ø 1.88x" und die Randtreffer-Analyse "65 % am unteren
-     Gitterrand".
-   - Warum: beide stuetzen sich auf die batch=1-Shapes des alten Laufs.
-   - Was von der Richtung bleibt (der weite Suchraum bringt auf der 3070 wirklich
-     etwas, das ist unabhaengig bestaetigt).
+Zwei früher berichtete 3070-Aussagen sind zurückgezogen, weil sie sich beide auf
+die defekten ``batch=1``-Shapes des alten Sweeps stützen:
+
+* der Cross-GPU-Optimierungshebel „Ø 1.88×", und
+* die Randtreffer-Analyse „65 % der Optima am unteren Gitterrand".
+
+Was von der Richtung bleibt, ist unabhängig bestätigt: der weite Suchraum bringt
+auf der 3070 tatsächlich etwas (die +6.0 % oben stammen aus dem belastbaren
+v2-Lauf, nicht aus dem alten Sweep). Die konkrete Zahl 1.88× dagegen gehört
+ersetzt, sobald ein frischer Voll-Sweep vorliegt.

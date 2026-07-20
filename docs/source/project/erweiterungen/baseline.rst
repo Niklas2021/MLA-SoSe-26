@@ -88,8 +88,10 @@ fremde Config passt — eine legitime und sogar wichtige Aussage, aber eine ande
 als „Per-Shape-Tuning bringt 1.88×". Sauber getrennt lauten die beiden Fragen:
 
 1. **Was kostet es, beim GPU-Wechsel nicht neu zu tunen?** Die A05-Config auf der
-   3070 holt nur 39.1 % des Optimums, das Neu-Tunen bringt dort also 2.56×. Das
-   rechtfertigt den GPU-Modell-Anteil im Cache-Key.
+   3070 holt nur rund 62 % des dort besten gefundenen Wertes, das Neu-Tunen bringt
+   also etwa 1.6×. Das rechtfertigt den GPU-Modell-Anteil im Cache-Key. (Der früher
+   berichtete Wert 2.56× stammt aus einem Zwei-Shape-Ausschnitt des unbrauchbaren
+   alten 3070-Sweeps und ist damit hinfällig.)
 2. **Was bringt Per-Shape-Tuning gegen eine kompetent gewählte feste Config
    derselben Karte?** 1.12× auf der GB10, 1.32× auf der 3070.
 

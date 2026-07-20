@@ -37,8 +37,9 @@ Lösung
      - ``dm0``
      - ``vst.conv.bf16.fp32 cml0, [p2, #0]``
      - 6
-     - 5
+     - 6
 
 Bei ``mova`` folgt der Konsument direkt im naechsten Zyklus. Bei
 ``vadd.f`` liegen zwischen Produzent und erstem Store fuenf
-Zwischenzyklen; nach der Aufgabenregel ist die Latenz daher 5.
+vollständige Zwischenzyklen. Der abhängige Store startet somit sechs Zyklen
+nach dem Produzenten; nach der Aufgabenregel ist die Latenz daher **6**.

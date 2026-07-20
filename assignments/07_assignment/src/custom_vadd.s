@@ -9,8 +9,8 @@ custom_vadd:
 //
 // Latenzannahmen (aus build/vadd.s und build/matmul_normal.s abgeleitet):
 //   vlda.conv -> vadd.f: 4 cycles apart / 3 Zwischenzyklen (aus build/vadd.s)
-//   vadd.f -> vadd.f  : 3 (vmac.f dm0 -> vmac.f dm0 sind 3 Zyklen apart in matmul_normal.s)
-//   vadd.f -> vst.conv: 6 cycles apart / 5 Zwischenzyklen (aus build/vadd.s)
+//   vadd.f -> vadd.f  : Abstand 3 ueber den Akkumulator-Feedback-Pfad
+//   vadd.f -> vst.conv: Latenz 6 / 5 Zwischenzyklen (aus build/vadd.s)
 //   mova/movx : 1
 //
 // Slot-Schedule:
@@ -23,11 +23,11 @@ custom_vadd:
 //   Cycle  9:  nop                              // vadd.f-Latenz (1/2)
 //   Cycle 10:  nop                              // vadd.f-Latenz (2/2)
 //   Cycle 11:  V: vadd.f dm0,dm0,dm1,r0         // dm0 = (A+B) + B
-//   Cycle 12:  nop                              // vadd->store Latenz (1/5)
-//   Cycle 13:  nop                              // vadd->store Latenz (2/5)
-//   Cycle 14:  X: ret lr                        // vadd->store Latenz (3/5)
-//   Cycle 15:  nop                              // delay slot 5 / Latenz (4/5)
-//   Cycle 16:  nop                              // delay slot 4 / Latenz (5/5)
+//   Cycle 12:  nop                              // Zwischenzyklus 1/5
+//   Cycle 13:  nop                              // Zwischenzyklus 2/5
+//   Cycle 14:  X: ret lr                        // Zwischenzyklus 3/5
+//   Cycle 15:  nop                              // Zwischenzyklus 4/5 / delay slot 5
+//   Cycle 16:  nop                              // Zwischenzyklus 5/5 / delay slot 4
 //   Cycle 17:  S: vst.conv cml0[p2,#0]          // delay slot 3
 //   Cycle 18:  S: vst.conv cmh0[p2,#64]         // delay slot 2
 //   Cycle 19:  nop                              // delay slot 1
@@ -58,8 +58,8 @@ custom_vadd:
   // Cycle 14: ret so platzieren, dass die Stores in Delay Slots 3/2 fallen
   ret lr
   // 5 Delay-Slots nach ret:
-  nop                                                       // Delay Slot 5 (vadd.f -> store Latenz 4/5)
-  nop                                                       // Delay Slot 4 (vadd.f -> store Latenz 5/5)
+  nop                                                       // Zwischenzyklus 4/5 / Delay Slot 5
+  nop                                                       // Zwischenzyklus 5/5 / Delay Slot 4
   vst.conv.bf16.fp32 cml0, [p2, #0]                         // Delay Slot 3
   vst.conv.bf16.fp32 cmh0, [p2, #64]                        // Delay Slot 2
   nop                                                       // Delay Slot 1

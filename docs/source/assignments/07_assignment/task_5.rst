@@ -40,10 +40,12 @@ Die Verifikation nutzt:
 Schedule und Zykluszahl
 -----------------------
 
-Der Schedule beachtet die beobachteten Abstaende aus ``vadd.s``:
-Load -> ``vadd.f`` nach drei Zwischenzyklen, ``vadd.f`` -> ``vadd.f``
-nach zwei Zwischenzyklen und ``vadd.f`` -> Store nach fuenf
-Zwischenzyklen.
+Der Schedule beachtet die beobachteten Abstaende aus ``vadd.s``: Load ->
+``vadd.f`` nach drei Zwischenzyklen und ``vadd.f`` -> Store mit Latenz 6,
+also nach fuenf vollständigen Zwischenzyklen. Für die direkte
+``vadd.f``-Akkumulatorkette kann der Feedback-Pfad bereits nach zwei
+Zwischenzyklen genutzt werden (Abstand 3); das ändert die in Task 4
+bestimmte Latenz bis zum Store nicht.
 
 .. list-table::
    :header-rows: 1

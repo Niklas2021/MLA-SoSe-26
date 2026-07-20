@@ -1,69 +1,69 @@
 Verification: True
 === Task 4b - tile sweep (swizzled) bei 2048^3 ===
-  tiles=( 32, 32, 32)     0.873 ms    19.67 TFLOPS
-  tiles=( 32, 32, 64)     0.833 ms    20.62 TFLOPS
-  tiles=( 32, 32,128)     0.645 ms    26.64 TFLOPS
-  tiles=( 32, 64, 32)     0.652 ms    26.34 TFLOPS
-  tiles=( 32, 64, 64)     0.510 ms    33.70 TFLOPS
-  tiles=( 32, 64,128)     0.519 ms    33.08 TFLOPS
-  tiles=( 32,128, 32)     0.414 ms    41.46 TFLOPS
-  tiles=( 32,128, 64)     0.454 ms    37.83 TFLOPS
-  tiles=( 32,128,128)     0.462 ms    37.21 TFLOPS
-  tiles=( 64, 32, 32)     0.613 ms    28.03 TFLOPS
-  tiles=( 64, 32, 64)     0.573 ms    30.00 TFLOPS
-  tiles=( 64, 32,128)     0.652 ms    26.34 TFLOPS
-  tiles=( 64, 64, 32)     0.426 ms    40.31 TFLOPS
-  tiles=( 64, 64, 64)     0.373 ms    46.01 TFLOPS
-  tiles=( 64, 64,128)     0.423 ms    40.64 TFLOPS
-  tiles=( 64,128, 32)     0.364 ms    47.21 TFLOPS
-  tiles=( 64,128, 64)     0.364 ms    47.14 TFLOPS
-  tiles=( 64,128,128)     0.358 ms    47.98 TFLOPS
-  tiles=(128, 32, 32)     0.474 ms    36.22 TFLOPS
-  tiles=(128, 32, 64)     0.455 ms    37.72 TFLOPS
-  tiles=(128, 32,128)     0.508 ms    33.80 TFLOPS
-  tiles=(128, 64, 32)     0.388 ms    44.33 TFLOPS
-  tiles=(128, 64, 64)     0.402 ms    42.71 TFLOPS
-  tiles=(128, 64,128)     0.352 ms    48.78 TFLOPS
-  tiles=(128,128, 32)     0.387 ms    44.38 TFLOPS
-  tiles=(128,128, 64)     0.337 ms    50.98 TFLOPS
-  tiles=(128,128,128)     0.783 ms    21.93 TFLOPS
-  -> best tile shape 2048^3: (128, 128, 64) - 50.98 TFLOPS
+  tiles=( 32, 32, 32)     0.897 ms    19.14 TFLOPS
+  tiles=( 32, 32, 64)     0.822 ms    20.89 TFLOPS
+  tiles=( 32, 32,128)     0.648 ms    26.50 TFLOPS
+  tiles=( 32, 64, 32)     0.632 ms    27.17 TFLOPS
+  tiles=( 32, 64, 64)     0.510 ms    33.71 TFLOPS
+  tiles=( 32, 64,128)     0.534 ms    32.18 TFLOPS
+  tiles=( 32,128, 32)     0.425 ms    40.43 TFLOPS
+  tiles=( 32,128, 64)     0.448 ms    38.38 TFLOPS
+  tiles=( 32,128,128)     0.458 ms    37.48 TFLOPS
+  tiles=( 64, 32, 32)     0.628 ms    27.36 TFLOPS
+  tiles=( 64, 32, 64)     0.580 ms    29.61 TFLOPS
+  tiles=( 64, 32,128)     0.660 ms    26.03 TFLOPS
+  tiles=( 64, 64, 32)     0.427 ms    40.28 TFLOPS
+  tiles=( 64, 64, 64)     0.390 ms    44.01 TFLOPS
+  tiles=( 64, 64,128)     0.423 ms    40.61 TFLOPS
+  tiles=( 64,128, 32)     0.384 ms    44.77 TFLOPS
+  tiles=( 64,128, 64)     0.412 ms    41.72 TFLOPS
+  tiles=( 64,128,128)     0.354 ms    48.60 TFLOPS
+  tiles=(128, 32, 32)     0.499 ms    34.40 TFLOPS
+  tiles=(128, 32, 64)     0.466 ms    36.87 TFLOPS
+  tiles=(128, 32,128)     0.506 ms    33.97 TFLOPS
+  tiles=(128, 64, 32)     0.405 ms    42.43 TFLOPS
+  tiles=(128, 64, 64)     0.426 ms    40.35 TFLOPS
+  tiles=(128, 64,128)     0.364 ms    47.16 TFLOPS
+  tiles=(128,128, 32)     0.438 ms    39.25 TFLOPS
+  tiles=(128,128, 64)     0.348 ms    49.30 TFLOPS
+  tiles=(128,128,128)     0.751 ms    22.89 TFLOPS
+  -> best tile shape 2048^3: (128, 128, 64) - 49.30 TFLOPS
 
 === Task 4b - tile sweep (swizzled) bei 512^3 ===
-  tiles=( 32, 32, 32)     0.035 ms     7.68 TFLOPS
-  tiles=( 32, 32, 64)     0.031 ms     8.78 TFLOPS
-  tiles=( 32, 32,128)     0.032 ms     8.48 TFLOPS
-  tiles=( 32, 64, 32)     0.029 ms     9.41 TFLOPS
-  tiles=( 32, 64, 64)     0.028 ms     9.53 TFLOPS
-  tiles=( 32, 64,128)     0.028 ms     9.68 TFLOPS
-  tiles=( 32,128, 32)     0.028 ms     9.59 TFLOPS
-  tiles=( 32,128, 64)     0.026 ms    10.21 TFLOPS
-  tiles=( 32,128,128)     0.026 ms    10.14 TFLOPS
-  tiles=( 64, 32, 32)     0.029 ms     9.33 TFLOPS
-  tiles=( 64, 32, 64)     0.028 ms     9.64 TFLOPS
-  tiles=( 64, 32,128)     0.028 ms     9.68 TFLOPS
-  tiles=( 64, 64, 32)     0.028 ms     9.75 TFLOPS
-  tiles=( 64, 64, 64)     0.026 ms    10.16 TFLOPS
-  tiles=( 64, 64,128)     0.027 ms     9.83 TFLOPS
-  tiles=( 64,128, 32)     0.024 ms    11.19 TFLOPS
-  tiles=( 64,128, 64)     0.023 ms    11.85 TFLOPS
-  tiles=( 64,128,128)     0.025 ms    10.90 TFLOPS
-  tiles=(128, 32, 32)     0.028 ms     9.63 TFLOPS
-  tiles=(128, 32, 64)     0.028 ms     9.63 TFLOPS
-  tiles=(128, 32,128)     0.031 ms     8.68 TFLOPS
-  tiles=(128, 64, 32)     0.023 ms    11.67 TFLOPS
-  tiles=(128, 64, 64)     0.023 ms    11.72 TFLOPS
-  tiles=(128, 64,128)     0.023 ms    11.57 TFLOPS
-  tiles=(128,128, 32)     0.029 ms     9.12 TFLOPS
-  tiles=(128,128, 64)     0.025 ms    10.63 TFLOPS
-  tiles=(128,128,128)     0.046 ms     5.78 TFLOPS
-  -> best tile shape 512^3: (64, 128, 64) - 11.85 TFLOPS
+  tiles=( 32, 32, 32)     0.037 ms     7.20 TFLOPS
+  tiles=( 32, 32, 64)     0.033 ms     8.05 TFLOPS
+  tiles=( 32, 32,128)     0.034 ms     7.89 TFLOPS
+  tiles=( 32, 64, 32)     0.032 ms     8.40 TFLOPS
+  tiles=( 32, 64, 64)     0.029 ms     9.12 TFLOPS
+  tiles=( 32, 64,128)     0.030 ms     9.07 TFLOPS
+  tiles=( 32,128, 32)     0.030 ms     9.03 TFLOPS
+  tiles=( 32,128, 64)     0.028 ms     9.51 TFLOPS
+  tiles=( 32,128,128)     0.029 ms     9.24 TFLOPS
+  tiles=( 64, 32, 32)     0.032 ms     8.37 TFLOPS
+  tiles=( 64, 32, 64)     0.030 ms     8.80 TFLOPS
+  tiles=( 64, 32,128)     0.030 ms     9.01 TFLOPS
+  tiles=( 64, 64, 32)     0.029 ms     9.18 TFLOPS
+  tiles=( 64, 64, 64)     0.028 ms     9.54 TFLOPS
+  tiles=( 64, 64,128)     0.029 ms     9.30 TFLOPS
+  tiles=( 64,128, 32)     0.026 ms    10.36 TFLOPS
+  tiles=( 64,128, 64)     0.026 ms    10.32 TFLOPS
+  tiles=( 64,128,128)     0.027 ms     9.96 TFLOPS
+  tiles=(128, 32, 32)     0.031 ms     8.70 TFLOPS
+  tiles=(128, 32, 64)     0.029 ms     9.20 TFLOPS
+  tiles=(128, 32,128)     0.032 ms     8.28 TFLOPS
+  tiles=(128, 64, 32)     0.026 ms    10.51 TFLOPS
+  tiles=(128, 64, 64)     0.024 ms    11.06 TFLOPS
+  tiles=(128, 64,128)     0.025 ms    10.62 TFLOPS
+  tiles=(128,128, 32)     0.033 ms     8.22 TFLOPS
+  tiles=(128,128, 64)     0.026 ms    10.26 TFLOPS
+  tiles=(128,128,128)     0.046 ms     5.83 TFLOPS
+  -> best tile shape 512^3: (128, 64, 64) - 11.06 TFLOPS
 
 === Task 4b - Summary tile sweep ===
-  best @ 2048^3: tiles=(128, 128, 64)  50.98 TFLOPS
-  best @  512^3: tiles=(64, 128, 64)  11.85 TFLOPS
+  best @ 2048^3: tiles=(128, 128, 64)  49.30 TFLOPS
+  best @  512^3: tiles=(128, 64, 64)  11.06 TFLOPS
 
 === Task 4b -  8192 x 8192 x 4096 ===
-  Row-major: 40.505 ms  -> 13.57 TFLOPS
-  Swizzled:  9.290 ms  ->  59.18 TFLOPS
-  Speedup:   4.36x
+  Row-major: 40.330 ms  -> 13.63 TFLOPS
+  Swizzled:  9.315 ms  ->  59.02 TFLOPS
+  Speedup:   4.33x

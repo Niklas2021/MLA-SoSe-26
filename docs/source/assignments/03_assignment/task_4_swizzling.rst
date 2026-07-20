@@ -26,7 +26,7 @@ Teilaufgabe a) – Das Swizzle-Mapping
 Aufeinander folgende Blöcke laufen in
 derselben Zeile und brauchen jeweils eine andere B-Spalte. Jede B-Spalte wird
 also nur einmal gebraucht und dann nicht nochmal, bevor sie aus L2 entfernt wird.
-Bei 8192³ ist allein 1 B-Spalte ``8192 × 4096 × 2 Byte ≈ 64 MB`` groß, das geht schon über L2-Cache Größe. Jeder Block lädt seine B-Spalte frisch aus HBM.
+Bei ``8192×8192×4096`` ist allein 1 B-Spalte ``8192 × 4096 × 2 Byte ≈ 64 MB`` groß, das geht schon über L2-Cache Größe. Jeder Block lädt seine B-Spalte frisch aus HBM.
 
 **Die Idee hinter dem Swizzle:**
 
@@ -77,17 +77,23 @@ fertig sind
 
 **Wie ``group_size`` bestimmt wird:**
 
-``group_size`` soll so groß sein, dass das alle Daten einer Gruppe
-in L2-Cache passen. Ein Stripe" besteht aus einem A-Tile (``K × m_tile`` Elemente)
-und einem B-Tile (``K × n_tile`` Elemente):
+``group_size`` soll so groß sein, dass alle Daten einer Gruppe in den L2-Cache
+passen. Ein "Stripe" besteht aus einem A-Tile (``K × m_tile`` Elemente) und
+einem B-Tile (``K × n_tile`` Elemente):
 
 .. code-block:: python
 
+   usable_bytes = int(l2_bytes * L2_USABLE_FRAC)   # 0.8
    stripe_bytes = K * (m_tile + n_tile) * bytes_per_element
-   group_size   = l2_bytes // stripe_bytes
+   group_size   = usable_bytes // stripe_bytes
 
-Falls nicht mal ein einzelner stripe reinpasst (sehr großes K oder Tiles),
-wird ``group_size = 1`` gesetzt, das entspricht dann exakt row-major.
+Mit ``L2_USABLE_FRAC = 0.8`` bleiben 20 % Reserve für anderen Traffic. Dadurch
+wird die ``group_size`` nicht mit unrealistisch vollständig verfügbarem L2
+berechnet.
+
+Falls nicht mal ein einzelner Stripe in den nutzbaren L2 passt (sehr großes K
+oder große Tiles), wird ``group_size = 1`` gesetzt, das entspricht dann exakt
+row-major.
 
 **Verification:**
 
@@ -115,8 +121,8 @@ Programmausgabe
 Tile Sweep – Ergebnisse
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Beste Konfiguration bei ``2048³``: ``(128, 128, 64)`` → **50.98 TFLOPS**.
-Beste Konfiguration bei ``512³``: ``(64, 128, 64)`` → **11.85 TFLOPS**.
+Beste Konfiguration bei ``2048³``: ``(128, 128, 64)`` → **49.30 TFLOPS**.
+Beste Konfiguration bei ``512³``: ``(128, 64, 64)`` → **11.06 TFLOPS**.
 
 
 Vergleich Swizzled vs. Row-major bei ``8192 × 8192 × 4096``
@@ -124,12 +130,11 @@ Vergleich Swizzled vs. Row-major bei ``8192 × 8192 × 4096``
 
 .. code-block:: text
 
-   Row-major: 40.505 ms  ->  13.57 TFLOPS
-   Swizzled:   9.290 ms  ->  59.18 TFLOPS
-   Speedup:    4.36x
+   Row-major: 40.330 ms  ->  13.63 TFLOPS
+   Swizzled:   9.315 ms  ->  59.02 TFLOPS
+   Speedup:    4.33x
 
 Der Swizzle fasst genug Zeilen-Blöcke zu einer Gruppe zusammen, damit die
 B-Spalte noch im L2 liegt, wenn der nächste Block in der Gruppe sie braucht.
 Das reduziert HBM Datentransfer
-
 

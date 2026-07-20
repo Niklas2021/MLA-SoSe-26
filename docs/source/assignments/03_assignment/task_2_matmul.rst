@@ -77,11 +77,10 @@ hätten wir bei großen ``K`` deutliche Genauigkeitsprobleme.
 
 Pro Iteration laden wir ein ``(m_tile, k_tile)``-Tile aus ``A`` und ein
 ``(k_tile, n_tile)``-Tile aus ``B``, und übergeben die zwei Tiles plus
-den Akku an ``ct.mma``. Das ist die High-Level-API aus Folie 11 – unter
-der Haube wird daraus eine einzige Tensor-Core-MMA-Instruktion
-(``D = A @ B + C``). Genau das löst auch die Probleme aus Folie 5:
-mehrere Threads laden nicht mehr unnötig die gleichen A/B-Elemente,
-und die Reduktion läuft nicht mehr Element-für-Element ab.
+den Akku an ``ct.mma`` (``D = A @ B + C``). Die Anzahl der erzeugten
+Tensor-Core-Instruktionen hängt von der Tile-Shape ab; ein großes Tile kann in
+mehrere Hardware-MMAs zerlegt werden. ``ct.mma`` vermeidet trotzdem redundante
+Loads und eine elementweise Reduktion.
 
 **Store des Output-Tiles:**
 

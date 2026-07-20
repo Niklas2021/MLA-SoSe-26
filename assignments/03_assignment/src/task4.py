@@ -14,6 +14,10 @@ from task2 import matmul as matmul_rowmajor
 from task3 import tflops
 
 
+# 20 % L2-Reserve fuer weiteren Traffic lassen.
+L2_USABLE_FRAC = 0.8
+
+
 # a)
 @ct.kernel
 def kernel_swizzled(a, b, c, num_row_tiles,
@@ -48,18 +52,19 @@ def kernel_swizzled(a, b, c, num_row_tiles,
 
 def compute_group_size(K, m_tile, n_tile, bytes_per_element):
     l2_bytes = cp.cuda.Device().attributes["L2CacheSize"]
-    stripe_bytes = K * (m_tile + n_tile) * bytes_per_element 
+    usable_bytes = int(l2_bytes * L2_USABLE_FRAC)
+    stripe_bytes = K * (m_tile + n_tile) * bytes_per_element
 
-    # if even a stripe doesnt fit into L2 -> group_size will be 1 and its the same as having row-major order
-    if stripe_bytes > l2_bytes:
+    # if even a stripe doesnt fit into the usable L2 -> group_size will be 1 and its the same as having row-major order
+    if stripe_bytes > usable_bytes:
         print(
             f"WARNING! Stripe ({stripe_bytes/1024:.1f} KB) "
-            f"doesnt fit into L2 Cache ({l2_bytes/1024:.1f} KB) "
+            f"doesnt fit into usable L2 ({usable_bytes/1024:.1f} KB of {l2_bytes/1024:.1f} KB) "
             f"Swizzle has no effect - group_size=1"
         )
         return 1
     else:
-        return l2_bytes // stripe_bytes
+        return usable_bytes // stripe_bytes
     
 def run_task4a():
     torch.cuda.init()

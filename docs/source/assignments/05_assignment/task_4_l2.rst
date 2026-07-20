@@ -249,8 +249,8 @@ also ~60–100 TFLOPS für gut getunte Kernel.
 
 Vergleich mit unseren Messungen aus Assignment 03 (gleiche Hardware):
 
-* Square Matmul ``2048³`` swizzled: **50.98 TFLOPS** (Task 4)
-* ``8192³`` swizzled: **59.18 TFLOPS** (Task 4)
+* Square Matmul ``2048³`` swizzled: **49.30 TFLOPS** (Task 4)
+* ``8192×8192×4096`` swizzled: **59.02 TFLOPS** (Task 4)
 
 Unsere ``66.10 TFLOPS`` bei ``4096³`` mit Variante A liegt damit über
 den Werten aus Assignment 03 und entspricht ungefähr 50 % der

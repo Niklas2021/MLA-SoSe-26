@@ -34,12 +34,10 @@ schreibt ihren 256-Elemente-Block an Offset ``y·256`` in den gemeinsamen
 Layout-Wechsel ``ypqmn`` → ``ypmqn``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Die ``y``-Dimension wird **allein durch die Join-Offsets** realisiert (vier
-gestapelte 256-Blöcke). Die ``dimensionsToStream`` von ``@out_L2L3_x`` (Typ
-``memref<64x16xbf16>``) darf daher **nicht** über die Join-Grenze hinweg
-umordnen — der Verifier prüft den Zugriff pro Join-Input (Länge 256). Sie
-beschreibt deshalb nur den ``pqmn`` → ``pmqn``-Reorder **innerhalb eines
-256-Blocks** und ist damit identisch zur Single-Tile-``L2L3`` aus Assignment 09:
+Der Join erzeugt im Memory-Tile ``ypqmn``. Der gemeinsame FIFO-Typ
+``memref<4x16x16xbf16>`` beschreibt ``y(pm)(qn)``. ``y`` wird in
+``dimensionsToStream`` **nicht angegeben und nicht mit ``p`` verschmolzen**;
+die Einträge ordnen nur innerhalb jedes ``y``-Blocks ``pqmn`` → ``pmqn`` um:
 
 .. list-table::
    :header-rows: 1
@@ -61,16 +59,8 @@ beschreibt deshalb nur den ``pqmn`` → ``pmqn``-Reorder **innerhalb eines
      -
 
 Der maximale Zugriffsindex ist ``1·128 + 7·8 + 1·64 + 7 = 255`` — also innerhalb
-eines Inputs. Die vier so umgeordneten ``pmqn``-Blöcke werden vom Join an den
-Offsets ``0/256/512/768`` gestapelt; der resultierende Stream ist ``ypmqn``.
-
-.. note::
-
-   Ein erster Versuch fasste ``y`` und ``p`` zur Außendimension ``yp``
-   (``<8, 128>``) zusammen. Das übersetzt sich syntaktisch, scheitert aber im
-   Join-Verifier (*„out of bounds access in join input, for index 1023 in
-   transfer of length 256"*), weil die ``y``-Achse die Join-Achse ist und nicht
-   gleichzeitig in der ``dimensionsToStream`` auftauchen darf.
+eines Join-Inputs. Für jedes unverändert äußere ``y`` wird damit ein
+``pmqn``-Block gestreamt; erst auf dem Stream ergibt sich folglich ``ypmqn``.
 
 Output-Shim-DMA
 ~~~~~~~~~~~~~~~~
@@ -104,20 +94,16 @@ Basis: ``x·16·128 = x·2048`` (``M``-Streifen der Spalte), ``a``-Sprung
 volle ``256×128``-Matrix, überlappungsfrei. Die ``out``-IDs sind ``0`` (a=0) und
 ``8`` (a=1).
 
-Barrieren
-~~~~~~~~~
+Synchronisation
+~~~~~~~~~~~~~~~
 
-Zwischen dem ``a=0``- und dem ``a=1``-Block steht eine **Block-Barriere**: je ein
-``aiex.npu.dma_wait`` auf alle acht ``@out_L2L3_<x>``. Sie ist nicht optional —
-ohne sie blieb die gesamte ``a=1``-Hälfte des Outputs **exakt null**: der zweite
-``dma_memcpy_nd`` auf dieselbe ObjectFIFO (für ``a=1``) wird ohne dazwischen
-liegendes ``dma_wait`` nicht korrekt nachgeladen, der Core blockiert nach
-``a=0``, und das finale ``dma_wait`` ist bereits durch ``a=0`` erfüllt (kein
-Hang, aber falsches Ergebnis). Die Barriere entspricht dem Block-Schema aus
-Assignment 09.
+Zwischen den Deskriptoren für ``a=0`` und ``a=1`` ist keine Barriere nötig.
+Beide Blöcke verwenden unterschiedliche BD-IDs (``0/1/2`` beziehungsweise
+``8/9/10``) und werden nacheinander an die DMA-Queues übergeben.
 
-Am Ende der Sequenz wartet erneut je ein ``aiex.npu.dma_wait`` auf alle acht
-``@out_L2L3_<x>``. Erst danach sind alle Spalten-Outputs in L3 gültig lesbar.
+Jede Output-FIFO erhält zwei Transfers. Daher stehen am Sequenzende zwei
+Runden mit je acht ``dma_wait``. Sie warten beide Output-Hälften ab, ohne eine
+Barriere zwischen ``a=0`` und ``a=1`` zu bilden.
 
 Output-FIFOs und Joins (Auszug):
 

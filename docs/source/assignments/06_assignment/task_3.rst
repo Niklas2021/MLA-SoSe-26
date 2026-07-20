@@ -41,6 +41,10 @@ Parameter     Wert    Begründung
 ``prim_k`` dient. ``s`` (Größe 64) bleibt als einzige ``SEQ``-Dimension (K-Loop
 im Kernel).
 
+Die L2-Faktoren ``m_l2=2`` und ``n_l2=3`` sind eher klein gewählt. Größere
+Werte könnten mehr Wiederverwendung ermöglichen, müssten aber neu vermessen
+werden; deshalb bleibt die vorhandene Konfiguration unverändert.
+
 Optimizer-Schritte
 ^^^^^^^^^^^^^^^^^^
 

@@ -1,9 +1,11 @@
 import sys
-import os
+from pathlib import Path
 
 # 06/src immer an Position 0, damit task2/task3 aus 06 (nicht 05) geladen werden
-_src06 = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, _src06)
+_src06 = Path(__file__).resolve().parent
+sys.path.insert(0, str(_src06))
+
+DATA_PATH = Path(__file__).resolve().parent.parent / 'data' / 'lf_tr_64_intermediate.npz'
 
 import cuda.tile as ct
 import numpy as np
@@ -82,7 +84,7 @@ def run_kernel(A, B):
 def task4():
     print("=== Task 4 ===")
 
-    data = np.load(os.path.join(os.path.dirname(__file__), '../data/lf_tr_64_intermediate.npz'))
+    data = np.load(DATA_PATH)
     A = torch.tensor(data['tensor_acspx'], dtype=torch.float16, device='cuda')
     B = torch.tensor(data['tensor_bspy'],  dtype=torch.float16, device='cuda')
 

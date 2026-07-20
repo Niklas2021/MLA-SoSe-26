@@ -2,6 +2,12 @@ import numpy as np
 import torch
 import opt_einsum # unused but required for torch.einsum memory optimization
 import matplotlib.pyplot as plt
+from pathlib import Path
+
+
+ASSIGNMENT_DIR = Path(__file__).resolve().parent.parent
+DATA_PATH = ASSIGNMENT_DIR / 'data' / 'lf_tr_64_intermediate.npz'
+RESULTS_DIR = ASSIGNMENT_DIR / 'results'
 
 def plot_tensor(
     tensor,
@@ -36,7 +42,8 @@ def plot_tensor(
 if __name__ == "__main__":
     # Load last two intermediate tensors from disk
     print("Loading intermediate tensors from disk...")
-    data = np.load('./data/lf_tr_64_intermediate.npz')
+    data = np.load(DATA_PATH)
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     # convert to torch tensors & move to GPU: float32
     tensor_acspx = torch.tensor(data['tensor_acspx'],
@@ -60,13 +67,13 @@ if __name__ == "__main__":
 
     plot_tensor(
         abcyx_fp32.cpu(),
-        path='results/torch_32.png',
+        path=RESULTS_DIR / 'torch_32.png',
         title='Lightfield Tensorring Decomposition: FP32'
     )
 
     plot_tensor(
         abcyx_fp16.cpu(),
-        path='results/torch_16.png',
+        path=RESULTS_DIR / 'torch_16.png',
         title='Lightfield Tensorring Decomposition: FP16'
     )
 

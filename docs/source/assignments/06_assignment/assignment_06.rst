@@ -6,6 +6,13 @@ Lichtfeld-Tensor-Ring-Zerlegung – zuerst als Referenz mit ``torch.einsum``,
 dann mit einem selbst geschriebenen cuTile-Kernel, der durch die
 ``Config``/``Optimizer``-Schnittstelle aus Assignment 05 konfiguriert wird.
 
+Portable Pfadauflösung
+----------------------
+
+Pfade zu ``data/``, ``results/`` und ``05_assignment/src`` werden mit
+``Path(__file__)`` relativ zur jeweiligen Quelldatei gebildet. Die Skripte
+funktionieren dadurch unabhängig vom aktuellen Arbeitsverzeichnis.
+
 Jede Task-Seite enthält:
 
 1. die Aufgabenstellung,

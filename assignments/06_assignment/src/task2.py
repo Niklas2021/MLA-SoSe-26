@@ -1,17 +1,17 @@
 import sys
-import os
 import importlib.util
+from pathlib import Path
 
 # generate_config aus 05/task2 via importlib laden (Namenskonflikt mit dieser Datei vermeiden)
-_src05 = '/home/mla03/build/05_assignment/src'
-_src06 = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, _src05)
-_spec = importlib.util.spec_from_file_location('a05_task2', os.path.join(_src05, 'task2.py'))
+_src06 = Path(__file__).resolve().parent
+_src05 = _src06.parent.parent / '05_assignment' / 'src'
+sys.path.insert(0, str(_src05))
+_spec = importlib.util.spec_from_file_location('a05_task2', _src05 / 'task2.py')
 _mod = importlib.util.module_from_spec(_spec)
 sys.modules['a05_task2'] = _mod
 _spec.loader.exec_module(_mod)
 generate_config = _mod.generate_config
-sys.path.insert(0, _src06)  # 06/src nach 05-Import wieder nach vorne
+sys.path.insert(0, str(_src06))  # 06/src nach 05-Import wieder nach vorne
 
 
 # Tensorformen aus den Daten (lf_tr_64_intermediate.npz)
